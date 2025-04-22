@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+  --accent-gold: #ffd700;
+  --accent-blue: #1e90ff;
+  --accent-blue-glow: #1e90ff80;
+  --accent-purple: #9d4edd;
+  --accent-purple-glow: #9d4edd80;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent-gold: var(--accent-gold);
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-blue-glow: var(--accent-blue-glow);
+  --color-accent-purple: var(--accent-purple);
+  --color-accent-purple-glow: var(--accent-purple-glow);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+  overflow-x: hidden;
+}
+
+@layer utilities {
+  .text-glow {
+    text-shadow: 0 0 10px var(--accent-blue-glow), 0 0 20px var(--accent-blue-glow);
+  }
+  
+  .text-glow-purple {
+    text-shadow: 0 0 10px var(--accent-purple-glow), 0 0 20px var(--accent-purple-glow);
+  }
+  
+  .gold-border {
+    border-color: var(--accent-gold);
+  }
+  
+  .cosmic-gradient {
+    background: linear-gradient(135deg, #000000, #0a0a2a, #000000);
+  }
+  
+  .cosmic-gradient-animated {
+    background: linear-gradient(135deg, #000000, #0a0a2a, #000000);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+  }
+  
+  .star-bg {
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+  
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .gold-gradient {
+    background: linear-gradient(90deg, #ffd700, #f8c630, #ffd700);
+    background-size: 200% 200%;
+    animation: gradient 5s ease infinite;
+  }
+  
+  .blue-purple-gradient {
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+    background-size: 200% 200%;
+    animation: gradient 5s ease infinite;
+  }
+  
+  .hover-scale {
+    transition: transform 0.3s ease;
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.05);
+  }
+  
+  .card-shadow {
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+  }
+  
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+    100% {
+      transform: translateY(0px);
+    }
+  }
+  
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+}
