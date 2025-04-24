@@ -6,6 +6,7 @@ import 'package:lottie/lottie.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:package_info_plus/package_info_plus.dart';
 import '../core/constants.dart';
 import '../config/theme.dart';
 import '../config/routes.dart';
@@ -24,6 +25,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
   
+  // Version information
+  String _version = 'v0.0.2';
+  
   // For the shimmering effect
   final List<Color> _shimmerColors = [
     Colors.transparent,
@@ -40,6 +44,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
+    
+    // Get app version information
+    _getVersionInfo();
     
     // Main animation controller for the logo and text
     _animationController = AnimationController(
@@ -85,6 +92,21 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     _pulseController.dispose();
     _rotationController.dispose();
     super.dispose();
+  }
+
+  // Get version information from package info
+  Future<void> _getVersionInfo() async {
+    try {
+      final PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      setState(() {
+        _version = 'v${packageInfo.version}';
+      });
+    } catch (e) {
+      // Use default version if package info fails
+      setState(() {
+        _version = 'v0.0.2';
+      });
+    }
   }
 
   Future<void> _navigateToNextScreen() async {
@@ -278,6 +300,21 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
               )
               .animate()
               .fadeIn(delay: 800.ms, duration: 500.ms),
+              
+              // Version number at the bottom
+              Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: Text(
+                  _version,
+                  style: GoogleFonts.inter(
+                    color: Colors.white.withOpacity(0.6),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              )
+              .animate()
+              .fadeIn(delay: 1000.ms, duration: 500.ms),
             ],
           )),
         ],

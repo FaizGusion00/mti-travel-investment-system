@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../config/theme.dart';
 import '../config/routes.dart';
 import '../shared/widgets/bottom_nav_bar.dart';
@@ -16,12 +17,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDarkMode = true;
   String _selectedCurrency = 'USD';
   String _selectedLanguage = 'English';
+  String _appVersion = 'v0.0.2';
   
   // Profile information
   final TextEditingController _nameController = TextEditingController(text: 'John Doe');
   final TextEditingController _emailController = TextEditingController(text: 'john.doe@example.com');
   final TextEditingController _phoneController = TextEditingController(text: '+1 234 567 8900');
   
+  @override
+  void initState() {
+    super.initState();
+    _getAppVersion();
+  }
+  
+  Future<void> _getAppVersion() async {
+    try {
+      final PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      setState(() {
+        _appVersion = 'v${packageInfo.version}';
+      });
+    } catch (e) {
+      // Use default version if package info fails
+      setState(() {
+        _appVersion = 'v0.0.2';
+      });
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -92,6 +114,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               
+              // App version
+              _buildSettingItem(
+                'App Version',
+                Icons.info_outline,
+                onTap: () {
+                  // Show version info dialog
+                  Get.dialog(
+                    AlertDialog(
+                      backgroundColor: AppTheme.secondaryBackgroundColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      title: const Text('App Version', style: TextStyle(color: Colors.white)),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Image.asset(
+                            'assets/images/mti_logo.png',
+                            width: 80,
+                            height: 80,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _appVersion,
+                            style: TextStyle(color: AppTheme.goldColor, fontSize: 18),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            '© 2025 MTI Travel Investment',
+                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Get.back(),
+                          child: Text('Close', style: TextStyle(color: AppTheme.goldColor)),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                trailing: Text(
+                  _appVersion,
+                  style: const TextStyle(
+                    color: AppTheme.tertiaryTextColor,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              
               const SizedBox(height: 24),
               _buildLogoutButton(),
             ],
@@ -117,7 +188,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ).animate().fadeIn(duration: 500.ms);
   }
 
-  Widget _buildSettingItem(String title, IconData icon, {required VoidCallback onTap}) {
+  Widget _buildSettingItem(
+    String title,
+    IconData icon,
+    {required VoidCallback onTap, Widget? trailing}
+  ) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -148,7 +223,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
-            const Icon(
+            const Spacer(),
+            trailing ?? const Icon(
               Icons.arrow_forward_ios,
               color: AppTheme.tertiaryTextColor,
               size: 16,
