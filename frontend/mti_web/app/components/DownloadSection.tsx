@@ -211,10 +211,10 @@ const DownloadSection = () => {
                         <div className="flex justify-between items-center mb-6">
                           <div>
                             <div className="text-white text-lg font-bold">Welcome back,</div>
-                            <div className="text-[var(--accent-gold)]">John Doe</div>
+                            <div className="text-[var(--accent-gold)]">Izz Nasir</div>
                           </div>
                           <div className="w-10 h-10 rounded-full bg-[var(--accent-gold)]/20 flex items-center justify-center">
-                            <span className="text-[var(--accent-gold)] font-bold">JD</span>
+                            <span className="text-[var(--accent-gold)] font-bold">FG</span>
                           </div>
                         </div>
                         

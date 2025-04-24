@@ -1,4 +1,4 @@
-package com.example.mti_app
+package com.mti.travel.investment
 
 import io.flutter.embedding.android.FlutterActivity
 
