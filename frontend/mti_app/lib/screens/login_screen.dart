@@ -9,6 +9,8 @@ import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 import '../core/constants.dart';
 import '../services/storage_service.dart';
+import '../services/api_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -26,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _captchaVerified = false;
   String _captchaToken = '';
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -82,31 +85,28 @@ class _LoginScreenState extends State<LoginScreen> {
         final email = _emailController.text.trim();
         final password = _passwordController.text;
         
-        // Here you would send the login request with the captcha token
-        // For now, we'll simulate a login API call
-        await Future.delayed(const Duration(seconds: 2));
+        // Use the API service to login with captcha token
+        final response = await _apiService.login(email, password, _captchaToken);
         
-        // Save credentials if "Remember Me" is checked
-        final storageService = StorageService();
-        await storageService.saveUserCredentials(
-          email: email,
-          password: password,
-          rememberMe: _rememberMe,
-        );
-        
-        // Save a dummy auth token (in a real app, this would come from the API)
-        await storageService.saveAuthToken('dummy-token-${DateTime.now().millisecondsSinceEpoch}');
-        
-        // Save dummy user data (in a real app, this would come from the API)
-        await storageService.saveUserData({
-          'id': '12345',
-          'email': email,
-          'name': 'MTI User',
-          'profilePicture': '',
-        });
-
-        // Navigate to home screen on successful login
-        Get.offAllNamed(AppRoutes.home);
+        if (response['success']) {
+          // Save credentials if "Remember Me" is checked
+          final storageService = StorageService();
+          await storageService.saveUserCredentials(
+            email: email,
+            password: password,
+            rememberMe: _rememberMe,
+          );
+          
+          // Navigate to home screen on successful login
+          Get.offAllNamed(AppRoutes.profile);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['message'] ?? 'Login failed'),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
+        }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -234,9 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     suffix: IconButton(
                       icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
+                        _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
                         color: AppTheme.tertiaryTextColor,
                       ),
                       onPressed: _togglePasswordVisibility,
@@ -249,9 +247,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     curve: Curves.easeOutQuad,
                   ),
                   
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   
-                  // Remember me and Forgot password
+                  // Remember Me & Forgot Password
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -264,27 +262,26 @@ class _LoginScreenState extends State<LoginScreen> {
                               value: _rememberMe,
                               onChanged: (value) {
                                 setState(() {
-                                  _rememberMe = value!;
+                                  _rememberMe = value ?? false;
                                 });
                               },
-                              activeColor: AppTheme.goldColor,
+                              activeColor: AppTheme.primaryColor,
                               checkColor: Colors.black,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               side: BorderSide(
-                                color: AppTheme.goldColor.withOpacity(0.5),
+                                color: AppTheme.tertiaryTextColor,
                                 width: 1.5,
                               ),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            "Remember me",
-                            style: GoogleFonts.inter(
+                            "Remember Me",
+                            style: TextStyle(
                               color: AppTheme.secondaryTextColor,
                               fontSize: 14,
-                              letterSpacing: 0.2,
                             ),
                           ),
                         ],
@@ -293,52 +290,100 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: () {
                           Get.toNamed(AppRoutes.forgotPassword);
                         },
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppTheme.goldColor,
-                        ),
                         child: Text(
                           "Forgot Password?",
-                          style: GoogleFonts.montserrat(
-                            color: AppTheme.goldColor,
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            letterSpacing: 0.2,
                           ),
                         ),
                       ),
                     ],
-                  ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
+                  ).animate().fadeIn(delay: 400.ms, duration: 500.ms).slideY(
+                    begin: 0.2,
+                    end: 0,
+                    delay: 400.ms,
+                    duration: 500.ms,
+                    curve: Curves.easeOutQuad,
+                  ),
                   
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
                   
-                  // Captcha placeholder - will be replaced with Cloudflare Turnstile in production
+                  // Captcha
                   Container(
                     width: double.infinity,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: AppTheme.secondaryBackgroundColor,
+                      color: AppTheme.cardColor,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppTheme.goldColor.withOpacity(0.3),
-                        width: 1,
+                        color: _captchaVerified
+                            ? AppTheme.successColor.withOpacity(0.5)
+                            : AppTheme.borderColor,
+                        width: 1.5,
                       ),
                     ),
-                    child: InkWell(
-                      onTap: () {
-                        // Simulate captcha verification for development
-                        // In production, this will be replaced with the actual Cloudflare Turnstile widget
-                        // using AppConstants.cloudflareProdSiteKey
-                        setState(() {
-                          _captchaVerified = true;
-                          _captchaToken = 'simulated-token-${DateTime.now().millisecondsSinceEpoch}';
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Captcha verified successfully'),
-                            backgroundColor: AppTheme.successColor,
-                          ),
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        // Create a custom screen that properly displays and handles the captcha
+                        final token = await Get.to(() => 
+                          Scaffold(
+                            appBar: AppBar(
+                              title: const Text('Captcha Verification'),
+                              backgroundColor: AppTheme.backgroundColor,
+                              leading: IconButton(
+                                icon: const Icon(Icons.arrow_back),
+                                onPressed: () => Get.back(),
+                              ),
+                            ),
+                            body: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text(
+                                    'Please complete the verification',
+                                    style: TextStyle(
+                                      color: AppTheme.primaryTextColor,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  CloudflareTurnstile(
+                                    siteKey: AppConstants.useCloudflareTestKey
+                                        ? AppConstants.cloudflareTestSiteKey
+                                        : AppConstants.cloudflareProdSiteKey,
+                                    onTokenReceived: (token) {
+                                      // Return the token to the previous screen
+                                      Get.back(result: token);
+                                    },
+                                  ),
+                                  const SizedBox(height: 20),
+                                  ElevatedButton(
+                                    onPressed: () => Get.back(),
+                                    child: const Text('Cancel'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
                         );
+                        
+                        if (token != null) {
+                          setState(() {
+                            _captchaToken = token;
+                            _captchaVerified = true;
+                          });
+                        }
                       },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                       child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -390,34 +435,91 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
+                      const Text(
                         "Don't have an account?",
-                        style: GoogleFonts.inter(
+                        style: TextStyle(
                           color: AppTheme.secondaryTextColor,
                           fontSize: 14,
-                          letterSpacing: 0.2,
                         ),
                       ),
                       TextButton(
                         onPressed: () {
-                          Get.toNamed(AppRoutes.register);
+                          final Uri registrationUrl = Uri.parse(AppConstants.registrationUrl);
+                          // Open in web browser
+                          // Use URL launcher package to open the web registration
+                          Get.dialog(
+                            AlertDialog(
+                              backgroundColor: AppTheme.cardColor,
+                              title: const Text(
+                                "Register on Website",
+                                style: TextStyle(
+                                  color: AppTheme.primaryTextColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              content: Text(
+                                "Registration is now available on our website. Please visit ${AppConstants.registrationUrl} to create an account.",
+                                style: const TextStyle(
+                                  color: AppTheme.secondaryTextColor,
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Get.back(),
+                                  child: const Text(
+                                    "Cancel",
+                                    style: TextStyle(
+                                      color: AppTheme.tertiaryTextColor,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Get.back();
+                                    // Implement URL launching
+                                    try {
+                                      launchUrl(
+                                        Uri.parse(AppConstants.registrationUrl),
+                                        mode: LaunchMode.externalApplication,
+                                      );
+                                    } catch (e) {
+                                      Get.snackbar(
+                                        "Error",
+                                        "Could not open website. Please visit ${AppConstants.registrationUrl} manually.",
+                                        backgroundColor: AppTheme.errorColor.withOpacity(0.7),
+                                        colorText: Colors.white,
+                                      );
+                                    }
+                                  },
+                                  child: const Text(
+                                    "Visit Website",
+                                    style: TextStyle(
+                                      color: AppTheme.primaryColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
                         },
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppTheme.goldColor,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                        ),
-                        child: Text(
+                        child: const Text(
                           "Register",
-                          style: GoogleFonts.montserrat(
-                            color: AppTheme.goldColor,
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            letterSpacing: 0.2,
                           ),
                         ),
                       ),
                     ],
-                  ).animate().fadeIn(delay: 700.ms, duration: 500.ms),
+                  ).animate().fadeIn(delay: 600.ms, duration: 500.ms).slideY(
+                    begin: 0.2,
+                    end: 0,
+                    delay: 600.ms,
+                    duration: 500.ms,
+                    curve: Curves.easeOutQuad,
+                  ),
                 ],
               ),
             ),

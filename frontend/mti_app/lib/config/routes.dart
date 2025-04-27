@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 // Import screens
 import '../screens/splash_screen.dart';
 import '../screens/login_screen.dart';
-import '../screens/register_screen.dart';
 import '../screens/forgot_password_screen.dart';
 import '../screens/email_verification_screen.dart';
 import '../screens/home_screen.dart';
@@ -23,7 +22,6 @@ class AppRoutes {
   // Route names
   static const String splash = '/splash';
   static const String login = '/login';
-  static const String register = '/register';
   static const String forgotPassword = '/forgot-password';
   static const String emailVerification = '/email-verification';
   static const String home = '/home';
@@ -38,98 +36,64 @@ class AppRoutes {
   static const String redeem = '/redeem';
 
   // Route map for GetX
-  static final routes = [
+  static List<GetPage> routes = [
+    GetPage(name: splash, page: () => const SplashScreen()),
+    GetPage(name: login, page: () => const LoginScreen()),
+    GetPage(name: forgotPassword, page: () => const ForgotPasswordScreen()),
     GetPage(
-      name: splash,
-      page: () => const SplashScreen(),
-      transition: Transition.fadeIn,
-    ),
-    GetPage(
-      name: login,
-      page: () => const LoginScreen(),
-      transition: Transition.rightToLeft,
-    ),
-    GetPage(
-      name: register,
-      page: () => const RegisterScreen(),
-      transition: Transition.rightToLeft,
-    ),
-    GetPage(
-      name: forgotPassword,
-      page: () => const ForgotPasswordScreen(),
-      transition: Transition.rightToLeft,
-    ),
-    GetPage(
-      name: emailVerification,
+      name: emailVerification, 
       page: () => const EmailVerificationScreen(),
       transition: Transition.rightToLeft,
     ),
     GetPage(
-      name: home,
-      page: () => const MainNavigationScreen(initialIndex: 0),
+      name: home, 
+      page: () => const MainNavigationScreen(),
       transition: Transition.fadeIn,
     ),
     GetPage(
-      name: profile,
+      name: profile, 
       page: () => const ProfileScreen(),
       transition: Transition.rightToLeft,
     ),
     GetPage(
-      name: network,
-      page: () => const MainNavigationScreen(initialIndex: 2),
-      transition: Transition.fadeIn,
+      name: network, 
+      page: () => const NetworkScreen(),
+      transition: Transition.rightToLeft,
     ),
     GetPage(
-      name: notification,
+      name: notification, 
       page: () => const NotificationScreen(),
       transition: Transition.rightToLeft,
     ),
     GetPage(
-      name: settings,
+      name: settings, 
       page: () => const SettingsScreen(),
       transition: Transition.rightToLeft,
     ),
     GetPage(
-      name: deposit,
+      name: deposit, 
       page: () => const DepositScreen(),
       transition: Transition.rightToLeft,
     ),
     GetPage(
-      name: withdraw,
+      name: withdraw, 
       page: () => const WithdrawScreen(),
       transition: Transition.rightToLeft,
     ),
     GetPage(
-      name: accounts,
-      page: () => const MainNavigationScreen(initialIndex: 1),
-      transition: Transition.fadeIn,
+      name: accounts, 
+      page: () => const AccountsScreen(),
+      transition: Transition.rightToLeft,
     ),
     GetPage(
-      name: travel,
-      page: () => const MainNavigationScreen(initialIndex: 3),
-      transition: Transition.fadeIn,
+      name: travel, 
+      page: () => const TravelScreen(),
+      transition: Transition.rightToLeft,
     ),
     GetPage(
-      name: redeem,
-      page: () => const MainNavigationScreen(initialIndex: 4),
-      transition: Transition.fadeIn,
+      name: redeem, 
+      page: () => const RedeemScreen(),
+      transition: Transition.rightToLeft,
     ),
   ];
-  
-  // Route map for MaterialApp
-  static final Map<String, WidgetBuilder> materialRoutes = {
-    splash: (context) => const SplashScreen(),
-    login: (context) => const LoginScreen(),
-    register: (context) => const RegisterScreen(),
-    forgotPassword: (context) => const ForgotPasswordScreen(),
-    emailVerification: (context) => const EmailVerificationScreen(),
-    home: (context) => const HomeScreen(),
-    profile: (context) => const ProfileScreen(),
-    network: (context) => const NetworkScreen(),
-    notification: (context) => const NotificationScreen(),
-    settings: (context) => const SettingsScreen(),
-    accounts: (context) => const AccountsScreen(),
-    travel: (context) => const TravelScreen(),
-    redeem: (context) => const RedeemScreen(),
-  };
 }

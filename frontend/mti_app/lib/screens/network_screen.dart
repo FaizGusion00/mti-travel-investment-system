@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../config/theme.dart';
 import '../shared/widgets/bottom_nav_bar.dart';
 import '../widgets/custom_button.dart';
+import 'dart:math';
 
 class NetworkScreen extends StatefulWidget {
   const NetworkScreen({Key? key}) : super(key: key);
@@ -459,23 +460,21 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                 ],
               ),
             ),
-            // Network visualization container with glass effect
-            Container(
-              height: MediaQuery.of(context).size.height - 180,
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.2),
+            
+            // Network visualization with scrolling capability
+            SizedBox(
+              height: MediaQuery.of(context).size.height - 220, // Fixed height with room for bottom nav
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppTheme.goldColor.withOpacity(0.15), width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.goldColor.withOpacity(0.05),
-                    blurRadius: 20,
-                    spreadRadius: 1,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppTheme.goldColor.withOpacity(0.15), width: 1),
                   ),
-                ],
+                  child: _buildNetworkTree(_getNetworkData()),
+                ),
               ),
-              padding: const EdgeInsets.all(16),
-              child: _buildNetworkTree(_getNetworkData()),
             ),
           ],
         ),
@@ -579,100 +578,372 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   }
 
   Widget _buildNetworkTree(Map<String, dynamic> rootNode) {
-    return Center(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Network legend
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calculate available width for the tree
+        final availableWidth = constraints.maxWidth;
+        // Calculate the widest level based on root node's children
+        double requiredWidth = 800.0; // Minimum width
+        if (rootNode['children'] != null) {
+          // Base width on deepest structure
+          int maxChildCount = 0;
+          for (var child in rootNode['children']) {
+            if (child['children'] != null) {
+              maxChildCount = max(maxChildCount, child['children'].length);
+            }
+          }
+          // Estimate required width based on structure
+          requiredWidth = max(rootNode['children'].length * 250.0, maxChildCount * 180.0 + 300);
+        }
+        
+        return SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          physics: const BouncingScrollPhysics(),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Container(
+              // Set minimum width to ensure scrolling works properly
+              width: max(availableWidth, requiredWidth), // Dynamically calculated width
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildLegendItem(Colors.green, "Active"),
-                  const SizedBox(width: 16),
-                  _buildLegendItem(Colors.red, "Inactive"),
+                  // Status legend
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    margin: const EdgeInsets.only(bottom: 30), // Increased spacing
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.goldColor.withOpacity(0.2), width: 1),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildLegendItem(Colors.green, "Active"),
+                        const SizedBox(width: 32),
+                        _buildLegendItem(Colors.red, "Inactive"),
+                      ],
+                    ),
+                  ),
+                  
+                  // Root node
+                  _buildNetworkNode(rootNode, isRoot: true),
+                  const SizedBox(height: 30), // Increased spacing
+                  
+                  // Connect to first level
+                  if (rootNode['children'].isNotEmpty) ...[
+                    _buildVerticalConnector(60), // Longer connector
+                    _buildFirstLevel(rootNode['children']),
+                  ],
                 ],
               ),
             ),
-            // Root node (current user)
-            _buildNetworkNode(rootNode, true),
-            
-            // Level 1 connector
-            if (rootNode['children'].isNotEmpty)
-              Container(
-                width: 2,
-                height: 30,
-                color: AppTheme.goldColor.withOpacity(0.7),
-              ),
-              
-            // Level 1 nodes with connecting lines
-            if (rootNode['children'].isNotEmpty)
+          ),
+        );
+      }
+    );
+  }
+
+  // Build first level of nodes
+  Widget _buildFirstLevel(List<dynamic> nodes) {
+    // Calculate appropriate width based on number of nodes
+    final double levelWidth = max(nodes.length * 250.0, 700.0); // Increase width per node
+    
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Horizontal connecting line
+        Container(
+          width: levelWidth - 80, // Width based on number of nodes with more margin
+          height: 2,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                AppTheme.goldColor.withOpacity(0.5),
+                AppTheme.goldColor.withOpacity(0.8),
+                AppTheme.goldColor.withOpacity(0.5),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        
+        // First level nodes row
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var node in nodes) 
               SizedBox(
-                width: rootNode['children'].length * 160.0, // Dynamically adjust width based on number of children
-                child: Stack(
-                  alignment: Alignment.topCenter,
+                width: levelWidth / nodes.length, // Evenly distribute width
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Horizontal connecting line
-                    Positioned(
-                      top: 0,
-                      left: 40,
-                      right: 40,
-                      child: Container(
-                        height: 2,
-                        color: AppTheme.goldColor.withOpacity(0.7),
-                      ),
-                    ),
+                    _buildVerticalConnector(30),
+                    _buildNetworkNode(node, isRoot: false),
                     
-                    // Level 1 nodes
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        for (var level1Node in rootNode['children'])
-                          Column(
-                            children: [
-                              // Vertical connector to horizontal line
-                              Container(
-                                width: 2,
-                                height: 25,
-                                color: AppTheme.goldColor.withOpacity(0.7),
-                              ),
-                              
-                              _buildNetworkNode(level1Node, false),
-                              
-                              // Level 2 connector
-                              if (level1Node['children'].isNotEmpty)
-                                Container(
-                                  width: 2,
-                                  height: 25,
-                                  color: AppTheme.goldColor.withOpacity(0.5),
-                                ),
-                                
-                              // Level 2 nodes
-                              if (level1Node['children'].isNotEmpty)
-                                SizedBox(
-                                  width: level1Node['children'].length * 90.0, // Dynamically adjust width
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      for (var level2Node in level1Node['children'])
-                                        _buildNetworkNode(level2Node, false, isLevel2: true),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
-                      ],
-                    ),
+                    // If has children, build second level
+                    if (node['children'] != null && node['children'].isNotEmpty) ...[
+                      const SizedBox(height: 30),
+                      _buildVerticalConnector(40),
+                      _buildSecondLevel(node['children']),
+                    ],
                   ],
                 ),
               ),
           ],
         ),
+      ],
+    );
+  }
+
+  // Build second level of nodes
+  Widget _buildSecondLevel(List<dynamic> nodes) {
+    // Calculate width based on number of children
+    final double childWidth = max(nodes.length * 160.0, 320.0); // Increased width per node
+    
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Horizontal connecting line
+        Container(
+          width: childWidth - 20,
+          height: 2,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                AppTheme.goldColor.withOpacity(0.3),
+                AppTheme.goldColor.withOpacity(0.6),
+                AppTheme.goldColor.withOpacity(0.3),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        
+        // Second level nodes row with more spacing
+        SizedBox(
+          width: childWidth,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              for (var node in nodes) 
+                SizedBox(
+                  width: (childWidth / nodes.length) - 10, // Reduce width to add margin
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildVerticalConnector(30),
+                      _buildNetworkNode(node, isRoot: false, isSmall: true),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Build vertical connector with gradient
+  Widget _buildVerticalConnector(double height) {
+    return Container(
+      width: 2,
+      height: height,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppTheme.goldColor.withOpacity(0.8),
+            AppTheme.goldColor.withOpacity(0.4),
+          ],
+        ),
       ),
+    );
+  }
+
+  // Enhanced legend item
+  Widget _buildLegendItem(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.6),
+                blurRadius: 6,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Build network node with consistent sizing and better text handling
+  Widget _buildNetworkNode(Map<String, dynamic> node, {required bool isRoot, bool isSmall = false}) {
+    // Use consistent size with slight adjustment for hierarchy
+    final double circleSize = isRoot ? 100 : (isSmall ? 80 : 90);
+    
+    // Determine status
+    final bool isActive = node.containsKey('isActive') ? node['isActive'] : true;
+    
+    // Determine glow color based on status
+    final Color glowColor = isRoot 
+        ? AppTheme.goldColor 
+        : (isActive ? Colors.green : Colors.red);
+    
+    return Container(
+      width: isSmall ? 135 : 150, // Fixed width to prevent overflow
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Profile circle with glow
+          Container(
+            width: circleSize,
+            height: circleSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.black,
+              gradient: RadialGradient(
+                colors: [
+                  Colors.black,
+                  Colors.black.withOpacity(0.8),
+                ],
+                stops: const [0.7, 1.0],
+              ),
+              border: Border.all(
+                color: isRoot ? AppTheme.goldColor : (isActive ? Colors.green.withOpacity(0.7) : Colors.red.withOpacity(0.7)),
+                width: isRoot ? 2.0 : 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: glowColor.withOpacity(isRoot ? 0.5 : 0.4),
+                  blurRadius: 15,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // Profile avatar
+                Center(
+                  child: CircleAvatar(
+                    radius: (circleSize / 2) - 8,
+                    backgroundColor: Colors.grey[900],
+                    child: Icon(
+                      Icons.person,
+                      size: isRoot ? 40 : (isSmall ? 30 : 35),
+                      color: isRoot ? AppTheme.goldColor : Colors.white70,
+                    ),
+                  ),
+                ),
+                
+                // Status indicator (only for non-root nodes)
+                if (!isRoot)
+                  Positioned(
+                    top: 5,
+                    right: 5,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: isActive ? Colors.green : Colors.red,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isActive ? Colors.green.withOpacity(0.6) : Colors.red.withOpacity(0.6),
+                            blurRadius: 4,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          
+          // Name and downline count
+          Container(
+            margin: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+            constraints: BoxConstraints(
+              maxWidth: isSmall ? 130 : 140, // Constrain name container width
+            ),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.8),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isRoot ? AppTheme.goldColor.withOpacity(0.5) : (isActive ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3)),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Name
+                Text(
+                  node['name'],
+                  style: TextStyle(
+                    color: isRoot ? AppTheme.goldColor : Colors.white,
+                    fontSize: isRoot ? 14 : (isSmall ? 12 : 13),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                // Downlines
+                Text(
+                  "${node['downlines']} Downlines",
+                  style: TextStyle(
+                    color: isRoot ? AppTheme.goldColor : AppTheme.goldColor.withOpacity(0.7),
+                    fontSize: isRoot ? 12 : (isSmall ? 10 : 11),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(
+      duration: 400.ms,
+      delay: Duration(milliseconds: isRoot ? 0 : 200),
+    ).scale(
+      duration: 500.ms,
+      curve: Curves.easeOutBack,
+      delay: Duration(milliseconds: isRoot ? 0 : 200),
     );
   }
 
@@ -690,137 +961,6 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildLegendItem(Color color, String label) {
-    return Row(
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 1.5),
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNetworkNode(Map<String, dynamic> node, bool isRoot, {bool isLevel2 = false}) {
-    final double size = isRoot ? 120 : (isLevel2 ? 85 : 100);
-    
-    return Container(
-      width: size,
-      height: size,
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppTheme.secondaryBackgroundColor,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: AppTheme.goldColor.withOpacity(isRoot ? 1.0 : (isLevel2 ? 0.5 : 0.7)),
-          width: isRoot ? 2.5 : (isLevel2 ? 1.0 : 1.5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.goldColor.withOpacity(isRoot ? 0.3 : (isLevel2 ? 0.1 : 0.2)),
-            blurRadius: 12,
-            spreadRadius: 2,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Profile image
-          CircleAvatar(
-            radius: size / 2 - 6,
-            backgroundColor: Colors.grey[850],
-            child: Icon(
-              Icons.person,
-              size: isRoot ? 50 : (isLevel2 ? 32 : 40),
-              color: isRoot ? AppTheme.goldColor : Colors.white70,
-            ),
-          ),
-          
-          // Status indicator
-          if (!isRoot && node.containsKey('isActive'))
-            Positioned(
-              top: 8,
-              right: 8,
-              child: Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: node['isActive'] ? Colors.green : Colors.red,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-              ),
-            ),
-            
-          // Name tooltip on hover
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppTheme.goldColor.withOpacity(0.3),
-                  width: 0.5,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    node['name'],
-                    style: TextStyle(
-                      color: isRoot ? AppTheme.goldColor : Colors.white,
-                      fontSize: isRoot ? 14 : (isLevel2 ? 10 : 12),
-                      fontWeight: FontWeight.w600,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (!isLevel2)
-                    Text(
-                      "${node['downlines']} Downlines",
-                      style: TextStyle(
-                        color: isRoot ? AppTheme.goldColor : AppTheme.goldColor.withOpacity(0.7),
-                        fontSize: isRoot ? 12 : 10,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    ).animate().scale(
-      duration: 600.ms,
-      curve: Curves.easeOutBack,
-      delay: isRoot ? 0.ms : (isLevel2 ? 400.ms : 200.ms),
     );
   }
 

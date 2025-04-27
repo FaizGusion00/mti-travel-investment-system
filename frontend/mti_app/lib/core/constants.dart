@@ -1,3 +1,6 @@
+import 'environment.dart';
+
+/// Application constants
 class AppConstants {
   // App info
   static const String appName = 'MTI';
@@ -9,8 +12,11 @@ class AppConstants {
   // Assets
   static const String logoPath = 'assets/images/mti_logo.png';
   
-  // API endpoints
-  static const String baseUrl = 'https://api.mti.travel';
+  // API endpoints - uses Environment class for configuration
+  static String get baseUrl => Environment.apiBaseUrl;
+  
+  // Registration URL
+  static String get registrationUrl => Environment.registrationUrl;
   
   // Storage keys
   static const String tokenKey = 'auth_token';
@@ -18,20 +24,22 @@ class AppConstants {
   static const String rememberMeKey = 'remember_me';
   
   // Cloudflare Turnstile Configuration
-  static const String cloudflareTestSiteKey = '1x00000000000000000000AA'; // Test key
-  static const String cloudflareProdSiteKey = ''; // TODO: Add production site key here
-  static const bool useCloudflareTestKey = true; // Set to false for production
+  static String get cloudflareTestSiteKey => Environment.captchaSiteKey;
+  static String get cloudflareProdSiteKey => ''; // TODO: Add production site key
+  static bool get useCloudflareTestKey => Environment.isDevelopment;
   
   // Email Configuration
-  static const String smtpHost = ''; // TODO: Add SMTP host (e.g., smtp.gmail.com)
-  static const int smtpPort = 587; // Common SMTP port
-  static const String smtpUsername = ''; // TODO: Add SMTP username/email
-  static const String smtpPassword = ''; // TODO: Add SMTP password or app password
+  static const String smtpHost = 'email-smtp.us-east-1.amazonaws.com';
+  static const int smtpPort = 587; // Use 587 for STARTTLS or 465 for TLS Wrapper
+  static const String smtpUsername = 'AKIAV2TTTIWH3SCHUE42';
+  static const String smtpPassword = 'BE50nk0RrCGTrlzN6EThDXdE6Rdm8+n6R+rj6E1D14LV';
+  static const bool smtpRequireTLS = true;
   static const String emailSenderName = 'MTI Support';
-  static const String emailFromAddress = ''; // TODO: Add sender email address
+  static const String emailFromAddress = 'noreply@mti.travel';
   
   // OTP Configuration
   static const int otpLength = 6;
   static const int otpExpiryMinutes = 10;
   static const int resendOtpTimerSeconds = 60;
+  static String get testOtp => Environment.testOtp;
 }

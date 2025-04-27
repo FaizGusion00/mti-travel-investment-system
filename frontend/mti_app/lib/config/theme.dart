@@ -13,6 +13,7 @@ class AppTheme {
   static const Color surfaceColor = Color(0xFF1E1E1E); // Slightly lighter surface
   
   static const Color textColor = Color(0xFFFFFFFF);
+  static const Color primaryTextColor = Color(0xFFFFFFFF); // Added primary text color
   static const Color secondaryTextColor = Color(0xFFB4B7C0);
   static const Color tertiaryTextColor = Color(0xFF8A8D98);
   
@@ -23,6 +24,7 @@ class AppTheme {
   static const Color goldColor = Color(0xFFD4AF37); // More sophisticated gold
 
   static const Color dividerColor = Color(0xFF2D3371);
+  static const Color borderColor = Color(0xFF2D3371); // Added border color
   
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(

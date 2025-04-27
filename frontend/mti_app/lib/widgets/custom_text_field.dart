@@ -22,6 +22,8 @@ class CustomTextField extends StatelessWidget {
   final String? errorText;
   final bool enabled;
   final EdgeInsets? contentPadding;
+  final TextAlign? textAlign;
+  final TextStyle? style;
 
   const CustomTextField({
     Key? key,
@@ -44,6 +46,8 @@ class CustomTextField extends StatelessWidget {
     this.errorText,
     this.enabled = true,
     this.contentPadding,
+    this.textAlign,
+    this.style,
   }) : super(key: key);
 
   @override
@@ -74,7 +78,8 @@ class CustomTextField extends StatelessWidget {
           autofocus: autofocus,
           focusNode: focusNode,
           enabled: enabled,
-          style: const TextStyle(
+          textAlign: textAlign ?? TextAlign.start,
+          style: style ?? const TextStyle(
             fontSize: 16,
             color: AppTheme.textColor,
           ),

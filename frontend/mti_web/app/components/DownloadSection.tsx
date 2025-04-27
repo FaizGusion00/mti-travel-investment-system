@@ -46,7 +46,7 @@ const DownloadSection = () => {
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center lg:justify-start">
               <motion.a
-                href="#" 
+                href="https://apps.apple.com/app/mti-travel-investment/id123456789" 
                 className={cn(
                   "flex items-center gap-4 px-6 py-4",
                   "bg-black border-2 border-[var(--accent-gold)] rounded-xl",
@@ -70,7 +70,7 @@ const DownloadSection = () => {
               </motion.a>
               
               <motion.a
-                href="#" 
+                href="https://play.google.com/store/apps/details?id=com.mti.travel.investment" 
                 className={cn(
                   "flex items-center gap-4 px-6 py-4",
                   "bg-black border-2 border-[var(--accent-gold)] rounded-xl",

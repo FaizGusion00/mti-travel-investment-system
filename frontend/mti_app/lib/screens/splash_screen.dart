@@ -98,14 +98,18 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   Future<void> _getVersionInfo() async {
     try {
       final PackageInfo packageInfo = await PackageInfo.fromPlatform();
-      setState(() {
-        _version = 'v${packageInfo.version}';
-      });
+      if (mounted) {
+        setState(() {
+          _version = 'v${packageInfo.version}';
+        });
+      }
     } catch (e) {
       // Use default version if package info fails
-      setState(() {
-        _version = 'v0.0.2';
-      });
+      if (mounted) {
+        setState(() {
+          _version = 'v0.0.2';
+        });
+      }
     }
   }
 

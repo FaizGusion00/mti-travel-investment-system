@@ -87,6 +87,11 @@ class StorageService {
     return await _secureStorage.read(key: AppConstants.tokenKey);
   }
   
+  /// Clears the authentication token
+  Future<void> clearAuthToken() async {
+    await _secureStorage.delete(key: AppConstants.tokenKey);
+  }
+  
   /// Saves user data
   Future<void> saveUserData(Map<String, dynamic> userData) async {
     final prefs = await SharedPreferences.getInstance();
@@ -103,6 +108,12 @@ class StorageService {
     }
     
     return null;
+  }
+  
+  /// Clears user data
+  Future<void> clearUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(AppConstants.userKey);
   }
   
   /// Clears all stored data (for logout)
