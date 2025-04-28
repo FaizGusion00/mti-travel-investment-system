@@ -84,11 +84,10 @@ class _LoginScreenState extends State<LoginScreen> {
       try {
         final email = _emailController.text.trim();
         final password = _passwordController.text;
-        
-        // Use the API service to login with captcha token
-        final response = await _apiService.login(email, password, _captchaToken);
-        
-        if (response['success']) {
+        // --- DEMO MODE: Bypass API, just check valid email, password, and captcha ---
+        // final response = await _apiService.login(email, password, _captchaToken);
+        // if (response['success']) {
+        if (GetUtils.isEmail(email) && password.isNotEmpty && _captchaVerified) {
           // Save credentials if "Remember Me" is checked
           final storageService = StorageService();
           await storageService.saveUserCredentials(
@@ -96,13 +95,12 @@ class _LoginScreenState extends State<LoginScreen> {
             password: password,
             rememberMe: _rememberMe,
           );
-          
           // Navigate to home screen on successful login
-          Get.offAllNamed(AppRoutes.profile);
+          Get.toNamed(AppRoutes.profile);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(response['message'] ?? 'Login failed'),
+              content: Text('Login failed: Invalid credentials'),
               backgroundColor: AppTheme.errorColor,
             ),
           );

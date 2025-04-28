@@ -6,22 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="b039df96-2b3a-4e63-a9a5-08ce17edeaa7" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/config/routes.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/config/routes.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/config/theme.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/config/theme.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/core/constants.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/core/constants.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/email_verification_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/email_verification_screen.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/login_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/login_screen.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/network_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/network_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/register_screen.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/splash_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/splash_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/services/storage_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/services/storage_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/widgets/custom_text_field.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/widgets/custom_text_field.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/pubspec.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/pubspec.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_web/app/components/DownloadSection.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_web/app/components/DownloadSection.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_web/app/components/Header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_web/app/components/Header.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_web/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_web/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_web/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_web/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/profile_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/profile_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/settings_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/settings_screen.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

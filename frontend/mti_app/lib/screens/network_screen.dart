@@ -339,7 +339,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
             Expanded(
               child: _buildStatCard(
                 "Total Members",
-                "32",
+                "--",
                 Icons.people_outline,
                 AppTheme.primaryColor,
               ),
@@ -348,7 +348,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
             Expanded(
               child: _buildStatCard(
                 "Direct Referrals",
-                "8",
+                "--",
                 Icons.person_add_outlined,
                 AppTheme.accentColor,
               ),
@@ -361,7 +361,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
             Expanded(
               child: _buildStatCard(
                 "Team Volume",
-                "24,580 USDT",
+                "----- USDT",
                 Icons.bar_chart_outlined,
                 AppTheme.tertiaryColor,
               ),
@@ -370,7 +370,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
             Expanded(
               child: _buildStatCard(
                 "Total Earnings",
-                "2,458 USDT",
+                "----- USDT",
                 Icons.account_balance_wallet_outlined,
                 AppTheme.infoColor,
               ),

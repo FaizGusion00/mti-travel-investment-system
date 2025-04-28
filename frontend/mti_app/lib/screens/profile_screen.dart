@@ -17,12 +17,12 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(text: "John Doe");
-  final _emailController = TextEditingController(text: "john.doe@example.com");
-  final _phoneController = TextEditingController(text: "+1 234 567 8901");
+  final _nameController = TextEditingController(text: "Ahmad Ali");
+  final _emailController = TextEditingController(text: "ahmad_ali@gmail.com");
+  final _phoneController = TextEditingController(text: "+60 19 676 4493");
   final _refCodeController = TextEditingController(text: "MTI12345");
-  final _usdtAddressController = TextEditingController(text: "0x1234...5678");
-  final _addressController = TextEditingController(text: "123 Crypto Street, Blockchain City");
+  final _usdtAddressController = TextEditingController(text: "0x12345485678");
+  final _addressController = TextEditingController(text: "123, Shah Alam, Selangor");
   
   bool _isEditing = false;
   bool _isLoading = false;
@@ -101,7 +101,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Icons.arrow_back_ios,
             color: Colors.white,
           ),
-          onPressed: () => Get.back(),
+          onPressed: () => Get.toNamed(AppRoutes.settings),
         ),
         actions: [
           IconButton(
@@ -157,10 +157,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 : null,
                           ),
                           child: _profileImage == null
-                              ? Icon(
-                                  Icons.person,
-                                  color: AppTheme.goldColor,
-                                  size: 60,
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(50),
+                                  child: Image.network(
+                                    'https://randomuser.me/api/portraits/men/32.jpg',
+                                    fit: BoxFit.cover,
+                                  ),
                                 )
                               : null,
                         ),

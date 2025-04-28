@@ -20,9 +20,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _appVersion = 'v0.0.2';
   
   // Profile information
-  final TextEditingController _nameController = TextEditingController(text: 'John Doe');
-  final TextEditingController _emailController = TextEditingController(text: 'john.doe@example.com');
-  final TextEditingController _phoneController = TextEditingController(text: '+1 234 567 8900');
+  final TextEditingController _nameController = TextEditingController(text: 'Ahmad Ali');
+  final TextEditingController _emailController = TextEditingController(text: 'ahmad_ali@gmail.com');
+  final TextEditingController _phoneController = TextEditingController(text: '+60 19 676 4493');
   
   @override
   void initState() {
@@ -73,7 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Icons.arrow_back_ios,
             color: Colors.white,
           ),
-          onPressed: () => Get.back(),
+          onPressed: () => Get.offAllNamed(AppRoutes.home),
         ),
       ),
       body: SingleChildScrollView(

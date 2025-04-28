@@ -75,6 +75,7 @@ dependencies:
   package_info_plus: ^8.3.0
   flutter_native_splash: ^2.4.4
   http_interceptor: ^2.0.0
+  video_player: ^2.9.5
 
 dev_dependencies:
   flutter_test:
@@ -111,7 +112,7 @@ flutter:
   assets:
     - assets/images/
     - assets/animations/
-
+    - assets/video/
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../config/theme.dart';
 import '../config/routes.dart';
-
 import '../widgets/custom_button.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -16,34 +15,24 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
-  int _selectedPeriod = 1; // 0: Day, 1: Week, 2: Month, 3: Year
-  final List<String> _periods = ['Day', 'Week', 'Month', 'Year'];
   bool _isBalanceVisible = true;
   late AnimationController _animationController;
   
   @override
   void initState() {
     super.initState();
-    // Use a longer duration to reduce frame rate and buffer usage
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 12000),
     )..repeat(reverse: false);
-    
-    // Add a small delay before starting animations to prevent initial buffer overload
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        _animationController.forward(from: 0.0);
-      }
-    });
   }
-  
+
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
   }
-  
+
   @override
   bool get wantKeepAlive => true; // Keep state when switching tabs
   
@@ -55,20 +44,18 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(), // Smooth scrolling for Android
+          physics: const BouncingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(),
               _buildBalanceCard(),
-              _buildChartSection(),
-              _buildLatestTransactions(),
+              _buildComingSoonSection(),
               const SizedBox(height: 100), // Space for bottom nav bar
             ],
           ),
         ),
       ),
-
     );
   }
 
@@ -90,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
               ),
               const SizedBox(height: 4),
               const Text(
-                "Faiz Gusion",
+                "Ahmad Ali",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -334,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 const SizedBox(height: 16),
                 AnimatedCrossFade(
                   firstChild: Text(
-                    "12,580.42 USDT",
+                    "----.-- USDT",
                     style: GoogleFonts.montserrat(
                       color: Colors.white,
                       fontSize: 32,
@@ -367,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                     const SizedBox(width: 6),
                     AnimatedCrossFade(
                       firstChild: Text(
-                        "+1,245.80 USDT (10.8%)",
+                        "-.-- USDT (-%)",
                         style: GoogleFonts.inter(
                           color: Colors.greenAccent,
                           fontSize: 14,
@@ -501,448 +488,82 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     );
   }
 
-  Widget _buildChartSection() {
-    // Different gradient colors for each time period
-    final List<LinearGradient> chartGradients = [
-      // Day - Green gradient
-      const LinearGradient(
-        colors: [Color(0xFF00C566), Color(0xFF00E676)],
-      ),
-      // Week - Purple gradient (primary)
-      const LinearGradient(
-        colors: [AppTheme.primaryColor, AppTheme.accentColor],
-      ),
-      // Month - Blue gradient
-      const LinearGradient(
-        colors: [Color(0xFF2196F3), Color(0xFF00B2FF)],
-      ),
-      // Year - Gold gradient
-      AppTheme.goldGradient,
-    ];
-    
-    // Different area gradient colors for each time period
-    final List<LinearGradient> areaGradients = [
-      // Day
-      LinearGradient(
-        colors: [
-          const Color(0xFF00C566).withOpacity(0.3),
-          const Color(0xFF00E676).withOpacity(0.0),
-        ],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ),
-      // Week
-      LinearGradient(
-        colors: [
-          AppTheme.primaryColor.withOpacity(0.3),
-          AppTheme.accentColor.withOpacity(0.0),
-        ],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ),
-      // Month
-      LinearGradient(
-        colors: [
-          const Color(0xFF2196F3).withOpacity(0.3),
-          const Color(0xFF00B2FF).withOpacity(0.0),
-        ],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ),
-      // Year
-      LinearGradient(
-        colors: [
-          AppTheme.goldColor.withOpacity(0.3),
-          const Color(0xFFDAA520).withOpacity(0.0),
-        ],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ),
-    ];
-    
+  Widget _buildComingSoonSection() {
     return Padding(
       padding: const EdgeInsets.all(20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Portfolio Performance",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: AppTheme.secondaryBackgroundColor,
+                borderRadius: BorderRadius.circular(60),
+                border: Border.all(
+                  color: AppTheme.goldColor.withOpacity(0.5),
+                  width: 2,
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppTheme.secondaryBackgroundColor,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.arrow_upward,
-                      color: Colors.green,
-                      size: 16,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      "+10.8%",
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 40,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              itemCount: _periods.length,
-              itemBuilder: (context, index) {
-                final isSelected = _selectedPeriod == index;
-                // Get the appropriate color for each period tab
-                final Color periodColor = index == 0 
-                    ? const Color(0xFF00C566) // Day - Green
-                    : index == 1 
-                        ? AppTheme.primaryColor // Week - Purple
-                        : index == 2 
-                            ? const Color(0xFF2196F3) // Month - Blue
-                            : AppTheme.goldColor; // Year - Gold
-                            
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedPeriod = index;
-                    });
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 12),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? periodColor
-                          : AppTheme.secondaryBackgroundColor,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: isSelected ? [
-                        BoxShadow(
-                          color: periodColor.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ] : null,
-                    ),
-                    child: Center(
-                      child: Text(
-                        _periods[index],
-                        style: TextStyle(
-                          color: isSelected
-                              ? Colors.white
-                              : AppTheme.secondaryTextColor,
-                          fontSize: 14,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 200,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: 1,
-                  getDrawingHorizontalLine: (value) {
-                    return FlLine(
-                      color: AppTheme.dividerColor.withOpacity(0.2),
-                      strokeWidth: 1,
-                    );
-                  },
-                ),
-                titlesData: FlTitlesData(
-                  show: true,
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      interval: 1,
-                      getTitlesWidget: (value, meta) {
-                        const style = TextStyle(
-                          color: AppTheme.tertiaryTextColor,
-                          fontSize: 12,
-                        );
-                        Widget text;
-                        switch (value.toInt()) {
-                          case 0:
-                            text = const Text('Mon', style: style);
-                            break;
-                          case 2:
-                            text = const Text('Wed', style: style);
-                            break;
-                          case 4:
-                            text = const Text('Fri', style: style);
-                            break;
-                          case 6:
-                            text = const Text('Sun', style: style);
-                            break;
-                          default:
-                            text = const Text('', style: style);
-                            break;
-                        }
-                        return SideTitleWidget(
-                          axisSide: meta.axisSide,
-                          child: text,
-                        );
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: 1,
-                      getTitlesWidget: (value, meta) {
-                        const style = TextStyle(
-                          color: AppTheme.tertiaryTextColor,
-                          fontSize: 12,
-                        );
-                        String text;
-                        switch (value.toInt()) {
-                          case 0:
-                            text = '10k';
-                            break;
-                          case 2:
-                            text = '12k';
-                            break;
-                          case 4:
-                            text = '14k';
-                            break;
-                          default:
-                            return Container();
-                        }
-                        return Text(text, style: style);
-                      },
-                      reservedSize: 40,
-                    ),
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                minX: 0,
-                maxX: 6,
-                minY: 0,
-                maxY: 6,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: const [
-                      FlSpot(0, 3),
-                      FlSpot(1, 2.5),
-                      FlSpot(2, 3.5),
-                      FlSpot(3, 3.2),
-                      FlSpot(4, 4),
-                      FlSpot(5, 3.8),
-                      FlSpot(6, 4.5),
-                    ],
-                    isCurved: true,
-                    gradient: chartGradients[_selectedPeriod],
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(
-                      show: true,
-                      getDotPainter: (spot, percent, barData, index) {
-                        return FlDotCirclePainter(
-                          radius: 4,
-                          color: Colors.white,
-                          strokeWidth: 2,
-                          strokeColor: _selectedPeriod == 0 
-                              ? const Color(0xFF00C566) // Day - Green
-                              : _selectedPeriod == 1 
-                                  ? AppTheme.primaryColor // Week - Purple
-                                  : _selectedPeriod == 2 
-                                      ? const Color(0xFF2196F3) // Month - Blue
-                                      : AppTheme.goldColor, // Year - Gold
-                        );
-                      },
-                    ),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: areaGradients[_selectedPeriod],
-                    ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.goldColor.withOpacity(0.2),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
                   ),
                 ],
               ),
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(delay: 400.ms, duration: 500.ms);
-  }
-
-  Widget _buildLatestTransactions() {
-    final List<Map<String, dynamic>> transactions = [
-      {
-        'icon': Icons.card_travel_outlined,
-        'color': AppTheme.primaryColor,
-        'title': 'Travel Package',
-        'subtitle': 'Bali Vacation',
-        'amount': '-1,200 USDT',
-        'isPositive': false,
-        'date': 'Apr 22, 2025',
-      },
-      {
-        'icon': Icons.currency_bitcoin,
-        'color': AppTheme.accentColor,
-        'title': 'Staking Reward',
-        'subtitle': 'XLM Staking',
-        'amount': '+45.80 USDT',
-        'isPositive': true,
-        'date': 'Apr 20, 2025',
-      },
-      {
-        'icon': Icons.people_outline,
-        'color': AppTheme.tertiaryColor,
-        'title': 'Referral Bonus',
-        'subtitle': 'From: Jane Smith',
-        'amount': '+200 USDT',
-        'isPositive': true,
-        'date': 'Apr 18, 2025',
-      },
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Latest Transactions",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Icon(
+                Icons.home,
+                color: AppTheme.goldColor,
+                size: 50,
               ),
-              TextButton(
-                onPressed: () {},
-                child: const Text(
-                  "View All",
-                  style: TextStyle(
-                    color: AppTheme.primaryColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+            ).animate().scale(
+                  duration: 600.ms,
+                  curve: Curves.easeOutBack,
+                ),
+            const SizedBox(height: 24),
+            Text(
+              "Coming Soon!",
+              style: TextStyle(
+                color: AppTheme.goldColor,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    color: AppTheme.goldColor.withOpacity(0.3),
+                    offset: const Offset(0, 2),
+                    blurRadius: 4,
                   ),
+                ],
+              ),
+            ).animate().fadeIn(duration: 500.ms).slideY(
+                  begin: 0.2,
+                  end: 0,
+                  duration: 500.ms,
+                  curve: Curves.easeOutQuad,
+                ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Text(
+                "We're working on an amazing home dashboard experience for you. Check back soon for portfolio tracking and more!",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 16,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: transactions.length,
-            itemBuilder: (context, index) {
-              final transaction = transactions[index];
-              return Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.secondaryBackgroundColor,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: transaction['color'].withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        transaction['icon'],
-                        color: transaction['color'],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            transaction['title'],
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            transaction['subtitle'],
-                            style: const TextStyle(
-                              color: AppTheme.tertiaryTextColor,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          transaction['amount'],
-                          style: TextStyle(
-                            color: transaction['isPositive']
-                                ? Colors.green
-                                : Colors.red,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          transaction['date'],
-                          style: const TextStyle(
-                            color: AppTheme.tertiaryTextColor,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          
-        ],
+            ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+          ],
+        ),
       ),
-    ).animate().fadeIn(delay: 800.ms, duration: 500.ms);
+    ).animate().fadeIn(delay: 400.ms, duration: 500.ms).slideY(
+      begin: 0.1,
+      end: 0,
+      delay: 400.ms,
+      duration: 500.ms,
+      curve: Curves.easeOutQuad,
+    );
   }
 }
