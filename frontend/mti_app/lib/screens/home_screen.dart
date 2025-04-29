@@ -50,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
             children: [
               _buildHeader(),
               _buildBalanceCard(),
-              _buildComingSoonSection(),
+              _buildWalletsSection(),
               const SizedBox(height: 100), // Space for bottom nav bar
             ],
           ),
@@ -321,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 const SizedBox(height: 16),
                 AnimatedCrossFade(
                   firstChild: Text(
-                    "----.-- USDT",
+                    "1,500,000 USDT",
                     style: GoogleFonts.montserrat(
                       color: Colors.white,
                       fontSize: 32,
@@ -354,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                     const SizedBox(width: 6),
                     AnimatedCrossFade(
                       firstChild: Text(
-                        "-.-- USDT (-%)",
+                        "+4.2% | +\$60,500",
                         style: GoogleFonts.inter(
                           color: Colors.greenAccent,
                           fontSize: 14,
@@ -488,82 +488,156 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     );
   }
 
-  Widget _buildComingSoonSection() {
+  Widget _buildWalletsSection() {
     return Padding(
       padding: const EdgeInsets.all(20.0),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: AppTheme.secondaryBackgroundColor,
-                borderRadius: BorderRadius.circular(60),
-                border: Border.all(
-                  color: AppTheme.goldColor.withOpacity(0.5),
-                  width: 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.goldColor.withOpacity(0.2),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.home,
-                color: AppTheme.goldColor,
-                size: 50,
-              ),
-            ).animate().scale(
-                  duration: 600.ms,
-                  curve: Curves.easeOutBack,
-                ),
-            const SizedBox(height: 24),
-            Text(
-              "Coming Soon!",
-              style: TextStyle(
-                color: AppTheme.goldColor,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                shadows: [
-                  Shadow(
-                    color: AppTheme.goldColor.withOpacity(0.3),
-                    offset: const Offset(0, 2),
-                    blurRadius: 4,
-                  ),
-                ],
-              ),
-            ).animate().fadeIn(duration: 500.ms).slideY(
-                  begin: 0.2,
-                  end: 0,
-                  duration: 500.ms,
-                  curve: Curves.easeOutQuad,
-                ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: Text(
-                "We're working on an amazing home dashboard experience for you. Check back soon for portfolio tracking and more!",
-                textAlign: TextAlign.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Accounts",
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 16,
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
-          ],
-        ),
+              TextButton(
+                onPressed: () {},
+                child: Text(
+                  "See All",
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildWalletCard(
+            icon: Icons.card_giftcard,
+            iconColor: AppTheme.goldColor,
+            title: "Voucher Wallet",
+            amount: "50,000",
+            amountInUSDT: "USDT 50,000",
+          ),
+          const SizedBox(height: 12),
+          _buildWalletCard(
+            icon: Icons.account_balance_wallet,
+            iconColor: AppTheme.goldColor,
+            title: "Cash Wallet",
+            amount: "750,000",
+            amountInUSDT: "USDT 750,000",
+          ),
+          const SizedBox(height: 12),
+          _buildWalletCard(
+            icon: Icons.flight,
+            iconColor: AppTheme.goldColor,
+            title: "Travel Wallet",
+            amount: "300,000",
+            amountInUSDT: "USDT 300,000",
+          ),
+          const SizedBox(height: 12),
+          _buildWalletCard(
+            icon: Icons.currency_exchange,
+            iconColor: AppTheme.goldColor,
+            title: "XLM Wallet",
+            amount: "400,000",
+            amountInUSDT: "USDT 400,000",
+          ),
+        ],
       ),
-    ).animate().fadeIn(delay: 400.ms, duration: 500.ms).slideY(
-      begin: 0.1,
-      end: 0,
-      delay: 400.ms,
-      duration: 500.ms,
-      curve: Curves.easeOutQuad,
+    ).animate().fadeIn(delay: 300.ms, duration: 500.ms).slideY(
+          begin: 0.1,
+          end: 0,
+          delay: 300.ms,
+          duration: 500.ms,
+          curve: Curves.easeOutQuad,
+        );
+  }
+
+  Widget _buildWalletCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String amount,
+    required String amountInUSDT,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppTheme.secondaryBackgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.goldColor.withOpacity(0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppTheme.goldColor.withOpacity(0.5),
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              icon,
+              color: iconColor,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Spacer(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                amount,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                amountInUSDT,
+                style: TextStyle(
+                  color: Colors.green,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
