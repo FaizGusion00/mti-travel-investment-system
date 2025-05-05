@@ -5,9 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
+import '../core/environment.dart';
 import 'storage_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mti_app/models/user_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiResponse {
   final bool success;
@@ -43,23 +45,45 @@ class ApiService {
   final http.Client _client = http.Client();
   final StorageService _storageService = StorageService();
   final FlutterSecureStorage storage = const FlutterSecureStorage();
+  static const String baseUrl = 'http://localhost:8000/api/v1';
+  static const String tokenKey = 'auth_token';
+
+  // Debug logging method
+  static void _log(String message, {String? error}) {
+    if (kDebugMode) {
+      print('MTI_API: $message');
+      if (error != null) {
+        print('MTI_API_ERROR: $error');
+      }
+    }
+  }
 
   // Get base URL from AppConstants (which now uses Environment)
   String get _baseUrl => AppConstants.baseUrl;
 
   // Get stored token
-  Future<String?> getToken() async {
-    return await storage.read(key: AppConstants.tokenKey);
+  static Future<String?> getToken() async {
+    _log('Getting token from storage');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(tokenKey);
+    if (token != null) {
+      _log('Token retrieved successfully');
+    } else {
+      _log('No token found in storage');
+    }
+    return token;
   }
 
-  // Save token to secure storage
-  Future<void> saveToken(String token) async {
-    await storage.write(key: AppConstants.tokenKey, value: token);
+  // Save token
+  static Future<void> saveToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(tokenKey, token);
   }
 
-  // Remove token (for logout)
-  Future<void> removeToken() async {
-    await storage.delete(key: AppConstants.tokenKey);
+  // Remove token
+  static Future<void> removeToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(tokenKey);
   }
 
   // Create headers with token
@@ -95,61 +119,458 @@ class ApiService {
     return error.toString();
   }
 
-  // Login user
-  Future<Map<String, dynamic>> login(String email, String password, String captchaToken) async {
+  // Login
+  static Future<Map<String, dynamic>> login(String email, String password, {String? captchaToken}) async {
+    _log('Attempting login for: $email');
+    
+    final Map<String, dynamic> requestBody = {
+      'email': email,
+      'password': password,
+    };
+    
+    // Add captcha token if provided
+    if (captchaToken != null) {
+      _log('Including captcha token in login request');
+      requestBody['cf-turnstile-response'] = captchaToken;
+    }
+    
     try {
-      final url = Uri.parse('$_baseUrl/api/v1/login');
+      // Get the correct API URL from constants
+      final apiUrl = '${AppConstants.baseUrl}/api/v1/login';
+      _log('Sending login request to: $apiUrl');
       
-      print('Making login request to: $url');
+      // Create a client with timeout
+      final client = http.Client();
+      try {
+        // Send request with timeout
+        final response = await client.post(
+          Uri.parse(apiUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(requestBody),
+        ).timeout(Duration(seconds: Environment.requestTimeout));
 
-      // Add timeout to prevent long waits when server is unreachable
-      final response = await http.post(
-        url,
-        headers: await getHeaders(withToken: false),
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-          'captcha_token': captchaToken,
-        }),
-      ).timeout(const Duration(seconds: 15));
-
-      print('Login response status code: ${response.statusCode}');
-      
-      final Map<String, dynamic> responseData = jsonDecode(response.body);
-      
-      if (response.statusCode == 200) {
-        // Save token if available
-        if (responseData['data'] != null && responseData['data']['token'] != null) {
-          await saveToken(responseData['data']['token']);
+        _log('Login response status code: ${response.statusCode}');
+        _log('Login response body: ${response.body}');
+        
+        // Check if the response is JSON by looking at content-type header or trying to decode
+        bool isJsonResponse = false;
+        Map<String, dynamic> responseData = {};
+        
+        try {
+          // First check the content-type header
+          String? contentType = response.headers['content-type'];
+          isJsonResponse = contentType != null && contentType.contains('application/json');
+          
+          // Try to decode the JSON regardless of content-type
+          if (response.body.isNotEmpty) {
+            responseData = json.decode(response.body);
+            isJsonResponse = true; // If we got here, it's valid JSON
+          }
+        } catch (e) {
+          // If we can't decode as JSON, log the first 100 characters of the response
+          String responsePreview = response.body.length > 100 
+              ? '${response.body.substring(0, 100)}...'
+              : response.body;
+          _log('Response is not valid JSON', error: 'Format error: $e. Response preview: $responsePreview');
+          isJsonResponse = false;
         }
-        return {
-          'success': true,
-          'data': responseData['data'],
-          'message': responseData['message'] ?? 'Login successful',
-        };
-      } else {
-        // Handle specific error messages from backend
-        return {
-          'success': false,
-          'message': responseData['message'] ?? 'Login failed',
-          'errors': responseData['errors'],
-        };
+        
+        if (response.statusCode == 200 && isJsonResponse) {
+          // Extract token from the response based on backend structure
+          String? token;
+          
+          if (responseData.containsKey('token')) {
+            // Direct token in response
+            token = responseData['token'];
+            _log('Login successful, token received');
+          } else if (responseData.containsKey('data') && 
+                    responseData['data'] is Map && 
+                    responseData['data'].containsKey('token')) {
+            // Token in data object
+            token = responseData['data']['token'];
+            _log('Login successful, token received from data');
+          } else {
+            _log('Login response contains no token', error: 'Token missing in response');
+          }
+          
+          // Save token if found
+          if (token != null) {
+            await saveToken(token);
+            _log('Token saved successfully');
+          }
+          
+          return {
+            'success': true,
+            'message': responseData['message'] ?? 'Login successful',
+            'token': token,
+            'user': responseData['user'] ?? responseData['data']?['user'],
+          };
+        } else {
+          // Handle error responses (both JSON and non-JSON)
+          String errorMessage;
+          if (isJsonResponse && responseData.containsKey('message')) {
+            errorMessage = responseData['message'];
+          } else {
+            // For non-JSON responses or JSON without message
+            switch (response.statusCode) {
+              case 401:
+                errorMessage = 'Invalid credentials. Please check your email and password.';
+                break;
+              case 403:
+                errorMessage = 'Account is locked or requires verification.';
+                break;
+              case 422:
+                errorMessage = 'Validation failed. Please check your input.';
+                break;
+              case 500:
+                errorMessage = 'Server error. Please try again later.';
+                break;
+              default:
+                errorMessage = 'Login failed. Status code: ${response.statusCode}';
+            }
+          }
+          
+          _log('Login failed with status ${response.statusCode}', error: errorMessage);
+          return {
+            'success': false,
+            'message': errorMessage,
+            'status_code': response.statusCode,
+            'errors': isJsonResponse ? responseData['errors'] : null,
+          };
+        }
+      } finally {
+        // Always close the client to prevent resource leaks
+        client.close();
       }
     } catch (e) {
-      print('Login error: $e');
-      String errorMessage = _handleError(e);
+      String errorMessage = 'Login failed';
       
-      // Provide more helpful message for common connection issues
       if (e is SocketException) {
-        if (e.message.contains('Connection refused')) {
-          errorMessage = 'Could not connect to the server. Please check if the server is running at $_baseUrl';
-        }
+        errorMessage = 'Cannot connect to server. Please check your internet connection.';
+        _log('Socket exception during login', error: e.toString());
+      } else if (e is TimeoutException) {
+        errorMessage = 'Connection timed out. Server may be unavailable.';
+        _log('Timeout exception during login', error: e.toString());
+      } else if (e is FormatException) {
+        errorMessage = 'Invalid response format from server.';
+        _log('Format exception during login', error: e.toString());
+      } else {
+        errorMessage = 'Login failed: ${e.toString()}';
+        _log('Exception during login', error: e.toString());
       }
       
       return {
         'success': false,
         'message': errorMessage,
       };
+    }
+  }
+
+  // Get profile
+  static Future<Map<String, dynamic>> getProfile() async {
+    _log('Getting user profile');
+    
+    final token = await getToken();
+    if (token == null) {
+      _log('Get profile failed', error: 'Not authenticated');
+      return {
+        'success': false,
+        'message': 'Not authenticated',
+      };
+    }
+    
+    final client = http.Client();
+    try {
+      // Use /api/v1/user as it was working before
+      final apiUrl = '${AppConstants.baseUrl}/api/v1/user';
+      _log('Sending profile request to: $apiUrl');
+      
+      final response = await client.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(Duration(seconds: Environment.requestTimeout));
+      
+      _log('Profile response status code: ${response.statusCode}');
+      
+      // Check if the response is JSON by looking at content-type header or trying to decode
+      bool isJsonResponse = false;
+      Map<String, dynamic> responseData = {};
+      
+      try {
+        // First check the content-type header
+        String? contentType = response.headers['content-type'];
+        isJsonResponse = contentType != null && contentType.contains('application/json');
+        
+        // Try to decode the JSON regardless of content-type
+        if (response.body.isNotEmpty) {
+          responseData = json.decode(response.body);
+          isJsonResponse = true; // If we got here, it's valid JSON
+        }
+      } catch (e) {
+        // If we can't decode as JSON, log the first 100 characters of the response
+        String responsePreview = response.body.length > 100 
+            ? '${response.body.substring(0, 100)}...'
+            : response.body;
+        _log('Response is not valid JSON', error: 'Format error: $e. Response preview: $responsePreview');
+        isJsonResponse = false;
+      }
+      
+      if (response.statusCode == 200 && isJsonResponse) {
+        _log('Profile retrieved successfully');
+        
+        // Extract user data from response (could be at different locations)
+        final userData = responseData['user'] ?? responseData['data']?['user'] ?? {};
+        
+        // Get the avatar URL from the response
+        // It could be directly in responseData or in data.avatar_url
+        final avatarUrl = responseData['avatar_url'] ?? 
+                          responseData['data']?['avatar_url'] ?? 
+                          userData['avatar_url'] ?? 
+                          '';
+                          
+        _log('Profile image URL in response: $avatarUrl');
+        
+        return {
+          'success': true,
+          'user': userData,
+          'avatar_url': avatarUrl,
+          'message': responseData['message'] ?? 'Profile retrieved successfully',
+        };
+      } else {
+        // Handle error responses (both JSON and non-JSON)
+        String errorMessage;
+        if (isJsonResponse && responseData.containsKey('message')) {
+          errorMessage = responseData['message'];
+        } else {
+          // For non-JSON responses or JSON without message
+          switch (response.statusCode) {
+            case 401:
+              errorMessage = 'Authentication failed. Please log in again.';
+              break;
+            case 403:
+              errorMessage = 'You do not have permission to access this resource.';
+              break;
+            case 404:
+              errorMessage = 'Profile not found.';
+              break;
+            case 500:
+              errorMessage = 'Server error. Please try again later.';
+              break;
+            default:
+              errorMessage = 'Failed to get profile. Status code: ${response.statusCode}';
+          }
+        }
+        
+        _log('Failed to get profile', error: errorMessage);
+        return {
+          'success': false,
+          'message': errorMessage,
+          'status_code': response.statusCode,
+          'errors': isJsonResponse ? responseData['errors'] : null,
+        };
+      }
+    } catch (e) {
+      String errorMessage = 'Failed to get profile';
+      
+      if (e is SocketException) {
+        errorMessage = 'Cannot connect to server. Please check your internet connection.';
+        _log('Socket exception during profile retrieval', error: e.toString());
+      } else if (e is TimeoutException) {
+        errorMessage = 'Connection timed out. Server may be unavailable.';
+        _log('Timeout exception during profile retrieval', error: e.toString());
+      } else if (e is FormatException) {
+        errorMessage = 'Invalid response format from server.';
+        _log('Format exception during profile retrieval', error: e.toString());
+      } else {
+        errorMessage = 'Failed to get profile: ${e.toString()}';
+        _log('Exception during profile retrieval', error: e.toString());
+      }
+      
+      return {
+        'success': false,
+        'message': errorMessage,
+      };
+    } finally {
+      client.close();
+    }
+  }
+
+  // Update profile
+  static Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
+    _log('Updating profile with data: $data');
+    final token = await getToken();
+    if (token == null) {
+      _log('Update profile failed', error: 'Not authenticated');
+      throw Exception('Not authenticated');
+    }
+
+    try {
+      // The correct endpoint according to backend routes is /api/v1/profile
+      final apiUrl = '${AppConstants.baseUrl}/api/v1/profile';
+      _log('Sending profile update request to: $apiUrl');
+      
+      final client = http.Client();
+      try {
+        final response = await client.put(
+          Uri.parse(apiUrl),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json', // Ensure we request JSON response
+          },
+          body: json.encode(data),
+        ).timeout(Duration(seconds: Environment.requestTimeout));
+
+        _log('Profile update response status code: ${response.statusCode}');
+        _log('Profile update response body: ${response.body}');
+        
+        // Handle non-JSON responses
+        if (response.body.trim().isEmpty) {
+          _log('Empty response from server', error: 'Empty response');
+          throw Exception('Server returned an empty response');
+        }
+
+        // Check if response is HTML instead of JSON (indicates server error)
+        if (response.body.trim().toLowerCase().startsWith('<!doctype') || 
+            response.body.trim().toLowerCase().startsWith('<html')) {
+          _log('Server returned HTML error page instead of JSON', error: 'Invalid response format');
+          throw Exception('Server encountered an error. Please try again later.');
+        }
+        
+        try {
+          final responseData = json.decode(response.body);
+          
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            _log('Profile updated successfully');
+            return responseData;
+          } else {
+            final errorMessage = responseData['message'] ?? 'Failed to update profile';
+            _log('Failed to update profile', error: errorMessage);
+            throw Exception(errorMessage);
+          }
+        } catch (e) {
+          if (e is FormatException) {
+            _log('Server returned invalid JSON', error: 'FormatException: ${e.toString()}');
+            _log('Response body: ${response.body}');
+            throw Exception('Server returned an invalid response format. Please try again later.');
+          }
+          rethrow;
+        }
+      } finally {
+        client.close();
+      }
+    } catch (e) {
+      _log('Exception during profile update', error: e.toString());
+      throw Exception('Failed to update profile: ${e.toString()}');
+    }
+  }
+
+  // Update profile image
+  static Future<Map<String, dynamic>> updateProfileImage(String imagePath) async {
+    _log('Uploading profile image: $imagePath');
+    final token = await getToken();
+    if (token == null) {
+      _log('Upload profile image failed', error: 'Not authenticated');
+      throw Exception('Not authenticated');
+    }
+
+    try {
+      // The correct endpoint from API routes is /api/v1/profile/avatar
+      final apiUrl = '${AppConstants.baseUrl}/api/v1/profile/avatar';
+      _log('Sending image upload request to: $apiUrl');
+      
+      // Create multipart request
+      var request = http.MultipartRequest('POST', Uri.parse(apiUrl));
+      
+      // Add authorization header
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json'; // Ensure we get JSON response
+      
+      // Add file under both field names for compatibility
+      // The ProfileController accepts either 'avatar' or 'profile_image'
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'avatar', // field name used in the API
+          imagePath,
+          filename: imagePath.split('/').last,
+        ),
+      );
+      
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'profile_image', // alternate field name
+          imagePath,
+          filename: imagePath.split('/').last,
+        ),
+      );
+      
+      _log('Sending multipart request with image file');
+      final streamedResponse = await request.send()
+          .timeout(Duration(seconds: Environment.requestTimeout));
+      
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      _log('Image upload response status code: ${response.statusCode}');
+      _log('Image upload response body: ${response.body}');
+      
+      // Handle non-JSON responses
+      if (response.body.trim().isEmpty) {
+        _log('Empty response from server', error: 'Empty response');
+        throw Exception('Server returned an empty response');
+      }
+
+      // Check if response is HTML instead of JSON (indicates server error)
+      if (response.body.trim().toLowerCase().startsWith('<!doctype') || 
+          response.body.trim().toLowerCase().startsWith('<html')) {
+        _log('Server returned HTML error page instead of JSON', error: 'Invalid response format');
+        throw Exception('Server encountered an error. Please try again later.');
+      }
+      
+      try {
+        final responseData = json.decode(response.body);
+        
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          _log('Profile image uploaded successfully');
+          return responseData;
+        } else {
+          final errorMessage = responseData['message'] ?? 'Failed to upload profile image';
+          _log('Failed to upload profile image', error: errorMessage);
+          throw Exception(errorMessage);
+        }
+      } catch (e) {
+        if (e is FormatException) {
+          _log('Invalid JSON response from server', error: e.toString());
+          _log('Response body: ${response.body}');
+          throw Exception('Server returned an invalid response format. Please try again later.');
+        }
+        rethrow;
+      }
+    } catch (e) {
+      _log('Exception during profile image upload', error: e.toString());
+      throw Exception('Failed to upload profile image: ${e.toString()}');
+    }
+  }
+
+  // Logout
+  static Future<void> logout() async {
+    final token = await getToken();
+    if (token == null) throw Exception('Not authenticated');
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/logout'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      await removeToken();
+    } else {
+      throw Exception(json.decode(response.body)['message'] ?? 'Logout failed');
     }
   }
 
@@ -181,122 +602,6 @@ class ApiService {
         return {
           'success': false,
           'message': responseData['message'] ?? 'OTP verification failed',
-        };
-      }
-    } catch (e) {
-      return {
-        'success': false,
-        'message': _handleError(e),
-      };
-    }
-  }
-
-  // Logout
-  Future<Map<String, dynamic>> logout() async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/v1/logout'),
-        headers: await getHeaders(),
-      );
-
-      await removeToken();
-
-      return {
-        'success': true,
-        'message': 'Logged out successfully',
-      };
-    } catch (e) {
-      // Even if API call fails, still remove token
-      await removeToken();
-      return {
-        'success': false,
-        'message': _handleError(e),
-      };
-    }
-  }
-
-  // Get user profile
-  Future<Map<String, dynamic>> getUserProfile() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/v1/profile'),
-        headers: await getHeaders(),
-      );
-
-      final Map<String, dynamic> responseData = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': responseData['data'],
-        };
-      } else {
-        return {
-          'success': false,
-          'message': responseData['message'] ?? 'Failed to load profile',
-        };
-      }
-    } catch (e) {
-      return {
-        'success': false,
-        'message': _handleError(e),
-      };
-    }
-  }
-
-  // Update profile with image support
-  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> userData, {File? profileImage}) async {
-    try {
-      final token = await getToken();
-      if (token == null) {
-        return {'success': false, 'message': 'Not authenticated'};
-      }
-
-      // Use multipart request for file upload
-      final request = http.MultipartRequest(
-        'POST', 
-        Uri.parse('$_baseUrl/api/v1/update-profile')
-      );
-      
-      // Add headers
-      request.headers.addAll({
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      });
-
-      // Add text fields
-      userData.forEach((key, value) {
-        if (value != null) {
-          request.fields[key] = value.toString();
-        }
-      });
-
-      // Add profile image if provided
-      if (profileImage != null) {
-        final file = await http.MultipartFile.fromPath(
-          'profile_image', 
-          profileImage.path
-        );
-        request.files.add(file);
-      }
-
-      // Send request
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-      
-      final Map<String, dynamic> responseData = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': responseData['data'],
-          'message': responseData['message'] ?? 'Profile updated successfully',
-        };
-      } else {
-        return {
-          'success': false,
-          'message': responseData['message'] ?? 'Failed to update profile',
-          'errors': responseData['errors'],
         };
       }
     } catch (e) {
@@ -404,6 +709,84 @@ class ApiService {
         'success': false,
         'message': _handleError(e),
       };
+    }
+  }
+
+  // Generate new token
+  static Future<Map<String, dynamic>> generateNewToken() async {
+    final token = await getToken();
+    if (token == null) throw Exception('Not authenticated');
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/token/generate'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      await saveToken(data['token']);
+      return data;
+    } else {
+      throw Exception(json.decode(response.body)['message'] ?? 'Failed to generate new token');
+    }
+  }
+
+  // Get token info
+  static Future<Map<String, dynamic>> getTokenInfo() async {
+    final token = await getToken();
+    if (token == null) throw Exception('Not authenticated');
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/token/info'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception(json.decode(response.body)['message'] ?? 'Failed to get token info');
+    }
+  }
+
+  // Revoke all tokens
+  static Future<void> revokeAllTokens() async {
+    final token = await getToken();
+    if (token == null) throw Exception('Not authenticated');
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/token/revoke'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      await removeToken();
+    } else {
+      throw Exception(json.decode(response.body)['message'] ?? 'Failed to revoke tokens');
+    }
+  }
+
+  // Check token validity and refresh if needed
+  static Future<bool> checkAndRefreshTokenIfNeeded() async {
+    try {
+      final tokenInfo = await getTokenInfo();
+      final expiresAt = DateTime.parse(tokenInfo['token_info']['expires_at']);
+      
+      // If token expires in less than 1 day, generate a new one
+      if (expiresAt.difference(DateTime.now()).inDays < 1) {
+        await generateNewToken();
+      }
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 } 

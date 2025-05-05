@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Base secure network configuration -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Trust the pre-installed system CAs -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- Allow cleartext traffic to specific domains if needed -->
+    <!-- Uncomment and modify if you need to connect to non-HTTPS domains -->
+    <!--
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">your-api-domain.com</domain>
+    </domain-config>
+    -->
+    
+    <!-- Debug only overrides - only active in debug builds -->
+    <debug-overrides>
+        <trust-anchors>
+            <!-- Trust user-added CAs for debugging while maintaining secure defaults -->
+            <certificates src="user" />
+            <certificates src="system" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>

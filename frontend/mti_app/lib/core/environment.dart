@@ -8,14 +8,18 @@ class Environment {
   /// Development mode flag
   static bool get isDevelopment => !isProduction;
   
+  // Local development server IP address
+  // IMPORTANT: Change this to your actual machine's IP address when testing on a device
+  static const String localServerIP = '10.0.2.2'; // Default for Android emulator
+  
   /// API base URL based on environment
   static String get apiBaseUrl {
     if (isProduction) {
-      return 'https://api.mti.travel';
+      return 'https://panel.metatravel.ai';
     } else {
-      // For Android emulator, use 10.0.2.2 instead of localhost
+      // For Android emulator or physical device
       if (defaultTargetPlatform == TargetPlatform.android) {
-        return 'http://10.0.2.2:8000';
+        return 'http://$localServerIP:8000';
       }
       // For iOS simulator
       else if (defaultTargetPlatform == TargetPlatform.iOS) {
@@ -28,14 +32,19 @@ class Environment {
     }
   }
   
+  /// HTTP request timeout in seconds
+  static int get requestTimeout {
+    return isDevelopment ? 30 : 15; // Longer timeout in development
+  }
+  
   /// Registration URL based on environment
   static String get registrationUrl {
     if (isProduction) {
-      return 'https://mti.travel/register';
+      return 'https://panel.metatravel.ai/register';
     } else {
-      // For Android emulator 
+      // For Android emulator
       if (defaultTargetPlatform == TargetPlatform.android) {
-        return 'http://10.0.2.2:3000/register';
+        return 'http://$localServerIP:3000/register';
       }
       // For iOS simulator or web
       else {
@@ -43,6 +52,7 @@ class Environment {
       }
     }
   }
+  
   
   /// OTP for testing purposes (only in development)
   static String get testOtp {

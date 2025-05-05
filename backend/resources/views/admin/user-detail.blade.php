@@ -51,7 +51,7 @@
                 
                 <div class="flex justify-between items-center py-3">
                     <span class="text-gray-400">Joined</span>
-                    <span class="font-medium">{{ \Carbon\Carbon::parse($user->created_date)->format('M d, Y') }}</span>
+                    <span class="font-medium">{{ \Carbon\Carbon::parse($user->created_at)->format('M d, Y') }}</span>
                 </div>
             </div>
         </div>
@@ -75,7 +75,7 @@
                                     <span class="font-medium glow-text">{{ $log->column_name }}</span> 
                                     <span class="text-gray-400">was changed</span>
                                 </p>
-                                <p class="text-xs text-gray-500 mt-1 md:mt-0">{{ $log->created_date->format('M d, Y H:i') }}</p>
+                                <p class="text-xs text-gray-500 mt-1 md:mt-0">{{ $log->created_at->format('M d, Y H:i') }}</p>
                             </div>
                             
                             <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">

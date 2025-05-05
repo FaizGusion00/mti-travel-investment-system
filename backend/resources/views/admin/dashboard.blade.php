@@ -18,7 +18,7 @@
         <h2 class="text-3xl font-bold mb-1">{{ number_format($totalUsers) }}</h2>
         <p class="text-gray-400 text-sm">Registered users</p>
     </div>
-    
+
     <div class="card p-6 rounded-xl">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-gray-400 text-sm font-medium">New Today</h3>
@@ -31,7 +31,7 @@
         <h2 class="text-3xl font-bold mb-1">{{ $newUsersToday }}</h2>
         <p class="text-gray-400 text-sm">New registrations today</p>
     </div>
-    
+
     <div class="card p-6 rounded-xl">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-gray-400 text-sm font-medium">This Week</h3>
@@ -44,7 +44,7 @@
         <h2 class="text-3xl font-bold mb-1">{{ $newUsersThisWeek }}</h2>
         <p class="text-gray-400 text-sm">New registrations this week</p>
     </div>
-    
+
     <div class="card p-6 rounded-xl">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-gray-400 text-sm font-medium">This Month</h3>
@@ -67,17 +67,17 @@
             <canvas id="userTrendChart"></canvas>
         </div>
     </div>
-    
+
     <div class="card p-6 rounded-xl">
         <h3 class="text-xl font-bold mb-6 glow-text">Recent Activity</h3>
         <div class="space-y-4">
             @php
                 $recentLogs = \App\Models\UserLog::with('user')
-                    ->orderBy('created_date', 'desc')
+                    ->orderBy('created_at', 'desc')
                     ->limit(5)
                     ->get();
             @endphp
-            
+
             @forelse($recentLogs as $log)
                 <div class="flex items-start p-3 rounded-lg table-row">
                     <div class="h-10 w-10 rounded-full bg-gray-800 flex-shrink-0 flex items-center justify-center mr-4">
@@ -85,17 +85,17 @@
                     </div>
                     <div>
                         <p class="text-sm">
-                            <span class="font-medium gold-text">{{ $log->user->full_name ?? 'Unknown User' }}</span> 
-                            <span class="text-gray-400">changed</span> 
+                            <span class="font-medium gold-text">{{ $log->user->full_name ?? 'Unknown User' }}</span>
+                            <span class="text-gray-400">changed</span>
                             <span class="font-medium glow-text">{{ $log->column_name }}</span>
                         </p>
-                        <p class="text-xs text-gray-500 mt-1">{{ $log->created_date->diffForHumans() }}</p>
+                        <p class="text-xs text-gray-500 mt-1">{{ $log->created_at->diffForHumans() }}</p>
                     </div>
                 </div>
             @empty
                 <p class="text-gray-500 text-center py-4">No recent activity</p>
             @endforelse
-            
+
             <a href="{{ route('admin.logs') }}" class="block text-center text-sm text-blue-400 hover:text-blue-300 mt-4">
                 View All Activity
             </a>
@@ -108,10 +108,10 @@
 <script>
     // User trend chart
     const ctx = document.getElementById('userTrendChart').getContext('2d');
-    
+
     const dates = @json($dates);
     const counts = @json($counts);
-    
+
     const userTrendChart = new Chart(ctx, {
         type: 'line',
         data: {

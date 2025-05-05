@@ -8,55 +8,55 @@
     <style>
         body {
             background-color: #000000;
-            background-image: 
+            background-image:
                 radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
                 radial-gradient(circle at 75% 75%, rgba(255, 215, 0, 0.1) 0%, transparent 50%);
             color: white;
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
         }
-        
+
         .card {
             background-color: rgba(17, 24, 39, 0.7);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 215, 0, 0.1);
             transition: all 0.3s ease;
         }
-        
+
         .card:hover {
             border-color: rgba(255, 215, 0, 0.3);
             box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
         }
-        
+
         .glow-text {
             color: #3B82F6;
             text-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
         }
-        
+
         .gold-text {
             color: #FFD700;
         }
-        
+
         .btn-primary {
             background-color: #3B82F6;
             transition: all 0.3s ease;
         }
-        
+
         .btn-primary:hover {
             background-color: #2563EB;
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
         }
-        
+
         .btn-gold {
             background-color: #B7791F;
             transition: all 0.3s ease;
         }
-        
+
         .btn-gold:hover {
             background-color: #975A16;
             box-shadow: 0 0 15px rgba(183, 121, 31, 0.5);
         }
-        
+
         .stars {
             position: absolute;
             top: 0;
@@ -66,14 +66,14 @@
             z-index: -1;
             overflow: hidden;
         }
-        
+
         .star {
             position: absolute;
             background-color: white;
             border-radius: 50%;
             animation: twinkle 5s infinite;
         }
-        
+
         @keyframes twinkle {
             0% { opacity: 0; }
             50% { opacity: 1; }
@@ -83,7 +83,7 @@
 </head>
 <body class="flex flex-col items-center justify-center p-4">
     <div class="stars" id="stars"></div>
-    
+
     <div class="max-w-4xl w-full">
         <div class="text-center mb-12">
             <h1 class="text-5xl font-bold mb-4">
@@ -91,7 +91,7 @@
             </h1>
             <p class="text-gray-400 text-xl">Backend Administration & API Testing</p>
         </div>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             <div class="card rounded-xl p-6 flex flex-col items-center text-center">
                 <div class="h-16 w-16 rounded-full bg-blue-900 bg-opacity-30 flex items-center justify-center mb-4">
@@ -105,7 +105,7 @@
                     Access Dashboard
                 </a>
             </div>
-            
+
             <div class="card rounded-xl p-6 flex flex-col items-center text-center">
                 <div class="h-16 w-16 rounded-full bg-yellow-900 bg-opacity-30 flex items-center justify-center mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -124,7 +124,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="card rounded-xl p-6">
             <h2 class="text-2xl font-bold glow-text mb-4 text-center">API Documentation</h2>
             <div class="flex justify-center">
@@ -134,37 +134,37 @@
             </div>
         </div>
     </div>
-    
+
     <footer class="mt-12 text-center text-gray-500 text-sm">
         <p>&copy; {{ date('Y') }} Meta Travel International. All rights reserved.</p>
     </footer>
-    
+
     <script>
         // Create stars
         document.addEventListener('DOMContentLoaded', function() {
             const starsContainer = document.getElementById('stars');
             const starsCount = 100;
-            
+
             for (let i = 0; i < starsCount; i++) {
                 const star = document.createElement('div');
                 star.classList.add('star');
-                
+
                 // Random position
                 const x = Math.random() * 100;
                 const y = Math.random() * 100;
-                
+
                 // Random size
                 const size = Math.random() * 2;
-                
+
                 // Random animation delay
                 const delay = Math.random() * 5;
-                
+
                 star.style.left = `${x}%`;
                 star.style.top = `${y}%`;
                 star.style.width = `${size}px`;
                 star.style.height = `${size}px`;
                 star.style.animationDelay = `${delay}s`;
-                
+
                 starsContainer.appendChild(star);
             }
         });

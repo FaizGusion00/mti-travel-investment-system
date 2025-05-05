@@ -41,7 +41,7 @@ class UserLog extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'created_date' => 'datetime',
+        'created_at' => 'datetime',
     ];
 
     /**
@@ -56,13 +56,13 @@ class UserLog extends Model
      *
      * @var string
      */
-    const CREATED_AT = 'created_date';
+    const CREATED_AT = 'created_at';
 
     /**
      * Get the user that owns the log.
      */
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id', 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 }

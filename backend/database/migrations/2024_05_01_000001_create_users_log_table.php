@@ -17,10 +17,10 @@ return new class extends Migration
             $table->string('column_name', 100);
             $table->text('old_value')->nullable();
             $table->text('new_value')->nullable();
-            $table->timestamp('created_date')->useCurrent();
+            $table->timestamp('created_at')->useCurrent();
 
             $table->foreign('user_id')
-                  ->references('user_id')
+                  ->references('id')
                   ->on('users')
                   ->onDelete('cascade');
         });

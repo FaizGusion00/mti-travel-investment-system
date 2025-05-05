@@ -4,8 +4,9 @@ import 'package:get/get.dart';
 import '../config/theme.dart';
 import '../config/routes.dart';
 import '../widgets/custom_button.dart';
+import '../utils/performance_utils.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'dart:developer' as developer;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -17,14 +18,59 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
   bool _isBalanceVisible = true;
   late AnimationController _animationController;
-  
+  bool _useSimplifiedUI = false;
+
   @override
   void initState() {
     super.initState();
+    // Check if we should use simplified animations
+    _useSimplifiedUI = PerformanceUtils.shouldUseSimplifiedAnimations();
+
+    // Use a shorter animation duration for better performance
+    final animationDuration = _useSimplifiedUI ? 24000 : 12000;
+
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 12000),
-    )..repeat(reverse: false);
+      duration: Duration(milliseconds: animationDuration),
+    );
+
+    // Only repeat animations if not using simplified UI
+    if (!_useSimplifiedUI) {
+      _animationController.repeat(reverse: false);
+    } else {
+      // For simplified UI, just run the animation once
+      _animationController.forward();
+    }
+
+    // Listen for performance mode changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _monitorPerformanceChanges();
+    });
+  }
+
+  void _monitorPerformanceChanges() {
+    // Check every few seconds if performance mode has changed
+    Future.delayed(const Duration(seconds: 5), () {
+      final newMode = PerformanceUtils.shouldUseSimplifiedAnimations();
+      if (newMode != _useSimplifiedUI) {
+        if (mounted) {
+          setState(() {
+            _useSimplifiedUI = newMode;
+            // Adjust animation behavior based on new mode
+            if (_useSimplifiedUI) {
+              _animationController.stop();
+            } else {
+              _animationController.repeat(reverse: false);
+            }
+          });
+        }
+      }
+
+      // Continue monitoring if widget is still mounted
+      if (mounted) {
+        _monitorPerformanceChanges();
+      }
+    });
   }
 
   @override
@@ -35,24 +81,45 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
   @override
   bool get wantKeepAlive => true; // Keep state when switching tabs
-  
+
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              _buildBalanceCard(),
-              _buildWalletsSection(),
-              const SizedBox(height: 100), // Space for bottom nav bar
-            ],
+
+    // Wrap the entire build method in error handling
+    return PerformanceUtils.buildSafeWidget(
+      builder: () => Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - 
+                    MediaQuery.of(context).padding.top -
+                    MediaQuery.of(context).padding.bottom - 80,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  _buildBalanceCard(),
+                  _buildWalletsSection(),
+                  const SizedBox(height: 100), // Space for bottom nav bar
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      debugLabel: 'HomeScreen',
+      fallback: Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        body: const Center(
+          child: Text(
+            'Unable to load home screen. Please restart the app.',
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
           ),
         ),
       ),
@@ -178,37 +245,64 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Stack(
         children: [
-          // First animated shine effect - horizontal sweep
-          AnimatedBuilder(
-            animation: _animationController,
-            builder: (context, child) {
-              return Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.transparent,
-                        Colors.transparent,
-                        AppTheme.goldColor.withOpacity(0.1),
-                        AppTheme.goldColor.withOpacity(0.3),
-                        Colors.white.withOpacity(0.4),
-                        AppTheme.goldColor.withOpacity(0.3),
-                        AppTheme.goldColor.withOpacity(0.1),
-                        Colors.transparent,
-                        Colors.transparent,
-                      ],
-                      stops: const [0.0, 0.3, 0.33, 0.4, 0.5, 0.6, 0.67, 0.7, 1.0],
-                      transform: GradientRotation(
-                        (2 * 3.14159 * _animationController.value) - (3.14159 / 4),
+          // First animated shine effect - horizontal sweep (conditionally rendered)
+          if (!_useSimplifiedUI) // Only show complex animations if not in simplified mode
+            AnimatedBuilder(
+              animation: _animationController,
+              builder: (context, child) {
+                return Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      gradient: PerformanceUtils.optimizedGradient(
+                        [
+                          Colors.transparent,
+                          Colors.transparent,
+                          AppTheme.goldColor.withOpacity(0.1),
+                          AppTheme.goldColor.withOpacity(0.3),
+                          Colors.white.withOpacity(0.4),
+                          AppTheme.goldColor.withOpacity(0.3),
+                          AppTheme.goldColor.withOpacity(0.1),
+                          Colors.transparent,
+                          Colors.transparent,
+                        ],
+                        fullGradient: LinearGradient(
+                          colors: [
+                            Colors.transparent,
+                            Colors.transparent,
+                            AppTheme.goldColor.withOpacity(0.1),
+                            AppTheme.goldColor.withOpacity(0.3),
+                            Colors.white.withOpacity(0.4),
+                            AppTheme.goldColor.withOpacity(0.3),
+                            AppTheme.goldColor.withOpacity(0.1),
+                            Colors.transparent,
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.3, 0.33, 0.4, 0.5, 0.6, 0.67, 0.7, 1.0],
+                        ),
+                        // Simplified gradient with fewer color stops for better performance
+                        simplifiedGradient: SweepGradient(
+                          center: Alignment.center,
+                          startAngle: 0.0,
+                          endAngle: 2 * 3.14159,
+                          colors: [
+                            AppTheme.goldColor.withOpacity(0.2),
+                            Colors.transparent,
+                            Colors.transparent,
+                            AppTheme.goldColor.withOpacity(0.2),
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
+                          transform: GradientRotation(
+                            (2 * 3.14159 * _animationController.value) - (3.14159 / 4),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-          
+                );
+              },
+            ),
           // Second animated shine effect - diagonal sweep
           AnimatedBuilder(
             animation: _animationController,
@@ -239,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
               );
             },
           ),
-          
+
           // Edge glow effect with shadow
           Positioned.fill(
             child: Container(
@@ -321,7 +415,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 const SizedBox(height: 16),
                 AnimatedCrossFade(
                   firstChild: Text(
-                    "1,500,000 USDT",
+                    "330,900 USDT",
                     style: GoogleFonts.montserrat(
                       color: Colors.white,
                       fontSize: 32,
@@ -354,7 +448,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                     const SizedBox(width: 6),
                     AnimatedCrossFade(
                       firstChild: Text(
-                        "+4.2% | +\$60,500",
+                        "+3.28% | +\$408",
                         style: GoogleFonts.inter(
                           color: Colors.greenAccent,
                           fontSize: 14,
@@ -523,42 +617,42 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
             icon: Icons.card_giftcard,
             iconColor: AppTheme.goldColor,
             title: "Voucher Wallet",
-            amount: "50,000",
-            amountInUSDT: "USDT 50,000",
+            amount: "2,000",
+            amountInUSDT: "USDT 2,000",
           ),
           const SizedBox(height: 12),
           _buildWalletCard(
             icon: Icons.account_balance_wallet,
             iconColor: AppTheme.goldColor,
             title: "Cash Wallet",
-            amount: "750,000",
-            amountInUSDT: "USDT 750,000",
+            amount: "230,460",
+            amountInUSDT: "USDT 230,460",
           ),
           const SizedBox(height: 12),
           _buildWalletCard(
             icon: Icons.flight,
             iconColor: AppTheme.goldColor,
             title: "Travel Wallet",
-            amount: "300,000",
-            amountInUSDT: "USDT 300,000",
+            amount: "57,000",
+            amountInUSDT: "USDT 57,000",
           ),
           const SizedBox(height: 12),
           _buildWalletCard(
             icon: Icons.currency_exchange,
             iconColor: AppTheme.goldColor,
             title: "XLM Wallet",
-            amount: "400,000",
-            amountInUSDT: "USDT 400,000",
+            amount: "181,000",
+            amountInUSDT: "USDT 181,000",
           ),
         ],
       ),
     ).animate().fadeIn(delay: 300.ms, duration: 500.ms).slideY(
-          begin: 0.1,
-          end: 0,
-          delay: 300.ms,
-          duration: 500.ms,
-          curve: Curves.easeOutQuad,
-        );
+      begin: 0.1,
+      end: 0,
+      delay: 300.ms,
+      duration: 500.ms,
+      curve: Curves.easeOutQuad,
+    );
   }
 
   Widget _buildWalletCard({

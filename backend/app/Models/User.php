@@ -25,48 +25,44 @@ class User extends Authenticatable
      *
      * @var string
      */
-    protected $primaryKey = 'user_id';
+    protected $primaryKey = 'id';
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'full_name',
         'email',
         'phonenumber',
+        'address',
         'date_of_birth',
-        'reference_code',
-        'usdt_address',
-        'profile_image',
-        'password',
         'ref_code',
+        'profile_image',
+        'usdt_address',
+        'password',
     ];
 
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
+        'remember_token',
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'date_of_birth' => 'date',
-            'created_date' => 'datetime',
-            'updated_date' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'date_of_birth' => 'date',
+        'password' => 'hashed',
+    ];
 
     /**
      * Indicates if the model should be timestamped.
@@ -80,7 +76,7 @@ class User extends Authenticatable
      *
      * @var string
      */
-    const CREATED_AT = 'created_date';
+    const CREATED_AT = 'created_at';
 
     /**
      * The name of the "updated at" column.
@@ -95,5 +91,22 @@ class User extends Authenticatable
     public function logs()
     {
         return $this->hasMany(UserLog::class, 'user_id', 'user_id');
+    }
+
+    /**
+     * Get the URL for the user's profile image.
+     */
+    public function getProfileImageUrlAttribute()
+    {
+        if ($this->profile_image) {
+            // Handle both new path format (with 'avatars/' prefix) and old format
+            if (strpos($this->profile_image, 'avatars/') === 0) {
+                return asset('storage/' . $this->profile_image);
+            } else {
+                return asset('storage/avatars/' . $this->profile_image);
+            }
+        }
+        // Return default avatar if none exists
+        return asset('storage/avatars/default.png');
     }
 }

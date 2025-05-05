@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
+import 'dart:developer' as developer;
 import 'package:package_info_plus/package_info_plus.dart';
 import '../config/theme.dart';
 import '../config/routes.dart';
 import '../shared/widgets/bottom_nav_bar.dart';
+import '../services/api_service.dart';
+import '../services/auth_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -18,16 +21,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _selectedCurrency = 'USD';
   String _selectedLanguage = 'English';
   String _appVersion = 'v0.0.2';
+  bool _isLoading = false;
+  String? _profileImageUrl;
+  
+  // Auth service
+  final AuthService _authService = AuthService();
   
   // Profile information
-  final TextEditingController _nameController = TextEditingController(text: 'Ahmad Ali');
-  final TextEditingController _emailController = TextEditingController(text: 'ahmad_ali@gmail.com');
-  final TextEditingController _phoneController = TextEditingController(text: '+60 19 676 4493');
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   
   @override
   void initState() {
     super.initState();
     _getAppVersion();
+    _loadUserProfile();
   }
   
   Future<void> _getAppVersion() async {
@@ -92,30 +101,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
               
               const SizedBox(height: 24),
               _buildSectionTitle('OTHER'),
-              _buildSettingItem(
+              _buildSettingsItem(
                 'Privacy Policy',
                 Icons.privacy_tip_outlined,
-                onTap: () {
-                  // Navigate to privacy policy screen
-                },
+                onTap: () => Get.toNamed(AppRoutes.privacyPolicy),
               ),
-              _buildSettingItem(
-                'Terms & Condition',
+              _buildSettingsItem(
+                'Terms & Conditions',
                 Icons.description_outlined,
-                onTap: () {
-                  // Navigate to terms and conditions screen
-                },
+                onTap: () => Get.toNamed(AppRoutes.termsConditions),
               ),
-              _buildSettingItem(
-                'Contact us',
+              _buildSettingsItem(
+                'Contact Us',
                 Icons.support_agent_outlined,
-                onTap: () {
-                  // Navigate to contact us screen
-                },
+                onTap: () => Get.toNamed(AppRoutes.contactUs),
               ),
               
               // App version
-              _buildSettingItem(
+              _buildSettingsItem(
                 'App Version',
                 Icons.info_outline,
                 onTap: () {
@@ -140,7 +143,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            '© 2025 MTI Travel Investment',
+                            ' 2025 MTI Travel Investment',
                             style: TextStyle(color: Colors.white70, fontSize: 12),
                           ),
                         ],
@@ -188,7 +191,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ).animate().fadeIn(duration: 500.ms);
   }
 
-  Widget _buildSettingItem(
+  Widget _buildSettingsItem(
     String title,
     IconData icon,
     {required VoidCallback onTap, Widget? trailing}
@@ -437,10 +440,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(50),
-                  child: Image.network(
-                    'https://randomuser.me/api/portraits/men/32.jpg',
-                    fit: BoxFit.cover,
-                  ),
+                  child: _profileImageUrl != null
+                    ? Image.network(
+                        _profileImageUrl!,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                : null,
+                              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.goldColor),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(
+                            Icons.person,
+                            size: 50,
+                            color: AppTheme.goldColor,
+                          );
+                        },
+                      )
+                    : Icon(
+                        Icons.person,
+                        size: 50,
+                        color: AppTheme.goldColor,
+                      ),
                 ),
               ),
               Container(
@@ -591,6 +618,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _loadUserProfile() async {
+    developer.log('Loading profile data for settings screen', name: 'MTI_Settings');
+    try {
+      setState(() => _isLoading = true);
+      final response = await ApiService.getProfile();
+      final user = response['user'];
+      
+      developer.log('Profile data received: $user', name: 'MTI_Settings');
+      
+      // Get profile image URL - first check avatar_url in response, then fall back to profile_image_url attribute
+      String? imageUrl = response['avatar_url'] ?? user['avatar_url'] ?? user['profile_image_url'];
+      developer.log('Profile image URL: $imageUrl', name: 'MTI_Settings');
+      
+      setState(() {
+        _nameController.text = user['full_name'] ?? '';
+        _emailController.text = user['email'] ?? '';
+        _phoneController.text = user['phonenumber'] ?? '';
+        _profileImageUrl = imageUrl;
+      });
+    } catch (e) {
+      developer.log('Error loading profile for settings screen: $e', name: 'MTI_Settings', error: e);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load profile: ${e.toString()}'),
+          backgroundColor: AppTheme.errorColor,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: _loadUserProfile,
+            textColor: Colors.white,
+          ),
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   Widget _buildLogoutButton() {
     return TextButton(
       onPressed: () {
@@ -628,9 +693,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               TextButton(
-                onPressed: () {
+                onPressed: () async {
                   Get.back();
-                  Get.offAllNamed(AppRoutes.login);
+                  
+                  // Show loading indicator
+                  Get.dialog(
+                    const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.goldColor),
+                      ),
+                    ),
+                    barrierDismissible: false,
+                  );
+                  
+                  // Call logout from AuthService
+                  try {
+                    await _authService.logout();
+                    Get.back(); // Close loading dialog
+                    Get.offAllNamed(AppRoutes.login);
+                  } catch (e) {
+                    Get.back(); // Close loading dialog
+                    Get.snackbar(
+                      'Error',
+                      'Failed to logout: ${e.toString()}',
+                      snackPosition: SnackPosition.BOTTOM,
+                      backgroundColor: AppTheme.errorColor.withOpacity(0.8),
+                      colorText: Colors.white,
+                    );
+                  }
                 },
                 child: const Text(
                   "Logout",

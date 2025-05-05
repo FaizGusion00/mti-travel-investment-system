@@ -11,6 +11,7 @@ import '../core/constants.dart';
 import '../services/storage_service.dart';
 import '../services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:developer' as developer;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -27,17 +28,19 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _captchaVerified = false;
-  String _captchaToken = '';
+  String? _captchaToken;
   final ApiService _apiService = ApiService();
 
   @override
   void initState() {
     super.initState();
+    developer.log('LoginScreen initialized', name: 'MTI_Login');
     _loadSavedCredentials();
   }
   
   @override
   void dispose() {
+    developer.log('LoginScreen disposed', name: 'MTI_Login');
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -45,16 +48,20 @@ class _LoginScreenState extends State<LoginScreen> {
   
   // Load saved credentials if "Remember Me" was enabled
   Future<void> _loadSavedCredentials() async {
+    developer.log('Loading saved credentials', name: 'MTI_Login');
     final storageService = StorageService();
     final isRememberMeEnabled = await storageService.isRememberMeEnabled();
     
     if (isRememberMeEnabled) {
       final credentials = await storageService.getSavedCredentials();
+      developer.log('Found saved credentials', name: 'MTI_Login');
       setState(() {
         _emailController.text = credentials['email'] ?? '';
         _passwordController.text = credentials['password'] ?? '';
         _rememberMe = true;
       });
+    } else {
+      developer.log('No saved credentials found', name: 'MTI_Login');
     }
   }
 
@@ -68,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState!.validate()) {
       // Check if captcha is verified
       if (!_captchaVerified) {
+        developer.log('Login attempt without captcha verification', name: 'MTI_Login');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Please complete the captcha verification'),
@@ -84,32 +92,89 @@ class _LoginScreenState extends State<LoginScreen> {
       try {
         final email = _emailController.text.trim();
         final password = _passwordController.text;
-        // --- DEMO MODE: Bypass API, just check valid email, password, and captcha ---
-        // final response = await _apiService.login(email, password, _captchaToken);
-        // if (response['success']) {
-        if (GetUtils.isEmail(email) && password.isNotEmpty && _captchaVerified) {
-          // Save credentials if "Remember Me" is checked
-          final storageService = StorageService();
-          await storageService.saveUserCredentials(
-            email: email,
-            password: password,
-            rememberMe: _rememberMe,
-          );
-          // Navigate to home screen on successful login
-          Get.toNamed(AppRoutes.profile);
-        } else {
+        
+        developer.log('Attempting login for email: $email', name: 'MTI_Login');
+        
+        // Use the actual API service to login
+        try {
+          developer.log('Sending login request with captcha token', name: 'MTI_Login');
+          final response = await ApiService.login(email, password, captchaToken: _captchaToken);
+          developer.log('Login API response: ${response.toString()}', name: 'MTI_Login');
+          
+          if (response['success'] == true || response.containsKey('token') && response['token'] != null) {
+            // Show success message
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Login successful!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+            
+            // Log the token (truncated for security)
+            final token = response['token'];
+            if (token != null) {
+              final truncatedToken = token.length > 15 
+                  ? '${token.substring(0, 15)}...'
+                  : token;
+              developer.log('Login successful with token: $truncatedToken', name: 'MTI_Login');
+            }
+            
+            // Save credentials if "Remember Me" is checked
+            final storageService = StorageService();
+            await storageService.saveUserCredentials(
+              email: email,
+              password: password,
+              rememberMe: _rememberMe,
+            );
+            
+            developer.log('Credentials saved: rememberMe=$_rememberMe', name: 'MTI_Login');
+            
+            // Save user data if available
+            if (response.containsKey('user') && response['user'] != null) {
+              await storageService.saveUserData(response['user']);
+              developer.log('User data saved to storage', name: 'MTI_Login');
+            }
+            
+            // Navigate to home screen on successful login
+            Get.offAllNamed(AppRoutes.home);
+          } else {
+            // Show error message from API if available
+            String errorMessage = 'Login failed';
+            if (response.containsKey('message')) {
+              errorMessage = response['message'];
+            }
+            
+            developer.log('Login failed: $errorMessage', name: 'MTI_Login');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMessage),
+                backgroundColor: AppTheme.errorColor,
+              ),
+            );
+          }
+        } catch (apiError) {
+          developer.log('API Error during login: $apiError', name: 'MTI_Login', error: apiError);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Login failed: Invalid credentials'),
+              content: Text('Login failed: ${apiError.toString()}'),
               backgroundColor: AppTheme.errorColor,
+              duration: const Duration(seconds: 5),
             ),
           );
         }
       } catch (e) {
+        developer.log('Login error: $e', name: 'MTI_Login', error: e);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Login failed: ${e.toString()}'),
             backgroundColor: AppTheme.errorColor,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: _login,
+              textColor: Colors.white,
+            ),
           ),
         );
       } finally {
@@ -117,6 +182,8 @@ class _LoginScreenState extends State<LoginScreen> {
           _isLoading = false;
         });
       }
+    } else {
+      developer.log('Login form validation failed', name: 'MTI_Login');
     }
   }
 
@@ -325,6 +392,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: ElevatedButton(
                       onPressed: () async {
                         // Create a custom screen that properly displays and handles the captcha
+                        developer.log('Opening Cloudflare Turnstile verification', name: 'MTI_Login');
                         final token = await Get.to(() => 
                           Scaffold(
                             appBar: AppBar(
@@ -354,6 +422,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         : AppConstants.cloudflareProdSiteKey,
                                     onTokenReceived: (token) {
                                       // Return the token to the previous screen
+                                      developer.log('Turnstile token received: ${token.substring(0, 10)}...', name: 'MTI_Login');
                                       Get.back(result: token);
                                     },
                                   ),

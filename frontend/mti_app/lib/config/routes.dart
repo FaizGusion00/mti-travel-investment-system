@@ -17,6 +17,9 @@ import '../screens/redeem_screen.dart';
 import '../screens/main_navigation_screen.dart';
 import '../screens/deposit_screen.dart';
 import '../screens/withdraw_screen.dart';
+import '../screens/terms_conditions_screen.dart';
+import '../screens/privacy_policy_screen.dart';
+import '../screens/contact_us_screen.dart';
 
 class AppRoutes {
   // Route names
@@ -34,6 +37,9 @@ class AppRoutes {
   static const String accounts = '/accounts';
   static const String travel = '/travel';
   static const String redeem = '/redeem';
+  static const String termsConditions = '/terms_conditions';
+  static const String privacyPolicy = '/privacy_policy';
+  static const String contactUs = '/contact_us';
 
   // Route map for GetX
   static List<GetPage> routes = [
@@ -93,6 +99,21 @@ class AppRoutes {
     GetPage(
       name: redeem, 
       page: () => const RedeemScreen(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: termsConditions, 
+      page: () => const TermsConditionsScreen(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: privacyPolicy, 
+      page: () => const PrivacyPolicyScreen(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: contactUs, 
+      page: () => const ContactUsScreen(),
       transition: Transition.rightToLeft,
     ),
   ];

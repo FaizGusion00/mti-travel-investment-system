@@ -33,7 +33,7 @@ Route::get('/test', function () {
 
 // Authentication Routes
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'admin_login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Admin Dashboard Routes - Protected by admin auth middleware

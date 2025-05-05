@@ -20,6 +20,7 @@ export default function Register() {
     full_name: '',
     email: '',
     phonenumber: '',
+    address: '',
     date_of_birth: '',
     reference_code: '',
     password: '',
@@ -110,8 +111,9 @@ export default function Register() {
       // Add captcha token
       formDataObj.append('captcha_token', captchaToken);
       
-      // Add profile image
+      // Add profile image with both field names for compatibility
       formDataObj.append('profile_image', selectedImage);
+      formDataObj.append('avatar', selectedImage);
 
       // Get API URL from environment
       const apiUrl = Environment.apiBaseUrl;
@@ -261,6 +263,21 @@ export default function Register() {
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 bg-gray-900/70 border border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Enter your phone number"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="address" className="block text-sm font-medium text-gray-200">
+                Address
+              </label>
+              <textarea
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                className="mt-1 block w-full px-3 py-2 bg-gray-900/70 border border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Enter your address"
+                rows={3}
               />
             </div>
 

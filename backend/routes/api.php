@@ -8,6 +8,7 @@ use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\NetworkController;
 use App\Http\Controllers\API\TestController;
 use App\Http\Controllers\API\SimpleTestController;
+use App\Http\Controllers\API\TokenGeneratorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,12 +58,17 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UserController::class, 'getCurrentUser']);
     Route::post('/logout', [AuthController::class, 'logout']);
     
+    // Token management
+    Route::post('/token/generate', [TokenGeneratorController::class, 'generateToken']);
+    Route::post('/token/revoke', [TokenGeneratorController::class, 'revokeTokens']);
+    Route::get('/token/info', [TokenGeneratorController::class, 'getTokenInfo']);
+    
     // Simple auth test
     Route::get('/auth-test', [SimpleTestController::class, 'authTest']);
     
     // Profile management
     Route::get('/profile', [ProfileController::class, 'getProfile']);
-    Route::post('/profile', [ProfileController::class, 'updateProfile']);
+    Route::put('/profile', [ProfileController::class, 'updateProfile']);
     Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
     Route::post('/profile/change-password', [ProfileController::class, 'changePassword']);
     Route::post('/profile/update-email', [ProfileController::class, 'updateEmail']);

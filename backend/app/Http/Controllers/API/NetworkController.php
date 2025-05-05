@@ -51,7 +51,7 @@ class NetworkController extends Controller
         
         // Get direct downlines (level 1)
         $directDownlines = User::where('reference_code', $user->ref_code)
-            ->select('user_id', 'full_name', 'email', 'phonenumber', 'ref_code', 'created_date')
+            ->select('user_id', 'full_name', 'email', 'phonenumber', 'ref_code', 'created_at')
             ->paginate($perPage);
         
         // Get total downlines count by level
@@ -114,8 +114,8 @@ class NetworkController extends Controller
         
         // Get recent downlines
         $recentDownlines = User::where('reference_code', $user->ref_code)
-            ->select('user_id', 'full_name', 'email', 'created_date')
-            ->orderBy('created_date', 'desc')
+            ->select('user_id', 'full_name', 'email', 'created_at')
+            ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
         
@@ -164,7 +164,7 @@ class NetworkController extends Controller
         }
         
         $downlines = User::where('reference_code', $refCode)
-            ->select('user_id', 'full_name', 'email', 'ref_code', 'created_date')
+            ->select('user_id', 'full_name', 'email', 'ref_code', 'created_at')
             ->get();
         
         $result = [];
@@ -181,7 +181,7 @@ class NetworkController extends Controller
                 'full_name' => $downline->full_name,
                 'email' => $downline->email,
                 'ref_code' => $downline->ref_code,
-                'created_date' => $downline->created_date,
+                'created_at' => $downline->created_at,
                 'level' => $currentLevel,
                 'children' => $children,
                 'children_count' => count($children)
@@ -252,7 +252,7 @@ class NetworkController extends Controller
         
         while ($currentReferenceCode != 'COMPANY' && $level < $maxLevels) {
             $upline = User::where('ref_code', $currentReferenceCode)
-                ->select('user_id', 'full_name', 'email', 'ref_code', 'reference_code', 'created_date')
+                ->select('user_id', 'full_name', 'email', 'ref_code', 'reference_code', 'created_at')
                 ->first();
             
             if (!$upline) {

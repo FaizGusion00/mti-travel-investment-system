@@ -18,10 +18,19 @@ class UserController extends Controller
      */
     public function getCurrentUser(Request $request)
     {
+        $user = $request->user();
+        
+        // Calculate avatar URL from profile_image
+        $avatarUrl = null;
+        if ($user->profile_image) {
+            $avatarUrl = url('storage/' . $user->profile_image);
+        }
+        
         return response()->json([
             'status' => 'success',
             'data' => [
-                'user' => $request->user()
+                'user' => $user,
+                'avatar_url' => $avatarUrl
             ]
         ]);
     }
@@ -59,7 +68,7 @@ class UserController extends Controller
     {
         $perPage = $request->query('per_page', 15);
         $search = $request->query('search');
-        $sortBy = $request->query('sort_by', 'created_date');
+        $sortBy = $request->query('sort_by', 'created_at');
         $sortOrder = $request->query('sort_order', 'desc');
         
         $query = User::query();
@@ -176,7 +185,7 @@ class UserController extends Controller
         $perPage = $request->query('per_page', 15);
         
         $user = User::findOrFail($id);
-        $logs = $user->logs()->orderBy('created_date', 'desc')->paginate($perPage);
+        $logs = $user->logs()->orderBy('created_at', 'desc')->paginate($perPage);
         
         return response()->json([
             'status' => 'success',
@@ -192,9 +201,9 @@ class UserController extends Controller
     public function getUserStats()
     {
         $totalUsers = User::count();
-        $newUsersToday = User::whereDate('created_date', today())->count();
-        $newUsersThisWeek = User::whereBetween('created_date', [now()->startOfWeek(), now()])->count();
-        $newUsersThisMonth = User::whereMonth('created_date', now()->month)->count();
+        $newUsersToday = User::whereDate('created_at', today())->count();
+        $newUsersThisWeek = User::whereBetween('created_at', [now()->startOfWeek(), now()])->count();
+        $newUsersThisMonth = User::whereMonth('created_at', now()->month)->count();
         
         return response()->json([
             'status' => 'success',
@@ -217,8 +226,8 @@ class UserController extends Controller
     {
         $days = $request->query('days', 30);
         
-        $registrationStats = User::select(DB::raw('DATE(created_date) as date'), DB::raw('count(*) as count'))
-            ->where('created_date', '>=', now()->subDays($days))
+        $registrationStats = User::select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
+            ->where('created_at', '>=', now()->subDays($days))
             ->groupBy('date')
             ->orderBy('date')
             ->get();
@@ -240,13 +249,13 @@ class UserController extends Controller
         $days = $request->query('days', 30);
         
         $activityByType = UserLog::select('column_name', DB::raw('count(*) as count'))
-            ->where('created_date', '>=', now()->subDays($days))
+            ->where('created_at', '>=', now()->subDays($days))
             ->groupBy('column_name')
             ->orderBy('count', 'desc')
             ->get();
         
-        $activityByDate = UserLog::select(DB::raw('DATE(created_date) as date'), DB::raw('count(*) as count'))
-            ->where('created_date', '>=', now()->subDays($days))
+        $activityByDate = UserLog::select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
+            ->where('created_at', '>=', now()->subDays($days))
             ->groupBy('date')
             ->orderBy('date')
             ->get();

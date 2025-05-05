@@ -32,7 +32,7 @@
             <tbody id="usersTable">
                 @forelse($users as $user)
                     <tr class="table-row border-b border-gray-800">
-                        <td class="px-4 py-4 whitespace-nowrap text-sm">{{ $user->user_id }}</td>
+                        <td class="px-4 py-4 whitespace-nowrap text-sm">{{ $user->id }}</td>
                         <td class="px-4 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="h-8 w-8 rounded-full bg-blue-900 bg-opacity-30 flex items-center justify-center mr-3">
@@ -49,10 +49,10 @@
                             </span>
                         </td>
                         <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-400">
-                            {{ \Carbon\Carbon::parse($user->created_date)->format('M d, Y') }}
+                            {{ \Carbon\Carbon::parse($user->created_at)->format('M d, Y') }}
                         </td>
                         <td class="px-4 py-4 whitespace-nowrap text-sm">
-                            <a href="{{ route('admin.user.detail', $user->user_id) }}" class="text-blue-400 hover:text-blue-300">
+                            <a href="{{ route('admin.user.detail', $user->id) }}" class="text-blue-400 hover:text-blue-300">
                                 View Details
                             </a>
                         </td>

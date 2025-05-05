@@ -26,9 +26,12 @@ class AuthController extends Controller
             'full_name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'phonenumber' => 'required|string|max:20|unique:users',
+            'address' => 'nullable|string|max:500',
             'date_of_birth' => 'required|date|before:-18 years',
             'reference_code' => 'nullable|string|exists:users,ref_code',
             'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // Support both field names
         ]);
 
         if ($validator->fails()) {
@@ -43,16 +46,28 @@ class AuthController extends Controller
         $refCode = $this->generateUniqueRefCode();
 
         // Set default reference code if not provided
-        $referenceCode = $request->reference_code ?? 'COMPANY';
+        $referenceCode = $request->reference_code ?? 'ADMIN01';
 
+        // Handle profile image upload
+        $profileImage = 'avatars/default.png';
+        $imageFile = $request->file('profile_image') ?: $request->file('avatar');
+        
+        if ($imageFile) {
+            $fileName = time() . '_' . Str::random(10) . '.' . $imageFile->getClientOriginalExtension();
+            $imageFile->storeAs('avatars', $fileName, 'public');
+            $profileImage = 'avatars/' . $fileName;
+        }
+        
         // Create user
         $user = User::create([
             'full_name' => $request->full_name,
             'email' => $request->email,
             'phonenumber' => $request->phonenumber,
+            'address' => $request->address,
             'date_of_birth' => $request->date_of_birth,
             'reference_code' => $referenceCode,
-            'profile_image' => 'default.png',
+            'profile_image' => $profileImage,
+            'usdt_address' => null, // Initialize as null
             'password' => Hash::make($request->password),
             'ref_code' => $refCode,
         ]);
@@ -66,18 +81,22 @@ class AuthController extends Controller
         
         // Log the registration
         UserLog::create([
-            'user_id' => $user->user_id,
+            'user_id' => $user->id,
             'column_name' => 'registration',
             'old_value' => null,
             'new_value' => 'User registered'
         ]);
 
+        // Add avatar_url to response
+        $user->avatar_url = url('storage/' . $profileImage);
+        
         return response()->json([
             'status' => 'success',
             'message' => 'User registered successfully. Please verify your email with the OTP.',
             'data' => [
                 'user' => $user,
                 'otp' => $otp, // In production, don't send this in response
+                'avatar_url' => url('storage/' . $profileImage),
             ]
         ], 201);
     }
@@ -120,7 +139,7 @@ class AuthController extends Controller
 
         // Log the login
         UserLog::create([
-            'user_id' => $user->user_id,
+            'user_id' => $user->id,
             'column_name' => 'login',
             'old_value' => null,
             'new_value' => 'User logged in'
@@ -164,7 +183,7 @@ class AuthController extends Controller
         
         // Log the verification
         UserLog::create([
-            'user_id' => $user->user_id,
+            'user_id' => $user->id,
             'column_name' => 'email_verification',
             'old_value' => null,
             'new_value' => 'Email verified'
@@ -275,7 +294,7 @@ class AuthController extends Controller
         
         // Log the password reset
         UserLog::create([
-            'user_id' => $user->user_id,
+            'user_id' => $user->id,
             'column_name' => 'password',
             'old_value' => 'Password reset',
             'new_value' => 'Password reset'
@@ -297,7 +316,7 @@ class AuthController extends Controller
     {
         // Log the logout
         UserLog::create([
-            'user_id' => $request->user()->user_id,
+            'user_id' => $request->user()->id,
             'column_name' => 'logout',
             'old_value' => null,
             'new_value' => 'User logged out'

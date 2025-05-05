@@ -23,7 +23,7 @@
                                     <span class="text-gray-400">changed</span> 
                                     <span class="font-medium glow-text">{{ $log->column_name }}</span>
                                 </p>
-                                <p class="text-xs text-gray-500 mt-1 md:mt-0">{{ $log->created_date->format('M d, Y H:i') }}</p>
+                                <p class="text-xs text-gray-500 mt-1 md:mt-0">{{ $log->created_at->format('M d, Y H:i') }}</p>
                             </div>
                             
                             <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -69,7 +69,7 @@
         <div class="space-y-8 relative">
             @php
                 $groupedLogs = $logs->groupBy(function($log) {
-                    return $log->created_date->format('Y-m-d');
+                    return $log->created_at->format('Y-m-d');
                 });
             @endphp
             
@@ -97,7 +97,7 @@
                                             <span class="text-gray-400">changed</span> 
                                             <span class="font-medium glow-text">{{ $log->column_name }}</span>
                                         </p>
-                                        <span class="text-xs text-gray-500 ml-3">{{ $log->created_date->format('H:i') }}</span>
+                                        <span class="text-xs text-gray-500 ml-3">{{ $log->created_at->format('H:i') }}</span>
                                     </div>
                                     <p class="text-xs text-gray-400 mt-1">
                                         @if($log->old_value && $log->new_value)

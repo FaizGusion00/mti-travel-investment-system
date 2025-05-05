@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
@@ -23,10 +24,17 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         
+        // Calculate avatar URL from profile_image
+        $avatarUrl = null;
+        if ($user->profile_image) {
+            $avatarUrl = url('storage/' . $user->profile_image);
+        }
+        
         return response()->json([
             'status' => 'success',
             'data' => [
-                'user' => $user
+                'user' => $user,
+                'avatar_url' => $avatarUrl
             ]
         ]);
     }
@@ -43,13 +51,15 @@ class ProfileController extends Controller
         
         $validator = Validator::make($request->all(), [
             'full_name' => 'sometimes|string|max:255',
-            'phonenumber' => 'sometimes|string|max:20|unique:users,phonenumber,' . $user->user_id . ',user_id',
+            'phonenumber' => 'sometimes|string|max:20|unique:users,phonenumber,' . $user->id,
+            'address' => 'sometimes|string|max:500',
             'date_of_birth' => 'sometimes|date|before:-18 years',
+            'usdt_address' => 'sometimes|string|max:255|nullable',
             'ref_code' => [
                 'sometimes',
                 'string',
                 'size:6',
-                'unique:users,ref_code,' . $user->user_id . ',user_id',
+                'unique:users,ref_code,' . $user->id,
                 'regex:/^[A-Z0-9]*$/',
                 function ($attribute, $value, $fail) {
                     // Ensure at least 3 letters
@@ -69,10 +79,10 @@ class ProfileController extends Controller
         }
         
         // Log changes
-        foreach ($request->only(['full_name', 'phonenumber', 'date_of_birth', 'ref_code']) as $key => $value) {
+        foreach ($request->only(['full_name', 'phonenumber', 'address', 'date_of_birth', 'usdt_address', 'ref_code']) as $key => $value) {
             if ($user->$key != $value) {
                 UserLog::create([
-                    'user_id' => $user->user_id,
+                    'user_id' => $user->id,
                     'column_name' => $key,
                     'old_value' => $user->$key,
                     'new_value' => $value
@@ -80,7 +90,7 @@ class ProfileController extends Controller
             }
         }
         
-        $user->update($request->only(['full_name', 'phonenumber', 'date_of_birth', 'ref_code']));
+        $user->update($request->only(['full_name', 'phonenumber', 'address', 'date_of_birth', 'usdt_address', 'ref_code']));
         
         return response()->json([
             'status' => 'success',
@@ -100,7 +110,8 @@ class ProfileController extends Controller
     public function updateAvatar(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -113,32 +124,45 @@ class ProfileController extends Controller
         
         $user = $request->user();
         
-        // Delete old avatar if it's not the default
-        if ($user->profile_image != 'default.png') {
-            Storage::disk('public')->delete('avatars/' . $user->profile_image);
+        // Get the image file from either field
+        $imageFile = $request->file('avatar') ?: $request->file('profile_image');
+        
+        if (!$imageFile) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No image file provided'
+            ], 422);
+        }
+        
+        // Delete old avatar if it's not the default and exists
+        $oldImage = $user->profile_image;
+        if ($oldImage && $oldImage != 'avatars/default.png' && Storage::disk('public')->exists($oldImage)) {
+            Storage::disk('public')->delete($oldImage);
         }
         
         // Store new avatar
-        $avatarName = $user->user_id . '_' . time() . '.' . $request->avatar->extension();
-        $request->avatar->storeAs('avatars', $avatarName, 'public');
+        $fileName = time() . '_' . Str::random(10) . '.' . $imageFile->getClientOriginalExtension();
+        $path = $imageFile->storeAs('avatars', $fileName, 'public');
+        $profileImage = 'avatars/' . $fileName;
         
         // Log change
         UserLog::create([
-            'user_id' => $user->user_id,
+            'user_id' => $user->id,
             'column_name' => 'profile_image',
-            'old_value' => $user->profile_image,
-            'new_value' => $avatarName
+            'old_value' => $oldImage,
+            'new_value' => $profileImage
         ]);
         
         // Update user
-        $user->profile_image = $avatarName;
+        $user->profile_image = $profileImage;
         $user->save();
         
         return response()->json([
             'status' => 'success',
             'message' => 'Avatar updated successfully',
             'data' => [
-                'avatar_url' => url('storage/avatars/' . $avatarName)
+                'user' => $user,
+                'avatar_url' => url('storage/' . $profileImage)
             ]
         ]);
     }

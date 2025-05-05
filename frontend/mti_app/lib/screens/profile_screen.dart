@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:developer' as developer;
+import 'dart:io';
 import '../config/theme.dart';
 import '../config/routes.dart';
 import '../shared/widgets/bottom_nav_bar.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
+import '../services/api_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -17,12 +20,12 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(text: "Ahmad Ali");
-  final _emailController = TextEditingController(text: "ahmad_ali@gmail.com");
-  final _phoneController = TextEditingController(text: "+60 19 676 4493");
-  final _refCodeController = TextEditingController(text: "MTI12345");
-  final _usdtAddressController = TextEditingController(text: "0x12345485678");
-  final _addressController = TextEditingController(text: "123, Shah Alam, Selangor");
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _refCodeController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _usdtAddressController = TextEditingController();
   
   bool _isEditing = false;
   bool _isLoading = false;
@@ -30,47 +33,156 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _picker = ImagePicker();
 
   @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _refCodeController.dispose();
-    _usdtAddressController.dispose();
-    _addressController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    developer.log('ProfileScreen initialized', name: 'MTI_Profile');
+    _loadProfile();
+  }
+
+  String? _profileImageUrl;
+
+  Future<void> _loadProfile() async {
+    developer.log('Loading profile data', name: 'MTI_Profile');
+    try {
+      setState(() => _isLoading = true);
+      final response = await ApiService.getProfile();
+      final user = response['user'];
+      
+      developer.log('Profile data received: $user', name: 'MTI_Profile');
+      
+      // Get profile image URL - first check avatar_url in response, then fall back to profile_image_url attribute
+      String? imageUrl = response['avatar_url'] ?? user['avatar_url'] ?? user['profile_image_url'];
+      developer.log('Profile image URL: $imageUrl', name: 'MTI_Profile');
+      
+      setState(() {
+        _nameController.text = user['full_name'] ?? '';
+        _emailController.text = user['email'] ?? '';
+        _phoneController.text = user['phonenumber'] ?? '';
+        _refCodeController.text = user['ref_code'] ?? '';
+        _addressController.text = user['address'] ?? '';
+        _usdtAddressController.text = user['usdt_address'] ?? '';
+        _profileImageUrl = imageUrl;
+        _profileImage = null; // Reset selected image when loading from server
+      });
+    } catch (e) {
+      developer.log('Error loading profile: $e', name: 'MTI_Profile', error: e);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load profile: ${e.toString()}'),
+          backgroundColor: AppTheme.errorColor,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: _loadProfile,
+            textColor: Colors.white,
+          ),
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        _profileImage = image;
-      });
+    developer.log('Opening image picker', name: 'MTI_Profile');
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      
+      if (image != null) {
+        developer.log('Image selected: ${image.path}', name: 'MTI_Profile');
+        setState(() {
+          _profileImage = image;
+        });
+      }
+    } catch (e) {
+      developer.log('Error picking image: $e', name: 'MTI_Profile', error: e);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to pick image: ${e.toString()}'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
     }
   }
 
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+      developer.log('Saving profile data', name: 'MTI_Profile');
+      try {
+        setState(() => _isLoading = true);
 
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
+        // Handle profile image upload first if a new image was selected
+        if (_profileImage != null) {
+          developer.log('Uploading profile image: ${_profileImage!.path}', name: 'MTI_Profile');
+          try {
+            final imageResponse = await ApiService.updateProfileImage(_profileImage!.path);
+            developer.log('Profile image upload response: $imageResponse', name: 'MTI_Profile');
+          } catch (imageError) {
+            developer.log('Error uploading profile image: $imageError', 
+                name: 'MTI_Profile', error: imageError);
+            // We'll continue with updating the other profile data even if image upload fails
+          }
+        }
 
-      setState(() {
-        _isLoading = false;
-        _isEditing = false;
-      });
+        // Only include editable fields in the update data
+        // Do not include reference_code and usdt_address as they cannot be updated
+        final data = {
+          'full_name': _nameController.text,
+          'phonenumber': _phoneController.text,
+          'address': _addressController.text,
+        };
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated successfully'),
-          backgroundColor: AppTheme.successColor,
-        ),
-      );
+        developer.log('Profile update data: $data', name: 'MTI_Profile');
+        await ApiService.updateProfile(data);
+
+        // Reload profile to get updated data including new image URL
+        await _loadProfile();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Profile updated successfully'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        setState(() => _isEditing = false);
+      } catch (e) {
+        developer.log('Error updating profile: $e', name: 'MTI_Profile', error: e);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update profile: ${e.toString()}'),
+            backgroundColor: AppTheme.errorColor,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: _saveProfile,
+              textColor: Colors.white,
+            ),
+          ),
+        );
+      } finally {
+        setState(() => _isLoading = false);
+      }
+    } else {
+      developer.log('Profile form validation failed', name: 'MTI_Profile');
     }
+  }
+
+  @override
+  void dispose() {
+    developer.log('ProfileScreen disposed', name: 'MTI_Profile');
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _refCodeController.dispose();
+    _addressController.dispose();
+    _usdtAddressController.dispose();
+    super.dispose();
   }
 
   @override
@@ -149,22 +261,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 offset: const Offset(0, 5),
                               ),
                             ],
-                            image: _profileImage != null
-                                ? DecorationImage(
-                                    image: NetworkImage(_profileImage!.path),
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
                           ),
-                          child: _profileImage == null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(50),
-                                  child: Image.network(
-                                    'https://randomuser.me/api/portraits/men/32.jpg',
-                                    fit: BoxFit.cover,
-                                  ),
-                                )
-                              : null,
+                          child: _isLoading 
+                            ? const Center(child: CircularProgressIndicator(color: AppTheme.goldColor))
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(58),
+                                child: _profileImage != null
+                                  // Show locally selected image if available
+                                  ? Image.file(
+                                      File(_profileImage!.path),
+                                      fit: BoxFit.cover,
+                                    )
+                                  // Otherwise show server image if available
+                                  : _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                                    ? Image.network(
+                                        _profileImageUrl!,
+                                        fit: BoxFit.cover,
+                                        loadingBuilder: (context, child, loadingProgress) {
+                                          if (loadingProgress == null) return child;
+                                          return Center(
+                                            child: CircularProgressIndicator(
+                                              value: loadingProgress.expectedTotalBytes != null
+                                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                                : null,
+                                              color: AppTheme.goldColor,
+                                            ),
+                                          );
+                                        },
+                                        errorBuilder: (context, error, stackTrace) => Icon(
+                                          Icons.person,
+                                          size: 60,
+                                          color: AppTheme.goldColor,
+                                        ),
+                                      )
+                                    // If no image is available, show default icon
+                                    : Icon(
+                                        Icons.person,
+                                        size: 60,
+                                        color: AppTheme.goldColor,
+                                      ),
+                              ),
                         ),
                         if (_isEditing)
                           Positioned(
@@ -307,25 +443,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   
                   const SizedBox(height: 16),
                   
-                  // USDT BEP20 Address
-                  CustomTextField(
-                    label: "USDT BEP20 Address",
-                    controller: _usdtAddressController,
-                    enabled: _isEditing,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return "USDT address is required";
-                      }
-                      return null;
-                    },
-                    prefix: Icon(
-                      Icons.account_balance_wallet_outlined,
-                      color: AppTheme.goldColor.withOpacity(0.7),
-                    ),
-                  ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
-                  
-                  const SizedBox(height: 16),
-                  
                   // Address
                   CustomTextField(
                     label: "Address",
@@ -334,6 +451,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     maxLines: 3,
                     prefix: Icon(
                       Icons.location_on_outlined,
+                      color: AppTheme.goldColor.withOpacity(0.7),
+                    ),
+                  ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // USDT Address
+                  CustomTextField(
+                    label: "USDT Address",
+                    controller: _usdtAddressController,
+                    enabled: false, // USDT address can't be changed
+                    prefix: Icon(
+                      Icons.account_balance_wallet_outlined,
                       color: AppTheme.goldColor.withOpacity(0.7),
                     ),
                   ).animate().fadeIn(delay: 600.ms, duration: 500.ms),

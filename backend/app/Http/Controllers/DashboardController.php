@@ -18,12 +18,12 @@ class DashboardController extends Controller
     {
         // Get user statistics
         $totalUsers = User::count();
-        $newUsersToday = User::whereDate('created_date', today())->count();
-        $newUsersThisWeek = User::whereBetween('created_date', [now()->startOfWeek(), now()])->count();
-        $newUsersThisMonth = User::whereMonth('created_date', now()->month)->count();
+        $newUsersToday = User::whereDate('created_at', today())->count();
+        $newUsersThisWeek = User::whereBetween('created_at', [now()->startOfWeek(), now()])->count();
+        $newUsersThisMonth = User::whereMonth('created_at', now()->month)->count();
 
         // Get user registration trend data for chart
-        $userTrend = User::select(DB::raw('DATE(created_date) as date'), DB::raw('count(*) as count'))
+        $userTrend = User::select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
             ->groupBy('date')
             ->orderBy('date')
             ->limit(30)
@@ -50,7 +50,7 @@ class DashboardController extends Controller
      */
     public function users()
     {
-        $users = User::orderBy('created_date', 'desc')->paginate(10);
+        $users = User::orderBy('created_at', 'desc')->paginate(10);
         return view('admin.users', compact('users'));
     }
 
@@ -62,7 +62,7 @@ class DashboardController extends Controller
     public function logs()
     {
         $logs = UserLog::with('user')
-            ->orderBy('created_date', 'desc')
+            ->orderBy('created_at', 'desc')
             ->paginate(15);
 
         // Get activity by type for chart
@@ -88,7 +88,7 @@ class DashboardController extends Controller
     {
         $user = User::findOrFail($id);
         $userLogs = UserLog::where('user_id', $id)
-            ->orderBy('created_date', 'desc')
+            ->orderBy('created_at', 'desc')
             ->paginate(10);
 
         return view('admin.user-detail', compact('user', 'userLogs'));
