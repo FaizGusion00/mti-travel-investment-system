@@ -6,15 +6,16 @@
   <component name="ChangeListManager">
     <list default="true" id="b039df96-2b3a-4e63-a9a5-08ce17edeaa7" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/web.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/web.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/config/theme.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/config/theme.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/home_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/home_screen.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/login_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/login_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/services/api_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/services/api_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/linux/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/linux/flutter/generated_plugin_registrant.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/linux/flutter/generated_plugin_registrant.h" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/linux/flutter/generated_plugin_registrant.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/linux/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/linux/flutter/generated_plugins.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/macos/Flutter/GeneratedPluginRegistrant.swift" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/macos/Flutter/GeneratedPluginRegistrant.swift" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/windows/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/windows/flutter/generated_plugin_registrant.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/windows/flutter/generated_plugin_registrant.h" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/windows/flutter/generated_plugin_registrant.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/windows/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/windows/flutter/generated_plugins.cmake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/network_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/network_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/profile_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/profile_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/settings_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/settings_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/splash_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/splash_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/splash_screen_backup.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/splash_screen_backup.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/pubspec.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

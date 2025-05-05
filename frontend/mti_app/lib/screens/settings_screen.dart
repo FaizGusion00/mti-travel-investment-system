@@ -8,6 +8,7 @@ import '../config/routes.dart';
 import '../shared/widgets/bottom_nav_bar.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import 'package:shimmer/shimmer.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -23,6 +24,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _appVersion = 'v0.0.2';
   bool _isLoading = false;
   String? _profileImageUrl;
+  bool _isButtonPressed = false;
   
   // Auth service
   final AuthService _authService = AuthService();
@@ -63,6 +65,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final avatarSize = (screenWidth * 0.24).clamp(80, 120).toDouble();
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
@@ -88,17 +93,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: EdgeInsets.symmetric(
+            horizontal: (screenWidth * 0.05).clamp(16, 32).toDouble(),
+            vertical: (screenHeight * 0.02).clamp(12, 28).toDouble(),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildProfileSection(),
+              _buildProfileSection(screenWidth, avatarSize),
               const SizedBox(height: 24),
               _buildSectionTitle('ACCOUNT'),
-              _buildCurrencyPreference(),
-              _buildDarkModeToggle(),
-              _buildLanguagePreference(),
-              
+              _buildCurrencyPreference(screenWidth),
+              _buildDarkModeToggle(screenWidth),
               const SizedBox(height: 24),
               _buildSectionTitle('OTHER'),
               _buildSettingsItem(
@@ -116,13 +122,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Icons.support_agent_outlined,
                 onTap: () => Get.toNamed(AppRoutes.contactUs),
               ),
-              
-              // App version
               _buildSettingsItem(
                 'App Version',
                 Icons.info_outline,
                 onTap: () {
-                  // Show version info dialog
                   Get.dialog(
                     AlertDialog(
                       backgroundColor: AppTheme.secondaryBackgroundColor,
@@ -165,14 +168,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ),
-              
               const SizedBox(height: 24),
-              _buildLogoutButton(),
+              _buildLogoutButton(screenWidth),
             ],
           ),
         ),
       ),
-      // No bottom navigation bar since this is accessed from profile
     );
   }
 
@@ -182,10 +183,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Text(
         title,
         style: TextStyle(
-          color: AppTheme.goldColor.withOpacity(0.8),
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
+          color: AppTheme.goldColor.withOpacity(0.85),
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 2.0,
         ),
       ),
     ).animate().fadeIn(duration: 500.ms);
@@ -200,11 +201,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: AppTheme.dividerColor.withOpacity(0.3),
+              color: AppTheme.dividerColor.withOpacity(0.18),
               width: 1,
             ),
           ),
@@ -213,7 +214,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Icon(
               icon,
-              color: Colors.white,
+              color: AppTheme.goldColor,
               size: 22,
             ),
             const SizedBox(width: 16),
@@ -222,7 +223,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -235,16 +237,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
-    ).animate().fadeIn(duration: 500.ms);
+    ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutQuad);
   }
 
-  Widget _buildCurrencyPreference() {
+  Widget _buildCurrencyPreference(double screenWidth) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: AppTheme.dividerColor.withOpacity(0.3),
+            color: AppTheme.dividerColor.withOpacity(0.18),
             width: 1,
           ),
         ),
@@ -253,7 +255,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           const Icon(
             Icons.attach_money,
-            color: Colors.white,
+            color: AppTheme.goldColor,
             size: 22,
           ),
           const SizedBox(width: 16),
@@ -262,50 +264,98 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'Currency Preference',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 16,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppTheme.secondaryBackgroundColor,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppTheme.goldColor.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  _selectedCurrency,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
+          GestureDetector(
+            onTap: () {
+              // Show currency selection dialog
+              Get.dialog(
+                AlertDialog(
+                  backgroundColor: AppTheme.cardColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: const Text('Select Currency', style: TextStyle(color: Colors.white)),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildCurrencyOption('USD'),
+                      _buildCurrencyOption('EUR'),
+                      _buildCurrencyOption('MYR'),
+                    ],
                   ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Get.back(),
+                      child: Text('Close', style: TextStyle(color: AppTheme.goldColor)),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.arrow_drop_down,
-                  color: AppTheme.goldColor,
-                  size: 20,
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppTheme.secondaryBackgroundColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppTheme.goldColor.withOpacity(0.3),
+                  width: 1,
                 ),
-              ],
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    _selectedCurrency,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.arrow_drop_down,
+                    color: AppTheme.goldColor,
+                    size: 20,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 500.ms);
+    ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutQuad);
   }
 
-  Widget _buildDarkModeToggle() {
+  Widget _buildCurrencyOption(String currency) {
+    return ListTile(
+      title: Text(
+        currency,
+        style: TextStyle(
+          color: _selectedCurrency == currency ? AppTheme.goldColor : Colors.white,
+          fontWeight: _selectedCurrency == currency ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      trailing: _selectedCurrency == currency
+          ? const Icon(Icons.check, color: AppTheme.goldColor)
+          : null,
+      onTap: () {
+        setState(() {
+          _selectedCurrency = currency;
+        });
+        Get.back();
+      },
+    );
+  }
+
+  Widget _buildDarkModeToggle(double screenWidth) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: AppTheme.dividerColor.withOpacity(0.3),
+            color: AppTheme.dividerColor.withOpacity(0.18),
             width: 1,
           ),
         ),
@@ -314,7 +364,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           const Icon(
             Icons.dark_mode_outlined,
-            color: Colors.white,
+            color: AppTheme.goldColor,
             size: 22,
           ),
           const SizedBox(width: 16),
@@ -323,7 +373,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'Dark Mode',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 16,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -341,106 +392,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 500.ms);
+    ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutQuad);
   }
 
-  Widget _buildLanguagePreference() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: AppTheme.dividerColor.withOpacity(0.3),
-            width: 1,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.language_outlined,
-            color: Colors.white,
-            size: 22,
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
-            child: Text(
-              'App Language',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-              ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppTheme.secondaryBackgroundColor,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              _selectedLanguage,
-              style: const TextStyle(
-                color: AppTheme.tertiaryTextColor,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 500.ms);
-  }
-
-  Widget _buildProfileSection() {
+  Widget _buildProfileSection(double screenWidth, double avatarSize) {
     return GestureDetector(
       onTap: () {
-        // Navigate to profile screen
         Get.toNamed(AppRoutes.profile);
       },
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.symmetric(
+          horizontal: (screenWidth * 0.04).clamp(12, 20).toDouble(),
+          vertical: 22,
+        ),
         decoration: BoxDecoration(
-          color: AppTheme.secondaryBackgroundColor,
-          borderRadius: BorderRadius.circular(20),
+          color: Colors.white.withOpacity(0.07),
+          borderRadius: BorderRadius.circular(26),
           border: Border.all(
-            color: AppTheme.goldColor.withOpacity(0.3),
-            width: 1,
+            color: AppTheme.goldColor.withOpacity(0.22),
+            width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.goldColor.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
+              color: AppTheme.goldColor.withOpacity(0.13),
+              blurRadius: 32,
+              spreadRadius: 2,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Column(
           children: [
             // Profile Picture
-            Stack(
-            alignment: Alignment.bottomRight,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppTheme.goldColor,
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.goldColor.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
+            Container(
+              width: avatarSize,
+              height: avatarSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppTheme.goldColor,
+                  width: 2.2,
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(50),
-                  child: _profileImageUrl != null
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.goldColor.withOpacity(0.18),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(avatarSize / 2),
+                child: _profileImageUrl != null
                     ? Image.network(
                         _profileImageUrl!,
                         fit: BoxFit.cover,
@@ -449,8 +453,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           return Center(
                             child: CircularProgressIndicator(
                               value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                : null,
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
                               valueColor: AlwaysStoppedAnimation<Color>(AppTheme.goldColor),
                             ),
                           );
@@ -458,122 +463,97 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         errorBuilder: (context, error, stackTrace) {
                           return Icon(
                             Icons.person,
-                            size: 50,
+                            size: avatarSize * 0.5,
                             color: AppTheme.goldColor,
                           );
                         },
                       )
                     : Icon(
                         Icons.person,
-                        size: 50,
+                        size: avatarSize * 0.5,
                         color: AppTheme.goldColor,
                       ),
-                ),
               ),
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppTheme.backgroundColor,
-                    width: 2,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.camera_alt,
-                  color: Colors.white,
-                  size: 16,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          
-          // Name Field
-          _buildProfileField(
-            controller: _nameController,
-            label: 'Full Name',
-            icon: Icons.person,
-          ),
-          const SizedBox(height: 16),
-          
-          // Email Field
-          _buildProfileField(
-            controller: _emailController,
-            label: 'Email Address',
-            icon: Icons.email,
-            keyboardType: TextInputType.emailAddress,
-          ),
-          const SizedBox(height: 16),
-          
-          // Phone Field
-          _buildProfileField(
-            controller: _phoneController,
-            label: 'Phone Number',
-            icon: Icons.phone,
-            keyboardType: TextInputType.phone,
-          ),
-          const SizedBox(height: 24),
-          
-          // View Profile Button
-          Container(
-            width: double.infinity,
-            height: 50,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  AppTheme.goldColor,
-                  Color(0xFFD4AF37),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.goldColor.withOpacity(0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
             ),
-            child: ElevatedButton(
-              onPressed: () {
-                // Navigate to profile screen
+            const SizedBox(height: 18),
+            // Name Field
+            _buildProfileField(
+              controller: _nameController,
+              label: 'Full Name',
+              icon: Icons.person,
+            ),
+            const SizedBox(height: 12),
+            // Email Field
+            _buildProfileField(
+              controller: _emailController,
+              label: 'Email Address',
+              icon: Icons.email,
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 12),
+            // Phone Field
+            _buildProfileField(
+              controller: _phoneController,
+              label: 'Phone Number',
+              icon: Icons.phone,
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 20),
+            // Minimalist View Profile Button
+            GestureDetector(
+              onTapDown: (_) => setState(() => _isButtonPressed = true),
+              onTapUp: (_) => setState(() => _isButtonPressed = false),
+              onTapCancel: () => setState(() => _isButtonPressed = false),
+              onTap: () {
                 Get.toNamed(AppRoutes.profile);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Text(
-                    'View Full Profile',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 120),
+                opacity: _isButtonPressed ? 0.7 : 1.0,
+                child: AnimatedScale(
+                  duration: const Duration(milliseconds: 120),
+                  scale: _isButtonPressed ? 0.97 : 1.0,
+                  child: Container(
+                    width: double.infinity,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.goldColor,
+                        width: 1.6,
+                      ),
+                    ),
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.person_outline,
+                            color: AppTheme.goldColor,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'View My Profile',
+                            style: TextStyle(
+                              color: AppTheme.goldColor,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Icon(
-                    Icons.arrow_forward,
-                    color: Colors.black,
-                    size: 18,
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    )).animate().fadeIn(duration: 500.ms).slideY(
+    ).animate().fadeIn(duration: 500.ms).slideY(
       begin: 0.1,
       end: 0,
       duration: 500.ms,
@@ -589,10 +569,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.backgroundColor.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(12),
+        color: AppTheme.backgroundColor.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: AppTheme.dividerColor.withOpacity(0.1),
+          color: AppTheme.dividerColor.withOpacity(0.08),
           width: 1,
         ),
       ),
@@ -604,15 +584,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           labelText: label,
           labelStyle: TextStyle(
             color: AppTheme.secondaryTextColor,
-            fontSize: 14,
+            fontSize: 13,
           ),
           prefixIcon: Icon(
             icon,
             color: AppTheme.goldColor,
-            size: 20,
+            size: 19,
           ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
         ),
       ),
     );
@@ -656,10 +636,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Widget _buildLogoutButton() {
+  Widget _buildLogoutButton(double screenWidth) {
     return TextButton(
       onPressed: () {
-        // Show logout confirmation dialog
         Get.dialog(
           AlertDialog(
             backgroundColor: AppTheme.cardColor,
@@ -695,8 +674,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               TextButton(
                 onPressed: () async {
                   Get.back();
-                  
-                  // Show loading indicator
                   Get.dialog(
                     const Center(
                       child: CircularProgressIndicator(
@@ -705,14 +682,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     barrierDismissible: false,
                   );
-                  
-                  // Call logout from AuthService
                   try {
                     await _authService.logout();
-                    Get.back(); // Close loading dialog
+                    Get.back();
                     Get.offAllNamed(AppRoutes.login);
                   } catch (e) {
-                    Get.back(); // Close loading dialog
+                    Get.back();
                     Get.snackbar(
                       'Error',
                       'Failed to logout: ${e.toString()}',
@@ -747,12 +722,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             "Logout",
             style: TextStyle(
               color: AppTheme.errorColor,
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 500.ms);
+    ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutQuad);
   }
 }

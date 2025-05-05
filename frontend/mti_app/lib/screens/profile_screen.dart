@@ -10,6 +10,9 @@ import '../shared/widgets/bottom_nav_bar.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 import '../services/api_service.dart';
+import 'package:flutter/services.dart';
+import 'package:shimmer/shimmer.dart';
+import 'dart:ui';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -187,6 +190,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final avatarSize = (screenWidth * 0.28).clamp(90, 140).toDouble();
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
@@ -230,295 +236,423 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(), // Smooth scrolling for Android
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Form(
-              key: _formKey,
+        child: Center(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: (screenWidth * 0.05).clamp(16, 32).toDouble(),
+                vertical: (screenHeight * 0.02).clamp(12, 28).toDouble(),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Profile picture
-                  GestureDetector(
-                    onTap: _isEditing ? _pickImage : null,
-                    child: Stack(
-                      children: [
-                        Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            color: AppTheme.secondaryBackgroundColor,
-                            borderRadius: BorderRadius.circular(60),
-                            border: Border.all(
-                              color: AppTheme.goldColor,
-                              width: 2,
+                  // Minimalist Edit Mode Chip
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    child: _isEditing
+                        ? Container(
+                            key: const ValueKey('edit_mode'),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withOpacity(0.10),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.goldColor.withOpacity(0.3),
-                                blurRadius: 15,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: _isLoading 
-                            ? const Center(child: CircularProgressIndicator(color: AppTheme.goldColor))
-                            : ClipRRect(
-                                borderRadius: BorderRadius.circular(58),
-                                child: _profileImage != null
-                                  // Show locally selected image if available
-                                  ? Image.file(
-                                      File(_profileImage!.path),
-                                      fit: BoxFit.cover,
-                                    )
-                                  // Otherwise show server image if available
-                                  : _profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                                    ? Image.network(
-                                        _profileImageUrl!,
-                                        fit: BoxFit.cover,
-                                        loadingBuilder: (context, child, loadingProgress) {
-                                          if (loadingProgress == null) return child;
-                                          return Center(
-                                            child: CircularProgressIndicator(
-                                              value: loadingProgress.expectedTotalBytes != null
-                                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                                : null,
-                                              color: AppTheme.goldColor,
-                                            ),
-                                          );
-                                        },
-                                        errorBuilder: (context, error, stackTrace) => Icon(
-                                          Icons.person,
-                                          size: 60,
-                                          color: AppTheme.goldColor,
-                                        ),
-                                      )
-                                    // If no image is available, show default icon
-                                    : Icon(
-                                        Icons.person,
-                                        size: 60,
-                                        color: AppTheme.goldColor,
-                                      ),
-                              ),
-                        ),
-                        if (_isEditing)
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                gradient: AppTheme.goldGradient,
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: AppTheme.backgroundColor,
-                                  width: 2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppTheme.goldColor.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.edit, color: AppTheme.goldColor, size: 16),
+                                const SizedBox(width: 6),
+                                Text(
+                                  "Edit Mode",
+                                  style: TextStyle(
+                                    color: AppTheme.goldColor,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
                                   ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.white,
-                                size: 20,
-                              ),
+                                ),
+                              ],
                             ),
-                          ),
+                          )
+                        : const SizedBox(height: 12),
+                  ),
+                  // Minimalist Card
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.07),
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.10),
+                          blurRadius: 18,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 2),
+                        ),
                       ],
                     ),
-                  ).animate().scale(
-                    duration: 600.ms,
-                    curve: Curves.easeOutBack,
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Name
-                  CustomTextField(
-                    label: "Full Name",
-                    controller: _nameController,
-                    enabled: _isEditing,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return "Name is required";
-                      }
-                      return null;
-                    },
-                    prefix: Icon(
-                      Icons.person_outline,
-                      color: AppTheme.goldColor.withOpacity(0.7),
-                    ),
-                  ).animate().fadeIn(delay: 100.ms, duration: 500.ms),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Email
-                  CustomTextField(
-                    label: "Email",
-                    controller: _emailController,
-                    enabled: _isEditing,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return "Email is required";
-                      }
-                      if (!GetUtils.isEmail(value)) {
-                        return "Please enter a valid email";
-                      }
-                      return null;
-                    },
-                    prefix: Icon(
-                      Icons.email_outlined,
-                      color: AppTheme.goldColor.withOpacity(0.7),
-                    ),
-                    suffix: _isEditing
-                        ? IconButton(
-                            icon: const Icon(
-                              Icons.verified_outlined,
-                              color: AppTheme.primaryColor,
-                            ),
-                            onPressed: () {
-                              // Show email verification dialog
-                              Get.toNamed(
-                                AppRoutes.emailVerification,
-                                arguments: {'email': _emailController.text},
-                              );
-                            },
-                          )
-                        : null,
-                  ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Phone
-                  CustomTextField(
-                    label: "Phone",
-                    controller: _phoneController,
-                    enabled: _isEditing,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return "Phone is required";
-                      }
-                      return null;
-                    },
-                    prefix: Icon(
-                      Icons.phone_outlined,
-                      color: AppTheme.goldColor.withOpacity(0.7),
-                    ),
-                  ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Reference Code
-                  CustomTextField(
-                    label: "Reference Code",
-                    controller: _refCodeController,
-                    enabled: false, // Reference code can't be changed
-                    prefix: Icon(
-                      Icons.people_outline,
-                      color: AppTheme.goldColor.withOpacity(0.7),
-                    ),
-                    suffix: IconButton(
-                      icon: const Icon(
-                        Icons.copy,
-                        color: AppTheme.primaryColor,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: (screenWidth * 0.06).clamp(12, 22).toDouble(),
+                        vertical: (screenHeight * 0.03).clamp(12, 22).toDouble(),
                       ),
-                      onPressed: () {
-                        // Copy to clipboard
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Reference code copied to clipboard'),
-                            backgroundColor: AppTheme.infoColor,
-                          ),
-                        );
-                      },
-                    ),
-                  ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Address
-                  CustomTextField(
-                    label: "Address",
-                    controller: _addressController,
-                    enabled: _isEditing,
-                    maxLines: 3,
-                    prefix: Icon(
-                      Icons.location_on_outlined,
-                      color: AppTheme.goldColor.withOpacity(0.7),
-                    ),
-                  ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // USDT Address
-                  CustomTextField(
-                    label: "USDT Address",
-                    controller: _usdtAddressController,
-                    enabled: false, // USDT address can't be changed
-                    prefix: Icon(
-                      Icons.account_balance_wallet_outlined,
-                      color: AppTheme.goldColor.withOpacity(0.7),
-                    ),
-                  ).animate().fadeIn(delay: 600.ms, duration: 500.ms),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // Save button (only visible in edit mode)
-                  if (_isEditing)
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: AppTheme.goldGradient,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.goldColor.withOpacity(0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _saveProfile,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          shadowColor: Colors.transparent,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          minimumSize: const Size(double.infinity, 56),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Profile picture
+                            Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 400),
+                                  curve: Curves.easeOutCubic,
+                                  width: avatarSize,
+                                  height: avatarSize,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.secondaryBackgroundColor,
+                                    borderRadius: BorderRadius.circular(avatarSize / 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.10),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: _isLoading
+                                      ? const Center(child: CircularProgressIndicator(color: AppTheme.goldColor))
+                                      : ClipRRect(
+                                          borderRadius: BorderRadius.circular((avatarSize / 2) - 2),
+                                          child: _profileImage != null
+                                              ? Image.file(
+                                                  File(_profileImage!.path),
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                                                  ? Image.network(
+                                                      _profileImageUrl!,
+                                                      fit: BoxFit.cover,
+                                                      loadingBuilder: (context, child, loadingProgress) {
+                                                        if (loadingProgress == null) return child;
+                                                        return Center(
+                                                          child: CircularProgressIndicator(
+                                                            value: loadingProgress.expectedTotalBytes != null
+                                                                ? loadingProgress.cumulativeBytesLoaded /
+                                                                    loadingProgress.expectedTotalBytes!
+                                                                : null,
+                                                            color: AppTheme.goldColor,
+                                                          ),
+                                                        );
+                                                      },
+                                                      errorBuilder: (context, error, stackTrace) => Icon(
+                                                        Icons.person,
+                                                        size: avatarSize * 0.5,
+                                                        color: AppTheme.goldColor,
+                                                      ),
+                                                    )
+                                                  : Icon(
+                                                      Icons.person,
+                                                      size: avatarSize * 0.5,
+                                                      color: AppTheme.goldColor,
+                                                    ),
+                                        ),
                                 ),
-                              )
-                            : const Text(
-                                "Save Changes",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                                if (_isEditing)
+                                  Positioned(
+                                    bottom: 8,
+                                    right: 8,
+                                    child: GestureDetector(
+                                      onTap: _pickImage,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.goldColor,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppTheme.goldColor.withOpacity(0.18),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            // Name
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutCubic,
+                              decoration: BoxDecoration(
+                                color: _isEditing ? AppTheme.surfaceColor.withOpacity(0.10) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: _isEditing ? AppTheme.goldColor.withOpacity(0.5) : Colors.transparent,
+                                    width: 1.2,
+                                  ),
                                 ),
                               ),
+                              child: CustomTextField(
+                                label: "Full Name",
+                                controller: _nameController,
+                                enabled: _isEditing,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return "Name is required";
+                                  }
+                                  return null;
+                                },
+                                prefix: Icon(
+                                  Icons.person_outline,
+                                  color: AppTheme.goldColor.withOpacity(0.7),
+                                ),
+                              ),
+                            ).animate().fadeIn(delay: 100.ms, duration: 500.ms),
+                            const SizedBox(height: 14),
+                            // Email
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutCubic,
+                              decoration: BoxDecoration(
+                                color: _isEditing ? AppTheme.surfaceColor.withOpacity(0.10) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: _isEditing ? AppTheme.goldColor.withOpacity(0.5) : Colors.transparent,
+                                    width: 1.2,
+                                  ),
+                                ),
+                              ),
+                              child: CustomTextField(
+                                label: "Email",
+                                controller: _emailController,
+                                enabled: _isEditing,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return "Email is required";
+                                  }
+                                  if (!GetUtils.isEmail(value)) {
+                                    return "Please enter a valid email";
+                                  }
+                                  return null;
+                                },
+                                prefix: Icon(
+                                  Icons.email_outlined,
+                                  color: AppTheme.goldColor.withOpacity(0.7),
+                                ),
+                                suffix: _isEditing
+                                    ? IconButton(
+                                        icon: const Icon(
+                                          Icons.verified_outlined,
+                                          color: AppTheme.primaryColor,
+                                        ),
+                                        onPressed: () {
+                                          Get.toNamed(
+                                            AppRoutes.emailVerification,
+                                            arguments: {'email': _emailController.text},
+                                          );
+                                        },
+                                      )
+                                    : null,
+                              ),
+                            ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
+                            const SizedBox(height: 14),
+                            // Phone
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutCubic,
+                              decoration: BoxDecoration(
+                                color: _isEditing ? AppTheme.surfaceColor.withOpacity(0.10) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: _isEditing ? AppTheme.goldColor.withOpacity(0.5) : Colors.transparent,
+                                    width: 1.2,
+                                  ),
+                                ),
+                              ),
+                              child: CustomTextField(
+                                label: "Phone",
+                                controller: _phoneController,
+                                enabled: _isEditing,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return "Phone is required";
+                                  }
+                                  return null;
+                                },
+                                prefix: Icon(
+                                  Icons.phone_outlined,
+                                  color: AppTheme.goldColor.withOpacity(0.7),
+                                ),
+                              ),
+                            ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
+                            const SizedBox(height: 14),
+                            // Reference Code
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutCubic,
+                              decoration: BoxDecoration(
+                                color: AppTheme.surfaceColor.withOpacity(0.06),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: AppTheme.goldColor.withOpacity(0.18),
+                                    width: 1.1,
+                                  ),
+                                ),
+                              ),
+                              child: CustomTextField(
+                                label: "Reference Code",
+                                controller: _refCodeController,
+                                enabled: false,
+                                prefix: Icon(
+                                  Icons.people_outline,
+                                  color: AppTheme.goldColor.withOpacity(0.7),
+                                ),
+                                suffix: IconButton(
+                                  icon: const Icon(
+                                    Icons.copy,
+                                    color: AppTheme.primaryColor,
+                                  ),
+                                  onPressed: () async {
+                                    await Clipboard.setData(ClipboardData(text: _refCodeController.text));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Row(
+                                          children: const [
+                                            Icon(Icons.check_circle, color: Colors.white, size: 20),
+                                            SizedBox(width: 10),
+                                            Text("Reference code copied!"),
+                                          ],
+                                        ),
+                                        backgroundColor: Colors.green,
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ).animate().fadeIn(delay: 400.ms, duration: 500.ms),
+                            const SizedBox(height: 14),
+                            // Address
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutCubic,
+                              decoration: BoxDecoration(
+                                color: _isEditing ? AppTheme.surfaceColor.withOpacity(0.10) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: _isEditing ? AppTheme.goldColor.withOpacity(0.5) : Colors.transparent,
+                                    width: 1.2,
+                                  ),
+                                ),
+                              ),
+                              child: CustomTextField(
+                                label: "Address",
+                                controller: _addressController,
+                                enabled: _isEditing,
+                                maxLines: 3,
+                                prefix: Icon(
+                                  Icons.location_on_outlined,
+                                  color: AppTheme.goldColor.withOpacity(0.7),
+                                ),
+                              ),
+                            ).animate().fadeIn(delay: 500.ms, duration: 500.ms),
+                            const SizedBox(height: 14),
+                            // USDT Address
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutCubic,
+                              decoration: BoxDecoration(
+                                color: AppTheme.surfaceColor.withOpacity(0.06),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: AppTheme.goldColor.withOpacity(0.18),
+                                    width: 1.1,
+                                  ),
+                                ),
+                              ),
+                              child: CustomTextField(
+                                label: "USDT Address",
+                                controller: _usdtAddressController,
+                                enabled: false,
+                                prefix: Icon(
+                                  Icons.account_balance_wallet_outlined,
+                                  color: AppTheme.goldColor.withOpacity(0.7),
+                                ),
+                              ),
+                            ).animate().fadeIn(delay: 600.ms, duration: 500.ms),
+                            const SizedBox(height: 28),
+                            // Save button (only visible in edit mode)
+                            if (_isEditing)
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: AppTheme.goldGradient,
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.goldColor.withOpacity(0.18),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _saveProfile,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    foregroundColor: Colors.white,
+                                    shadowColor: Colors.transparent,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    minimumSize: const Size(double.infinity, 48),
+                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          ),
+                                        )
+                                      : Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: const [
+                                            Icon(Icons.save, color: Colors.white, size: 20),
+                                            SizedBox(width: 10),
+                                            Text(
+                                              "Save Changes",
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                ),
+                              ).animate().fadeIn(delay: 700.ms, duration: 500.ms),
+                            const SizedBox(height: 10),
+                          ],
+                        ),
                       ),
-                    ).animate().fadeIn(delay: 700.ms, duration: 500.ms),
-                  
-                  const SizedBox(height: 16),
-
+                    ),
+                  ),
                 ],
               ),
             ),

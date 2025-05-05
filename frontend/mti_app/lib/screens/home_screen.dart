@@ -102,9 +102,11 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeader(),
-                  _buildBalanceCard(),
-                  _buildWalletsSection(),
+                  _buildHeader().animate().fadeIn(duration: 500.ms).slideY(begin: 0.08, end: 0, duration: 500.ms, curve: Curves.easeOutCubic),
+                  const SizedBox(height: 10),
+                  _buildBalanceCard().animate().fadeIn(duration: 600.ms, delay: 100.ms).slideY(begin: 0.10, end: 0, duration: 600.ms, curve: Curves.easeOutCubic),
+                  const SizedBox(height: 18),
+                  _buildWalletsSection().animate().fadeIn(duration: 700.ms, delay: 200.ms).slideY(begin: 0.12, end: 0, duration: 700.ms, curve: Curves.easeOutCubic),
                   const SizedBox(height: 100), // Space for bottom nav bar
                 ],
               ),
@@ -131,25 +133,40 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       padding: const EdgeInsets.all(20.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text(
-                "Welcome back,",
-                style: TextStyle(
-                  color: AppTheme.secondaryTextColor,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                "Ahmad Ali",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              // Logo to the left of welcome
+              Image.asset(
+                'assets/images/mti_logo.png',
+                width: 38,
+                height: 38,
+              ).animate().fadeIn(duration: 500.ms).scale(begin: Offset(0.85, 0.85), end: Offset(1, 1), duration: 500.ms, curve: Curves.easeOutBack),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Welcome back,",
+                    style: GoogleFonts.inter(
+                      color: AppTheme.secondaryTextColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    "Ahmad Ali",
+                    style: GoogleFonts.montserrat(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -232,11 +249,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 500.ms).slideY(
-      begin: 0.1,
-      end: 0,
-      duration: 500.ms,
-      curve: Curves.easeOutQuad,
     );
   }
 
@@ -245,141 +257,50 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Stack(
         children: [
-          // First animated shine effect - horizontal sweep (conditionally rendered)
-          if (!_useSimplifiedUI) // Only show complex animations if not in simplified mode
-            AnimatedBuilder(
-              animation: _animationController,
-              builder: (context, child) {
-                return Positioned.fill(
-                  child: Container(
+          // Animated shine overlay
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _animationController,
+                builder: (context, child) {
+                  return Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30),
-                      gradient: PerformanceUtils.optimizedGradient(
-                        [
+                      borderRadius: BorderRadius.circular(26),
+                      gradient: LinearGradient(
+                        begin: Alignment(-1.2 + 2.4 * _animationController.value, -1),
+                        end: Alignment(1.2 - 2.4 * _animationController.value, 1),
+                        colors: [
                           Colors.transparent,
-                          Colors.transparent,
-                          AppTheme.goldColor.withOpacity(0.1),
-                          AppTheme.goldColor.withOpacity(0.3),
-                          Colors.white.withOpacity(0.4),
-                          AppTheme.goldColor.withOpacity(0.3),
-                          AppTheme.goldColor.withOpacity(0.1),
-                          Colors.transparent,
+                          AppTheme.goldColor.withOpacity(0.13),
                           Colors.transparent,
                         ],
-                        fullGradient: LinearGradient(
-                          colors: [
-                            Colors.transparent,
-                            Colors.transparent,
-                            AppTheme.goldColor.withOpacity(0.1),
-                            AppTheme.goldColor.withOpacity(0.3),
-                            Colors.white.withOpacity(0.4),
-                            AppTheme.goldColor.withOpacity(0.3),
-                            AppTheme.goldColor.withOpacity(0.1),
-                            Colors.transparent,
-                            Colors.transparent,
-                          ],
-                          stops: const [0.0, 0.3, 0.33, 0.4, 0.5, 0.6, 0.67, 0.7, 1.0],
-                        ),
-                        // Simplified gradient with fewer color stops for better performance
-                        simplifiedGradient: SweepGradient(
-                          center: Alignment.center,
-                          startAngle: 0.0,
-                          endAngle: 2 * 3.14159,
-                          colors: [
-                            AppTheme.goldColor.withOpacity(0.2),
-                            Colors.transparent,
-                            Colors.transparent,
-                            AppTheme.goldColor.withOpacity(0.2),
-                            Colors.transparent,
-                          ],
-                          stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
-                          transform: GradientRotation(
-                            (2 * 3.14159 * _animationController.value) - (3.14159 / 4),
-                          ),
-                        ),
+                        stops: const [0.0, 0.5, 1.0],
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-          // Second animated shine effect - diagonal sweep
-          AnimatedBuilder(
-            animation: _animationController,
-            builder: (context, child) {
-              return Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
-                    gradient: SweepGradient(
-                      colors: [
-                        Colors.transparent,
-                        Colors.transparent,
-                        AppTheme.goldColor.withOpacity(0.2),
-                        AppTheme.goldColor.withOpacity(0.6),
-                        Colors.white.withOpacity(0.5),
-                        AppTheme.goldColor.withOpacity(0.6),
-                        AppTheme.goldColor.withOpacity(0.2),
-                        Colors.transparent,
-                        Colors.transparent,
-                      ],
-                      stops: const [0.0, 0.7, 0.73, 0.8, 0.85, 0.9, 0.93, 0.95, 1.0],
-                      transform: GradientRotation(
-                        3.14159 - (2 * 3.14159 * _animationController.value),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // Edge glow effect with shadow
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(
-                  color: AppTheme.goldColor.withOpacity(0.8),
-                  width: 2.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.goldColor.withOpacity(0.3),
-                    blurRadius: 10,
-                    spreadRadius: 0,
-                  ),
-                ],
+                  );
+                },
               ),
             ),
           ),
-          // Main card
+          // Glassmorphism card with entrance animation
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF0A0A0A),
-                  Colors.black,
-                  const Color(0xFF0A0A0A),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+              color: Colors.white.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(
+                color: AppTheme.goldColor.withOpacity(0.22),
+                width: 1.5,
               ),
-              borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.7),
-                  blurRadius: 15,
+                  color: AppTheme.goldColor.withOpacity(0.10),
+                  blurRadius: 32,
                   offset: const Offset(0, 8),
                 ),
-                BoxShadow(
-                  color: AppTheme.goldColor.withOpacity(0.1),
-                  blurRadius: 10,
-                  spreadRadius: -5,
-                ),
               ],
+              backgroundBlendMode: BlendMode.overlay,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -387,14 +308,20 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      "Total Balance",
-                      style: GoogleFonts.montserrat(
-                        color: AppTheme.goldColor.withOpacity(0.9),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
+                    Row(
+                      children: [
+                        Icon(Icons.account_balance_wallet_rounded, color: AppTheme.goldColor, size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Total Balance",
+                          style: GoogleFonts.inter(
+                            color: AppTheme.goldColor.withOpacity(0.9),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
                     ),
                     GestureDetector(
                       onTap: () {
@@ -402,49 +329,52 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                           _isBalanceVisible = !_isBalanceVisible;
                         });
                       },
-                      child: Icon(
-                        _isBalanceVisible
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                        color: Colors.white.withOpacity(0.8),
-                        size: 22,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        child: Icon(
+                          _isBalanceVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          key: ValueKey(_isBalanceVisible),
+                          color: Colors.white.withOpacity(0.8),
+                          size: 22,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 AnimatedCrossFade(
                   firstChild: Text(
                     "330,900 USDT",
                     style: GoogleFonts.montserrat(
                       color: Colors.white,
-                      fontSize: 32,
+                      fontSize: 34,
                       fontWeight: FontWeight.bold,
                       letterSpacing: -0.5,
+                      shadows: [
+                        Shadow(
+                          color: AppTheme.goldColor.withOpacity(0.12),
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
                     ),
                   ),
                   secondChild: Text(
                     "••••••••••",
                     style: GoogleFonts.montserrat(
                       color: Colors.white,
-                      fontSize: 32,
+                      fontSize: 34,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 3,
                     ),
                   ),
-                  crossFadeState: _isBalanceVisible
-                      ? CrossFadeState.showFirst
-                      : CrossFadeState.showSecond,
+                  crossFadeState: _isBalanceVisible ? CrossFadeState.showFirst : CrossFadeState.showSecond,
                   duration: const Duration(milliseconds: 300),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Row(
                   children: [
-                    const Icon(
-                      Icons.arrow_upward,
-                      color: Colors.greenAccent,
-                      size: 18,
-                    ),
+                    Icon(Icons.arrow_upward, color: Colors.greenAccent, size: 18),
                     const SizedBox(width: 6),
                     AnimatedCrossFade(
                       firstChild: Text(
@@ -464,121 +394,85 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                           letterSpacing: 2,
                         ),
                       ),
-                      crossFadeState: _isBalanceVisible
-                          ? CrossFadeState.showFirst
-                          : CrossFadeState.showSecond,
+                      crossFadeState: _isBalanceVisible ? CrossFadeState.showFirst : CrossFadeState.showSecond,
                       duration: const Duration(milliseconds: 300),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: AppTheme.depositGradient,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.successColor.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Get.toNamed(AppRoutes.deposit);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              foregroundColor: Colors.white,
-                              shadowColor: Colors.transparent,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.add, size: 20),
-                                SizedBox(width: 8),
-                                Text(
-                                  "Deposit",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildLuxuryButton(
+                        label: "Deposit",
+                        icon: Icons.add,
+                        gradient: AppTheme.depositGradient,
+                        onTap: () => Get.toNamed(AppRoutes.deposit),
+                        color: AppTheme.successColor,
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: AppTheme.withdrawGradient,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.errorColor.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Get.toNamed(AppRoutes.withdraw);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              foregroundColor: Colors.white,
-                              shadowColor: Colors.transparent,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.arrow_downward, size: 20),
-                                SizedBox(width: 8),
-                                Text(
-                                  "Withdraw",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildLuxuryButton(
+                        label: "Withdraw",
+                        icon: Icons.arrow_downward,
+                        gradient: AppTheme.withdrawGradient,
+                        onTap: () => Get.toNamed(AppRoutes.withdraw),
+                        color: AppTheme.errorColor,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ),
+          ).animate().fadeIn(duration: 700.ms).slideY(begin: 0.10, end: 0, duration: 700.ms, curve: Curves.easeOutCubic).scale(begin: Offset(0.97, 0.97), end: Offset(1, 1), duration: 700.ms, curve: Curves.easeOutCubic),
         ],
       ),
-    ).animate().fadeIn(delay: 200.ms, duration: 500.ms).slideY(
-      begin: 0.1,
-      end: 0,
-      delay: 200.ms,
-      duration: 500.ms,
-      curve: Curves.easeOutQuad,
+    );
+  }
+
+  Widget _buildLuxuryButton({
+    required String label,
+    required IconData icon,
+    required Gradient gradient,
+    required VoidCallback onTap,
+    required Color color,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 46,
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.18),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ).animate().fadeIn(duration: 400.ms).scale(begin: Offset(0.97, 0.97), end: Offset(1, 1), duration: 400.ms, curve: Curves.easeOutCubic),
     );
   }
 
@@ -588,31 +482,20 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Accounts",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+          // Section title
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0, left: 2),
+            child: Text(
+              "Your Accounts",
+              style: TextStyle(
+                color: AppTheme.goldColor.withOpacity(0.85),
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.2,
               ),
-              TextButton(
-                onPressed: () {},
-                child: Text(
-                  "See All",
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 6),
           _buildWalletCard(
             icon: Icons.card_giftcard,
             iconColor: AppTheme.goldColor,
@@ -646,12 +529,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 300.ms, duration: 500.ms).slideY(
-      begin: 0.1,
-      end: 0,
-      delay: 300.ms,
-      duration: 500.ms,
-      curve: Curves.easeOutQuad,
     );
   }
 
@@ -664,18 +541,19 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      margin: const EdgeInsets.symmetric(vertical: 2),
       decoration: BoxDecoration(
-        color: AppTheme.secondaryBackgroundColor,
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: AppTheme.goldColor.withOpacity(0.3),
-          width: 1,
+          color: AppTheme.goldColor.withOpacity(0.18),
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 8,
+            color: AppTheme.goldColor.withOpacity(0.08),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
@@ -683,51 +561,65 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: AppTheme.backgroundColor,
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.black.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: AppTheme.goldColor.withOpacity(0.5),
                 width: 1,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.goldColor.withOpacity(0.10),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Icon(
               icon,
               color: iconColor,
-              size: 20,
+              size: 22,
+            ),
+          ).animate().fadeIn(duration: 400.ms).scale(begin: Offset(0.95, 0.95), end: Offset(1.0, 1.0), duration: 400.ms, curve: Curves.easeOutCubic),
+          const SizedBox(width: 18),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  amountInUSDT,
+                  style: TextStyle(
+                    color: AppTheme.goldColor.withOpacity(0.85),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 16),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          Spacer(),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 amount,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
-              ),
-              Text(
-                amountInUSDT,
-                style: TextStyle(
-                  color: Colors.green,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              ).animate().fadeIn(duration: 400.ms, delay: 120.ms),
             ],
           ),
         ],

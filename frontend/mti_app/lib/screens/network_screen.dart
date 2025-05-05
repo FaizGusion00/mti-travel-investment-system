@@ -753,198 +753,260 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     );
   }
 
-  // Build vertical connector with gradient
-  Widget _buildVerticalConnector(double height) {
-    return Container(
-      width: 2,
-      height: height,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppTheme.goldColor.withOpacity(0.8),
-            AppTheme.goldColor.withOpacity(0.4),
+  // Build network node with consistent sizing and better text handling
+  Widget _buildNetworkNode(Map<String, dynamic> node, {required bool isRoot, bool isSmall = false}) {
+    final double cardSize = isRoot ? 110 : (isSmall ? 85 : 95);
+    final bool isActive = node.containsKey('isActive') ? node['isActive'] : true;
+    final Color glowColor = isRoot 
+        ? AppTheme.goldColor 
+        : (isActive ? Colors.green : Colors.red);
+    final String initials = node['name'].split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase();
+
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (_) => _buildNodeDetailModal(node, isRoot, isActive),
+        );
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+        width: isSmall ? 140 : 155,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Glassmorphism card with avatar/initials
+            Container(
+              width: cardSize,
+              height: cardSize,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(cardSize/2),
+                color: Colors.white.withOpacity(0.13),
+                border: Border.all(
+                  color: isRoot ? AppTheme.goldColor : (isActive ? Colors.green : Colors.red),
+                  width: isRoot ? 2.5 : 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: glowColor.withOpacity(isRoot ? 0.32 : 0.18),
+                    blurRadius: isRoot ? 18 : 10,
+                    spreadRadius: 1,
+                  ),
+                ],
+                backgroundBlendMode: BlendMode.overlay,
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Center(
+                    child: CircleAvatar(
+                      radius: (cardSize / 2) - 10,
+                      backgroundColor: Colors.black.withOpacity(0.7),
+                      child: Text(
+                        initials,
+                        style: TextStyle(
+                          color: isRoot ? AppTheme.goldColor : Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: isRoot ? 28 : 20,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Status indicator (only for non-root nodes)
+                  if (!isRoot)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: isActive ? Colors.green : Colors.red,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (isActive ? Colors.green : Colors.red).withOpacity(0.5),
+                              blurRadius: 6,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  // Crown/star for root
+                  if (isRoot)
+                    Positioned(
+                      top: -8,
+                      left: cardSize/2 - 16,
+                      child: Icon(Icons.emoji_events, color: AppTheme.goldColor, size: 28, shadows: [Shadow(color: Colors.black26, blurRadius: 6)]),
+                    ),
+                ],
+              ),
+            ).animate().fadeIn(duration: 400.ms).scale(begin: Offset(0.92, 0.92), end: Offset(1, 1), duration: 400.ms, curve: Curves.easeOutBack),
+            // Name and downline count
+            Container(
+              margin: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 12),
+              constraints: BoxConstraints(
+                maxWidth: isSmall ? 130 : 140,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.82),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isRoot ? AppTheme.goldColor.withOpacity(0.5) : (isActive ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3)),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    node['name'],
+                    style: TextStyle(
+                      color: isRoot ? AppTheme.goldColor : Colors.white,
+                      fontSize: isRoot ? 15 : (isSmall ? 12 : 13),
+                      fontWeight: FontWeight.w700,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    "${node['downlines']} Downlines",
+                    style: TextStyle(
+                      color: isRoot ? AppTheme.goldColor : AppTheme.goldColor.withOpacity(0.7),
+                      fontSize: isRoot ? 12 : (isSmall ? 10 : 11),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // Enhanced legend item
-  Widget _buildLegendItem(Color color, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.6),
-                blurRadius: 6,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Build network node with consistent sizing and better text handling
-  Widget _buildNetworkNode(Map<String, dynamic> node, {required bool isRoot, bool isSmall = false}) {
-    // Use consistent size with slight adjustment for hierarchy
-    final double circleSize = isRoot ? 100 : (isSmall ? 80 : 90);
-    
-    // Determine status
-    final bool isActive = node.containsKey('isActive') ? node['isActive'] : true;
-    
-    // Determine glow color based on status
-    final Color glowColor = isRoot 
-        ? AppTheme.goldColor 
-        : (isActive ? Colors.green : Colors.red);
-    
+  // Modal for node details
+  Widget _buildNodeDetailModal(Map<String, dynamic> node, bool isRoot, bool isActive) {
     return Container(
-      width: isSmall ? 135 : 150, // Fixed width to prevent overflow
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.95),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: AppTheme.goldColor.withOpacity(0.15), width: 1),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Profile circle with glow
           Container(
-            width: circleSize,
-            height: circleSize,
+            width: 70,
+            height: 70,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.black,
-              gradient: RadialGradient(
-                colors: [
-                  Colors.black,
-                  Colors.black.withOpacity(0.8),
-                ],
-                stops: const [0.7, 1.0],
-              ),
+              color: Colors.white.withOpacity(0.13),
               border: Border.all(
-                color: isRoot ? AppTheme.goldColor : (isActive ? Colors.green.withOpacity(0.7) : Colors.red.withOpacity(0.7)),
-                width: isRoot ? 2.0 : 1.5,
+                color: isRoot ? AppTheme.goldColor : (isActive ? Colors.green : Colors.red),
+                width: isRoot ? 2.5 : 1.5,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: glowColor.withOpacity(isRoot ? 0.5 : 0.4),
-                  blurRadius: 15,
-                  spreadRadius: 2,
-                ),
-              ],
             ),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // Profile avatar
-                Center(
-                  child: CircleAvatar(
-                    radius: (circleSize / 2) - 8,
-                    backgroundColor: Colors.grey[900],
-                    child: Icon(
-                      Icons.person,
-                      size: isRoot ? 40 : (isSmall ? 30 : 35),
-                      color: isRoot ? AppTheme.goldColor : Colors.white70,
-                    ),
-                  ),
+            child: Center(
+              child: Text(
+                node['name'].split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase(),
+                style: TextStyle(
+                  color: isRoot ? AppTheme.goldColor : Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
                 ),
-                
-                // Status indicator (only for non-root nodes)
-                if (!isRoot)
-                  Positioned(
-                    top: 5,
-                    right: 5,
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: isActive ? Colors.green : Colors.red,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 1),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isActive ? Colors.green.withOpacity(0.6) : Colors.red.withOpacity(0.6),
-                            blurRadius: 4,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
           ),
-          
-          // Name and downline count
-          Container(
-            margin: const EdgeInsets.only(top: 10),
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-            constraints: BoxConstraints(
-              maxWidth: isSmall ? 130 : 140, // Constrain name container width
+          const SizedBox(height: 16),
+          Text(
+            node['name'],
+            style: TextStyle(
+              color: isRoot ? AppTheme.goldColor : Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
             ),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.8),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isRoot ? AppTheme.goldColor.withOpacity(0.5) : (isActive ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3)),
-                width: 1,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            node['level'] ?? '',
+            style: TextStyle(
+              color: AppTheme.secondaryTextColor,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Downlines: ${node['downlines']}",
+            style: TextStyle(
+              color: AppTheme.goldColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (node['joinDate'] != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              "Joined: ${node['joinDate']}",
+              style: TextStyle(
+                color: AppTheme.tertiaryTextColor,
+                fontSize: 13,
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Name
-                Text(
-                  node['name'],
-                  style: TextStyle(
-                    color: isRoot ? AppTheme.goldColor : Colors.white,
-                    fontSize: isRoot ? 14 : (isSmall ? 12 : 13),
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                // Downlines
-                Text(
-                  "${node['downlines']} Downlines",
-                  style: TextStyle(
-                    color: isRoot ? AppTheme.goldColor : AppTheme.goldColor.withOpacity(0.7),
-                    fontSize: isRoot ? 12 : (isSmall ? 10 : 11),
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+          ],
+          if (node['status'] != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              "Status: ${node['status']}",
+              style: TextStyle(
+                color: isActive ? Colors.green : Colors.red,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // Build vertical connector with gold gradient and animation
+  Widget _buildVerticalConnector(double height) {
+    return Container(
+      width: 3,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(2),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppTheme.goldColor.withOpacity(0.9),
+            AppTheme.goldColor.withOpacity(0.4),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.goldColor.withOpacity(0.18),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-    ).animate().fadeIn(
-      duration: 400.ms,
-      delay: Duration(milliseconds: isRoot ? 0 : 200),
-    ).scale(
-      duration: 500.ms,
-      curve: Curves.easeOutBack,
-      delay: Duration(milliseconds: isRoot ? 0 : 200),
-    );
+    ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.12, end: 0, duration: 350.ms, curve: Curves.easeOutCubic);
   }
 
   Widget _buildCustomTab(String text, IconData icon) {
@@ -1220,6 +1282,41 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         ),
       ],
     ).animate().fadeIn(delay: 300.ms, duration: 500.ms);
+  }
+
+  // Enhanced legend item
+  Widget _buildLegendItem(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.5),
+                blurRadius: 6,
+                spreadRadius: 1,
+              ),
+            ],
+            border: Border.all(color: Colors.white, width: 1.2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    );
   }
 }
 

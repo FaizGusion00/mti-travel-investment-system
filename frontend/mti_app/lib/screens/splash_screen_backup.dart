@@ -26,7 +26,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   late Animation<double> _scaleAnimation;
   
   // Version information
-  String _version = 'v0.0.2';
+  String _version = 'v0.0.3';
   
   // For the shimmering effect
   final List<Color> _shimmerColors = [
@@ -107,7 +107,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       // Use default version if package info fails
       if (mounted) {
         setState(() {
-          _version = 'v0.0.2';
+          _version = 'v0.0.3';
         });
       }
     }
