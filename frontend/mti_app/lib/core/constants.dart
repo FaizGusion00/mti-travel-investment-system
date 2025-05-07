@@ -1,4 +1,5 @@
 import 'environment.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// Application constants
 class AppConstants {
@@ -12,11 +13,29 @@ class AppConstants {
   // Assets
   static const String logoPath = 'assets/images/mti_logo.png';
   
-  // API endpoints - uses Environment class for configuration
+  // API endpoints - CENTRALIZED using Environment class
+  
+  /// Base URL for the API (without /api/v1)
   static String get baseUrl => Environment.apiBaseUrl;
   
-  // Registration URL
+  /// API v1 base URL - ALWAYS use this for all API calls
+  static String get apiV1BaseUrl => kIsWeb 
+      ? Environment.webApiV1Url  // Web-specific URL handling
+      : Environment.apiV1Url;    // Mobile URL handling
+  
+  /// Get environment mode for easy toggling
+  static bool get isProductionMode => Environment.isProductionUrl;
+  
+  /// Set environment mode - allows toggling between production and development
+  static set isProductionMode(bool value) {
+    Environment.isProductionUrl = value;
+  }
+  
+  /// Registration URL
   static String get registrationUrl => Environment.registrationUrl;
+  
+  /// Request timeout in seconds
+  static int get requestTimeout => Environment.requestTimeout;
   
   // Storage keys
   static const String tokenKey = 'auth_token';
@@ -24,9 +43,8 @@ class AppConstants {
   static const String rememberMeKey = 'remember_me';
   
   // Cloudflare Turnstile Configuration
-  static String get cloudflareTestSiteKey => Environment.captchaSiteKey;
-  static String get cloudflareProdSiteKey => ''; // TODO: Add production site key
-  static bool get useCloudflareTestKey => Environment.isDevelopment;
+  static String get captchaSiteKey => Environment.captchaSiteKey;
+  static bool get useTestKeys => !Environment.isProductionUrl;
   
   // Email Configuration
   static const String smtpHost = 'email-smtp.us-east-1.amazonaws.com';

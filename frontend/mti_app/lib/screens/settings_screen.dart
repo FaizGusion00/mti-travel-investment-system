@@ -3,11 +3,13 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 import 'dart:developer' as developer;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../config/theme.dart';
 import '../config/routes.dart';
 import '../shared/widgets/bottom_nav_bar.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../core/constants.dart';
 import 'package:shimmer/shimmer.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -103,6 +105,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildProfileSection(screenWidth, avatarSize),
               const SizedBox(height: 24),
               _buildSectionTitle('ACCOUNT'),
+              _buildSettingsItem(
+                'Transaction History',
+                Icons.receipt_long_outlined,
+                onTap: () => Get.toNamed(AppRoutes.transactionHistory),
+              ),
               _buildCurrencyPreference(screenWidth),
               _buildDarkModeToggle(screenWidth),
               const SizedBox(height: 24),
@@ -360,38 +367,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.dark_mode_outlined,
-            color: AppTheme.goldColor,
-            size: 22,
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
-            child: Text(
-              'Dark Mode',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Switch(
-            value: _isDarkMode,
-            onChanged: (value) {
-              setState(() {
-                _isDarkMode = value;
-              });
-            },
-            activeColor: AppTheme.goldColor,
-            activeTrackColor: AppTheme.goldColor.withOpacity(0.3),
-            inactiveThumbColor: Colors.grey,
-            inactiveTrackColor: Colors.grey.withOpacity(0.3),
-          ),
-        ],
-      ),
+      // child: Row(
+      //   children: [
+      //     const Icon(
+      //       Icons.dark_mode_outlined,
+      //       color: AppTheme.goldColor,
+      //       size: 22,
+      //     ),
+      //     const SizedBox(width: 16),
+      //     const Expanded(
+      //       child: Text(
+      //         'Dark Mode',
+      //         style: TextStyle(
+      //           color: Colors.white,
+      //           fontSize: 15,
+      //           fontWeight: FontWeight.w500,
+      //         ),
+      //       ),
+      //     ),
+      //     Switch(
+      //       value: _isDarkMode,
+      //       onChanged: (value) {
+      //         setState(() {
+      //           _isDarkMode = value;
+      //         });
+      //       },
+      //       activeColor: AppTheme.goldColor,
+      //       activeTrackColor: AppTheme.goldColor.withOpacity(0.3),
+      //       inactiveThumbColor: Colors.grey,
+      //       inactiveTrackColor: Colors.grey.withOpacity(0.3),
+      //     ),
+      //   ],
+      // ),
     ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutQuad);
   }
 
@@ -444,35 +451,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(avatarSize / 2),
-                child: _profileImageUrl != null
-                    ? Image.network(
-                        _profileImageUrl!,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.goldColor),
-                            ),
+                child: Builder(builder: (context) {
+                  if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
+                    // Log the URL being used for debugging
+                    developer.log(
+                      'Attempting to load profile image from URL: $_profileImageUrl',
+                      name: 'MTI_Settings',
+                    );
+                    
+                    // Log the URL being used for debugging
+                    String imageUrl = _profileImageUrl!;
+                    
+                    // Ensure URL has http/https protocol and is properly encoded
+                    if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+                      if (kIsWeb) {
+                        // For web, we need to ensure the full URL is used
+                        // Usually the API returns a relative path like 'storage/avatars/filename.jpg'
+                        // First remove any leading slash for consistency
+                        if (imageUrl.startsWith('/')) {
+                          imageUrl = imageUrl.substring(1);
+                        }
+                        
+                        // Now prepend the base URL
+                        imageUrl = '${AppConstants.baseUrl}/${imageUrl}';
+                        developer.log('Web image URL: $imageUrl', name: 'MTI_Settings');
+                      } else {
+                        // For mobile, use standard path handling
+                        if (imageUrl.startsWith('/')) {
+                          imageUrl = '${AppConstants.baseUrl}${imageUrl}';
+                        } else {
+                          imageUrl = '${AppConstants.baseUrl}/${imageUrl}';
+                        }
+                      }
+                      developer.log('Final image URL: $imageUrl', name: 'MTI_Settings');
+                    }
+                    
+                    return Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) {
+                          developer.log(
+                            'Profile image loaded successfully',
+                            name: 'MTI_Settings',
                           );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(
-                            Icons.person,
-                            size: avatarSize * 0.5,
-                            color: AppTheme.goldColor,
-                          );
-                        },
-                      )
-                    : Icon(
-                        Icons.person,
-                        size: avatarSize * 0.5,
-                        color: AppTheme.goldColor,
-                      ),
+                          return child;
+                        }
+                        return Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.goldColor),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        // Log detailed error information
+                        developer.log(
+                          'Error loading profile image: $error',
+                          name: 'MTI_Settings',
+                          error: error,
+                        );
+                        developer.log(
+                          'Image URL that failed: $_profileImageUrl',
+                          name: 'MTI_Settings',
+                        );
+                        
+                        return Icon(
+                          Icons.person,
+                          size: avatarSize * 0.5,
+                          color: AppTheme.goldColor,
+                        );
+                      },
+                    );
+                  } else {
+                    // No profile image URL available
+                    return Icon(
+                      Icons.person,
+                      size: avatarSize * 0.5,
+                      color: AppTheme.goldColor,
+                    );
+                  }
+                }),
               ),
             ),
             const SizedBox(height: 18),

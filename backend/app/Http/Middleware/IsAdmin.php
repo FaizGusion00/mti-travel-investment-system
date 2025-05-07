@@ -36,7 +36,7 @@ class IsAdmin
     private function isAdmin($user): bool
     {
         // For example, you might check for an admin flag or specific email domains
-        // For now, we'll just check if the user has a specific ref_code
-        return $user->ref_code === 'ADMIN';
+        // For now, we'll just check if the user has a specific affiliate_code
+        return $user->affiliate_code === 'ADMIN';
     }
 }

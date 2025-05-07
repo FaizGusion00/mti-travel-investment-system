@@ -55,11 +55,11 @@ class ProfileController extends Controller
             'address' => 'sometimes|string|max:500',
             'date_of_birth' => 'sometimes|date|before:-18 years',
             'usdt_address' => 'sometimes|string|max:255|nullable',
-            'ref_code' => [
+            'affiliate_code' => [
                 'sometimes',
                 'string',
                 'size:6',
-                'unique:users,ref_code,' . $user->id,
+                'unique:users,affiliate_code,' . $user->id,
                 'regex:/^[A-Z0-9]*$/',
                 function ($attribute, $value, $fail) {
                     // Ensure at least 3 letters
@@ -79,7 +79,7 @@ class ProfileController extends Controller
         }
         
         // Log changes
-        foreach ($request->only(['full_name', 'phonenumber', 'address', 'date_of_birth', 'usdt_address', 'ref_code']) as $key => $value) {
+        foreach ($request->only(['full_name', 'phonenumber', 'address', 'date_of_birth', 'usdt_address', 'affiliate_code']) as $key => $value) {
             if ($user->$key != $value) {
                 UserLog::create([
                     'user_id' => $user->id,
@@ -90,7 +90,7 @@ class ProfileController extends Controller
             }
         }
         
-        $user->update($request->only(['full_name', 'phonenumber', 'address', 'date_of_birth', 'usdt_address', 'ref_code']));
+        $user->update($request->only(['full_name', 'phonenumber', 'address', 'date_of_birth', 'usdt_address', 'affiliate_code']));
         
         return response()->json([
             'status' => 'success',

@@ -1,21 +1,31 @@
 'use client';
 
-import { useState, FormEvent, useRef } from 'react';
+import { useState, FormEvent, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Turnstile from 'react-turnstile';
 import Header from '../components/Header'; 
 import Environment from '../utils/environment';
 
 export default function Register() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Read reference code from URL parameters
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      console.log('Reference code found in URL:', refCode);
+      setFormData(prev => ({ ...prev, reference_code: refCode }));
+    }
+  }, [searchParams]);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',

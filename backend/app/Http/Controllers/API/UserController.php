@@ -79,7 +79,7 @@ class UserController extends Controller
                 $q->where('full_name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('phonenumber', 'like', "%{$search}%")
-                  ->orWhere('ref_code', 'like', "%{$search}%");
+                  ->orWhere('affiliate_code', 'like', "%{$search}%");
             });
         }
         

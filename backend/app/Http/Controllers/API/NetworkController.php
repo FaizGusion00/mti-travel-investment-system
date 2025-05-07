@@ -21,10 +21,10 @@ class NetworkController extends Controller
         $levels = $request->query('levels', 5); // Default to 5 levels
         
         // Get downlines up to specified levels
-        $downlines = $this->getDownlineTree($user->ref_code, $levels);
+        $downlines = $this->getDownlineTree($user->id, $levels);
         
         // Get upline
-        $upline = $this->getUplineChain($user->reference_code);
+        $upline = $this->getUplineChain($user->referral_id);
         
         return response()->json([
             'status' => 'success',
@@ -50,14 +50,14 @@ class NetworkController extends Controller
         $perPage = $request->query('per_page', 15);
         
         // Get direct downlines (level 1)
-        $directDownlines = User::where('reference_code', $user->ref_code)
-            ->select('user_id', 'full_name', 'email', 'phonenumber', 'ref_code', 'created_at')
+        $directDownlines = User::where('referral_id', $user->id)
+            ->select('id', 'full_name', 'email', 'phonenumber', 'affiliate_code', 'created_at')
             ->paginate($perPage);
         
         // Get total downlines count by level
         $downlineCounts = [];
         for ($i = 1; $i <= $levels; $i++) {
-            $downlineCounts["level_{$i}"] = $this->getDownlineCountByLevel($user->ref_code, $i);
+            $downlineCounts["level_{$i}"] = $this->getDownlineCountByLevel($user->id, $i);
         }
         
         return response()->json([
@@ -81,7 +81,7 @@ class NetworkController extends Controller
         $user = $request->user();
         
         // Get upline chain
-        $upline = $this->getUplineChain($user->reference_code);
+        $upline = $this->getUplineChain($user->referral_id);
         
         return response()->json([
             'status' => 'success',
@@ -107,14 +107,14 @@ class NetworkController extends Controller
         $totalDownlines = 0;
         
         for ($i = 1; $i <= $levels; $i++) {
-            $count = $this->getDownlineCountByLevel($user->ref_code, $i);
+            $count = $this->getDownlineCountByLevel($user->id, $i);
             $downlineCounts["level_{$i}"] = $count;
             $totalDownlines += $count;
         }
         
         // Get recent downlines
-        $recentDownlines = User::where('reference_code', $user->ref_code)
-            ->select('user_id', 'full_name', 'email', 'created_at')
+        $recentDownlines = User::where('referral_id', $user->id)
+            ->select('id', 'full_name', 'email', 'created_at')
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
@@ -157,14 +157,14 @@ class NetworkController extends Controller
      * @param  int  $currentLevel
      * @return array
      */
-    private function getDownlineTree($refCode, $maxLevel, $currentLevel = 1)
+    private function getDownlineTree($userId, $maxLevel, $currentLevel = 1)
     {
         if ($currentLevel > $maxLevel) {
             return [];
         }
         
-        $downlines = User::where('reference_code', $refCode)
-            ->select('user_id', 'full_name', 'email', 'ref_code', 'created_at')
+        $downlines = User::where('referral_id', $userId)
+            ->select('id', 'full_name', 'email', 'affiliate_code', 'created_at')
             ->get();
         
         $result = [];
@@ -173,14 +173,14 @@ class NetworkController extends Controller
             $children = [];
             
             if ($currentLevel < $maxLevel) {
-                $children = $this->getDownlineTree($downline->ref_code, $maxLevel, $currentLevel + 1);
+                $children = $this->getDownlineTree($downline->id, $maxLevel, $currentLevel + 1);
             }
             
             $result[] = [
-                'user_id' => $downline->user_id,
+                'user_id' => $downline->id,
                 'full_name' => $downline->full_name,
                 'email' => $downline->email,
-                'ref_code' => $downline->ref_code,
+                'affiliate_code' => $downline->affiliate_code,
                 'created_at' => $downline->created_at,
                 'level' => $currentLevel,
                 'children' => $children,
@@ -198,19 +198,19 @@ class NetworkController extends Controller
      * @param  int  $level
      * @return int
      */
-    private function getDownlineCountByLevel($refCode, $level)
+    private function getDownlineCountByLevel($userId, $level)
     {
         if ($level == 1) {
-            return User::where('reference_code', $refCode)->count();
+            return User::where('referral_id', $userId)->count();
         }
         
-        $downlines = User::where('reference_code', $refCode)->pluck('ref_code')->toArray();
+        $downlines = User::where('referral_id', $userId)->pluck('id')->toArray();
         
         if (empty($downlines)) {
             return 0;
         }
         
-        return $this->getDownlineCountForCodes($downlines, $level - 1);
+        return $this->getDownlineCountForIds($downlines, $level - 1);
     }
 
     /**
@@ -220,19 +220,19 @@ class NetworkController extends Controller
      * @param  int  $level
      * @return int
      */
-    private function getDownlineCountForCodes($refCodes, $level)
+    private function getDownlineCountForIds($userIds, $level)
     {
         if ($level == 1) {
-            return User::whereIn('reference_code', $refCodes)->count();
+            return User::whereIn('referral_id', $userIds)->count();
         }
         
-        $downlines = User::whereIn('reference_code', $refCodes)->pluck('ref_code')->toArray();
+        $downlines = User::whereIn('referral_id', $userIds)->pluck('id')->toArray();
         
         if (empty($downlines)) {
             return 0;
         }
         
-        return $this->getDownlineCountForCodes($downlines, $level - 1);
+        return $this->getDownlineCountForIds($downlines, $level - 1);
     }
 
     /**
@@ -241,18 +241,18 @@ class NetworkController extends Controller
      * @param  string  $referenceCode
      * @return array
      */
-    private function getUplineChain($referenceCode)
+    private function getUplineChain($referralId)
     {
         $result = [];
-        $currentReferenceCode = $referenceCode;
+        $currentReferralId = $referralId;
         
         // Prevent infinite loops
         $maxLevels = 10;
         $level = 0;
         
-        while ($currentReferenceCode != 'COMPANY' && $level < $maxLevels) {
-            $upline = User::where('ref_code', $currentReferenceCode)
-                ->select('user_id', 'full_name', 'email', 'ref_code', 'reference_code', 'created_at')
+        while ($currentReferralId && $level < $maxLevels) {
+            $upline = User::where('id', $currentReferralId)
+                ->select('id', 'full_name', 'email', 'affiliate_code', 'referral_id', 'created_at')
                 ->first();
             
             if (!$upline) {
@@ -260,14 +260,14 @@ class NetworkController extends Controller
             }
             
             $result[] = [
-                'user_id' => $upline->user_id,
+                'user_id' => $upline->id,
                 'full_name' => $upline->full_name,
                 'email' => $upline->email,
-                'ref_code' => $upline->ref_code,
+                'affiliate_code' => $upline->affiliate_code,
                 'level' => $level + 1
             ];
             
-            $currentReferenceCode = $upline->reference_code;
+            $currentReferralId = $upline->referral_id;
             $level++;
         }
         

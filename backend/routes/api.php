@@ -9,6 +9,8 @@ use App\Http\Controllers\API\NetworkController;
 use App\Http\Controllers\API\TestController;
 use App\Http\Controllers\API\SimpleTestController;
 use App\Http\Controllers\API\TokenGeneratorController;
+use App\Http\Controllers\API\WalletController;
+use App\Http\Controllers\API\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,6 +56,10 @@ Route::prefix('v1')->group(function () {
 
 // Protected routes
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+    // Notification routes
+    Route::get('/notifications', ['App\\Http\\Controllers\\API\\NotificationController', 'index']);
+    Route::patch('/notifications/{id}/read', ['App\\Http\\Controllers\\API\\NotificationController', 'markAsRead']);
+    Route::post('/notifications', ['App\\Http\\Controllers\\API\\NotificationController', 'store']);
     // User profile
     Route::get('/user', [UserController::class, 'getCurrentUser']);
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -81,6 +87,12 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/network/upline', [NetworkController::class, 'getUpline']);
     Route::get('/network/stats', [NetworkController::class, 'getNetworkStats']);
     Route::get('/network/commissions', [NetworkController::class, 'getCommissions']);
+    
+    // Wallet and Trader functionality
+    Route::get('/wallet', [WalletController::class, 'getWalletBalances']);
+    Route::post('/wallet/transfer', [WalletController::class, 'transferFunds']);
+    Route::get('/wallet/transactions', [WalletController::class, 'getTransactionHistory']);
+    Route::get('/users/find', [WalletController::class, 'findUser']);
     
     // User management (for admins)
     Route::middleware('admin')->group(function () {

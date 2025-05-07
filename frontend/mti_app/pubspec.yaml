@@ -76,6 +76,13 @@ dependencies:
   flutter_native_splash: ^2.4.4
   http_interceptor: ^2.0.0
   video_player: ^2.9.5
+  
+  # PDF Generation and Download
+  pdf: ^3.10.7
+  printing: ^5.11.1
+  path_provider: ^2.1.2
+  permission_handler: ^11.0.1
+  open_file: ^3.3.2
 
 dev_dependencies:
   flutter_test:

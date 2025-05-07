@@ -42,4 +42,9 @@ Route::middleware(['auth:admin'])->prefix('admin')->group(function () {
     Route::get('/users', [DashboardController::class, 'users'])->name('admin.users');
     Route::get('/users/{id}', [DashboardController::class, 'userDetail'])->name('admin.user.detail');
     Route::get('/logs', [DashboardController::class, 'logs'])->name('admin.logs');
+    
+    // Trader management routes
+    Route::get('/traders', [DashboardController::class, 'traders'])->name('admin.traders');
+    Route::post('/users/{id}/toggle-trader', [DashboardController::class, 'toggleTraderStatus'])->name('admin.toggle.trader');
+    Route::post('/users/{id}/update-wallet', [DashboardController::class, 'updateWallet'])->name('admin.update.wallet');
 });

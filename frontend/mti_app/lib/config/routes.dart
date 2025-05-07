@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 // Import screens
@@ -6,7 +5,6 @@ import '../screens/splash_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/forgot_password_screen.dart';
 import '../screens/email_verification_screen.dart';
-import '../screens/home_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/network_screen.dart';
 import '../screens/notification_screen.dart';
@@ -20,6 +18,8 @@ import '../screens/withdraw_screen.dart';
 import '../screens/terms_conditions_screen.dart';
 import '../screens/privacy_policy_screen.dart';
 import '../screens/contact_us_screen.dart';
+import '../screens/swap_screen.dart';
+import '../screens/transaction_history_screen.dart';
 
 class AppRoutes {
   // Route names
@@ -40,6 +40,8 @@ class AppRoutes {
   static const String termsConditions = '/terms_conditions';
   static const String privacyPolicy = '/privacy_policy';
   static const String contactUs = '/contact_us';
+  static const String swap = '/swap';
+  static const String transactionHistory = '/transaction_history';
 
   // Route map for GetX
   static List<GetPage> routes = [
@@ -114,6 +116,16 @@ class AppRoutes {
     GetPage(
       name: contactUs,
       page: () => const ContactUsScreen(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: swap,
+      page: () => const SwapScreen(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: transactionHistory,
+      page: () => const TransactionHistoryScreen(),
       transition: Transition.rightToLeft,
     ),
   ];

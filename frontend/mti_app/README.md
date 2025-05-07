@@ -94,6 +94,37 @@ lib/
    flutter run
    ```
 
+## Environment Configuration
+
+### Switching Between Production and Development Environments
+
+The app supports easy toggling between production and development environments. You can switch the environment in two ways:
+
+#### Option 1: Modifying Environment.dart Directly (Recommended)
+
+You can change the environment by directly modifying the `isProductionUrl` flag in the Environment class:
+
+```dart
+// File: lib/core/environment.dart
+
+class Environment {
+  /// MAIN TOGGLE: Set this to true to use production URLs, false for development
+  static bool isProductionUrl = false; // Change to true for production
+  
+  // ... rest of the class
+}
+```
+
+### Environment-Specific URLs
+
+- **Development Mode**:
+  - Android Emulator: `http://10.0.2.2:8000/api/v1`
+  - iOS Simulator: `http://localhost:8000/api/v1`
+  - Web: `http://localhost:8000/api/v1`
+
+- **Production Mode**:
+  - All Platforms: `https://panel.metatravel.ai/api/v1`
+
 ## Build and Deployment
 
 ### Android

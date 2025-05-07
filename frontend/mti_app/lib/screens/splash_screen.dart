@@ -6,6 +6,7 @@ import 'package:video_player/video_player.dart';
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../core/constants.dart';
 import '../config/theme.dart';
 import '../config/routes.dart';
@@ -97,31 +98,72 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _initVideoPlayer() {
-    _videoPlayerController = VideoPlayerController.asset('assets/video/intro-video.mp4')
-      ..initialize().then((_) {
-        // Ensure the first frame is shown
+    // Use different video source based on platform
+    VideoPlayerController controller;
+    
+    if (kIsWeb) {
+      // For web, use network asset with the correct web path
+      // The assets folder is at the root level in web builds
+      try {
+        controller = VideoPlayerController.network('assets/video/intro-video.mp4');
+        developer.log('Using web video path: assets/video/intro-video.mp4', name: 'SplashScreen');
+      } catch (e) {
+        // If that fails, try with a leading slash
+        developer.log('Error loading video, trying alternate path: $e', name: 'SplashScreen');
+        controller = VideoPlayerController.network('/assets/video/intro-video.mp4');
+      }
+    } else {
+      // For mobile, use the asset bundle
+      controller = VideoPlayerController.asset('assets/video/intro-video.mp4');
+      developer.log('Using mobile asset path', name: 'SplashScreen');
+    }
+    
+    _videoPlayerController = controller;
+    
+    controller.initialize().then((_) {
+      // Ensure the first frame is shown
+      if (mounted) {
         setState(() {
           _isVideoInitialized = true;
         });
-        // Play video with sound
-        _videoPlayerController.setVolume(1.0);
-        _videoPlayerController.play();
+      }
+      
+      // Play video with sound
+      controller.setVolume(1.0);
+      controller.play();
+      
+      developer.log('Video initialized and playing', name: 'SplashScreen');
+      developer.log('Video duration: ${controller.value.duration.inSeconds}s', name: 'SplashScreen');
 
-        // Navigate to next screen when video completes
-        _videoPlayerController.addListener(() {
-          if (_videoPlayerController.value.position >= _videoPlayerController.value.duration) {
-            // Video has completed, navigate to the login screen if not already navigated
-            _navigateToNextScreen();
-          }
-        });
-
-        // As a fallback, also navigate after the video duration + 500ms buffer
-        Future.delayed(_videoPlayerController.value.duration + const Duration(milliseconds: 500), () {
-          if (mounted) {
-            _navigateToNextScreen();
-          }
-        });
+      // Navigate to next screen when video completes
+      controller.addListener(() {
+        final position = controller.value.position;
+        final duration = controller.value.duration;
+        
+        // Check if we're at the end of the video
+        if (position >= duration - const Duration(milliseconds: 300)) {
+          developer.log('Video completed, navigating to next screen', name: 'SplashScreen');
+          _navigateToNextScreen();
+        }
       });
+
+      // As a fallback, also navigate after a fixed time
+      // This ensures navigation happens even if video listener fails
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) {
+          developer.log('Fallback timer triggered, navigating to next screen', name: 'SplashScreen');
+          _navigateToNextScreen();
+        }
+      });
+    }).catchError((error) {
+      developer.log('Error initializing video: $error', name: 'SplashScreen');
+      // If video fails to load, navigate after a short delay
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          _navigateToNextScreen();
+        }
+      });
+    });
   }
 
   // Navigate to the appropriate screen based on auth status
@@ -151,6 +193,14 @@ class _SplashScreenState extends State<SplashScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
+          // Logo as fallback if video fails (especially important for web)
+          Center(
+            child: Image.asset(
+              'assets/images/mti_logo.png',
+              width: 180,
+              height: 180,
+            ).animate().fadeIn(duration: 800.ms).scale(delay: 200.ms),
+          ),
           // Video player takes the full screen
           _isVideoInitialized
               ? SizedBox.expand(

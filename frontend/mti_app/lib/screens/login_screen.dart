@@ -673,9 +673,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                           padding: const EdgeInsets.all(12),
                                           margin: const EdgeInsets.symmetric(horizontal: 24),
                                           child: CloudflareTurnstile(
-                                    siteKey: AppConstants.useCloudflareTestKey
-                                        ? AppConstants.cloudflareTestSiteKey
-                                        : AppConstants.cloudflareProdSiteKey,
+                                    siteKey: AppConstants.captchaSiteKey,
                                     onTokenReceived: (token) {
                                       // Return the token to the previous screen
                                       developer.log('Turnstile token received: ${token.substring(0, 10)}...', name: 'MTI_Login');

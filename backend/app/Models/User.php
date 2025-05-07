@@ -38,10 +38,17 @@ class User extends Authenticatable
         'phonenumber',
         'address',
         'date_of_birth',
-        'ref_code',
+        'affiliate_code',
+        'referral_id',
         'profile_image',
         'usdt_address',
         'password',
+        'is_trader',
+        'status',
+        'cash_wallet',
+        'voucher_wallet',
+        'travel_wallet',
+        'xlm_wallet',
     ];
 
     /**
@@ -62,6 +69,11 @@ class User extends Authenticatable
     protected $casts = [
         'date_of_birth' => 'date',
         'password' => 'hashed',
+        'is_trader' => 'boolean',
+        'cash_wallet' => 'decimal:2',
+        'voucher_wallet' => 'decimal:2',
+        'travel_wallet' => 'decimal:2',
+        'xlm_wallet' => 'decimal:2',
     ];
 
     /**
@@ -108,5 +120,35 @@ class User extends Authenticatable
         }
         // Return default avatar if none exists
         return asset('storage/avatars/default.png');
+    }
+
+    /**
+     * Check if the user is a trader.
+     *
+     * @return bool
+     */
+    public function isTrader()
+    {
+        return (bool) $this->is_trader;
+    }
+    
+    /**
+     * Get the user who referred this user.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function referrer()
+    {
+        return $this->belongsTo(User::class, 'referral_id');
+    }
+    
+    /**
+     * Get the users who were referred by this user.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function referrals()
+    {
+        return $this->hasMany(User::class, 'referral_id');
     }
 }

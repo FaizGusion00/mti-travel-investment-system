@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\UserLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
 {
@@ -92,5 +93,105 @@ class DashboardController extends Controller
             ->paginate(10);
 
         return view('admin.user-detail', compact('user', 'userLogs'));
+    }
+    
+    /**
+     * Show the trader management page.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function traders()
+    {
+        $traders = User::where('is_trader', true)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+            
+        $users = User::where('is_trader', false)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+            
+        return view('admin.traders', compact('traders', 'users'));
+    }
+    
+    /**
+     * Toggle trader status for a user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function toggleTraderStatus(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $user->is_trader = !$user->is_trader;
+        $user->save();
+        
+        // Log the action
+        UserLog::create([
+            'user_id' => $user->id,
+            'column_name' => 'is_trader',
+            'old_value' => !$user->is_trader ? 'true' : 'false',
+            'new_value' => $user->is_trader ? 'true' : 'false',
+            'action' => 'update',
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+        ]);
+        
+        $status = $user->is_trader ? 'trader' : 'regular user';
+        return redirect()->back()->with('success', "User {$user->full_name} is now a {$status}");
+    }
+    
+    /**
+     * Update user wallet balance.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateWallet(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        
+        $request->validate([
+            'wallet_type' => 'required|in:cash_wallet,voucher_wallet,travel_wallet,xlm_wallet',
+            'amount' => 'required|numeric|min:0',
+            'operation' => 'required|in:add,subtract,set'
+        ]);
+        
+        $walletType = $request->wallet_type;
+        $amount = (float) $request->amount;
+        $operation = $request->operation;
+        $oldValue = $user->$walletType;
+        
+        switch ($operation) {
+            case 'add':
+                $user->$walletType += $amount;
+                break;
+            case 'subtract':
+                if ($user->$walletType < $amount) {
+                    return redirect()->back()->with('error', 'Insufficient funds in wallet');
+                }
+                $user->$walletType -= $amount;
+                break;
+            case 'set':
+                $user->$walletType = $amount;
+                break;
+        }
+        
+        $user->save();
+        
+        // Log the action
+        UserLog::create([
+            'user_id' => $user->id,
+            'column_name' => $walletType,
+            'old_value' => (string) $oldValue,
+            'new_value' => (string) $user->$walletType,
+            'action' => 'update',
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+        ]);
+        
+        $walletName = str_replace('_', ' ', $walletType);
+        return redirect()->back()->with('success', "User {$user->full_name}'s {$walletName} has been updated successfully");
     }
 }

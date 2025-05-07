@@ -4,14 +4,13 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:developer' as developer;
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../config/theme.dart';
 import '../config/routes.dart';
-import '../shared/widgets/bottom_nav_bar.dart';
-import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 import '../services/api_service.dart';
+import '../core/constants.dart';
 import 'package:flutter/services.dart';
-import 'package:shimmer/shimmer.dart';
 import 'dart:ui';
 
 class ProfileScreen extends StatefulWidget {
@@ -29,7 +28,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _refCodeController = TextEditingController();
   final _addressController = TextEditingController();
   final _usdtAddressController = TextEditingController();
-  
+
   bool _isEditing = false;
   bool _isLoading = false;
   XFile? _profileImage;
@@ -50,18 +49,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() => _isLoading = true);
       final response = await ApiService.getProfile();
       final user = response['user'];
-      
+
       developer.log('Profile data received: $user', name: 'MTI_Profile');
-      
+
       // Get profile image URL - first check avatar_url in response, then fall back to profile_image_url attribute
-      String? imageUrl = response['avatar_url'] ?? user['avatar_url'] ?? user['profile_image_url'];
+      String? imageUrl =
+          response['avatar_url'] ??
+          user['avatar_url'] ??
+          user['profile_image_url'];
       developer.log('Profile image URL: $imageUrl', name: 'MTI_Profile');
-      
+
       setState(() {
         _nameController.text = user['full_name'] ?? '';
         _emailController.text = user['email'] ?? '';
         _phoneController.text = user['phonenumber'] ?? '';
-        _refCodeController.text = user['ref_code'] ?? '';
+        _refCodeController.text = user['affiliate_code'] ?? '';
         _addressController.text = user['address'] ?? '';
         _usdtAddressController.text = user['usdt_address'] ?? '';
         _profileImageUrl = imageUrl;
@@ -95,7 +97,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         maxHeight: 800,
         imageQuality: 85,
       );
-      
+
       if (image != null) {
         developer.log('Image selected: ${image.path}', name: 'MTI_Profile');
         setState(() {
@@ -121,13 +123,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         // Handle profile image upload first if a new image was selected
         if (_profileImage != null) {
-          developer.log('Uploading profile image: ${_profileImage!.path}', name: 'MTI_Profile');
+          developer.log(
+            'Uploading profile image: ${_profileImage!.path}',
+            name: 'MTI_Profile',
+          );
           try {
-            final imageResponse = await ApiService.updateProfileImage(_profileImage!.path);
-            developer.log('Profile image upload response: $imageResponse', name: 'MTI_Profile');
+            final imageResponse = await ApiService.updateProfileImage(
+              _profileImage!.path,
+            );
+            developer.log(
+              'Profile image upload response: $imageResponse',
+              name: 'MTI_Profile',
+            );
           } catch (imageError) {
-            developer.log('Error uploading profile image: $imageError', 
-                name: 'MTI_Profile', error: imageError);
+            developer.log(
+              'Error uploading profile image: $imageError',
+              name: 'MTI_Profile',
+              error: imageError,
+            );
             // We'll continue with updating the other profile data even if image upload fails
           }
         }
@@ -155,7 +168,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
         setState(() => _isEditing = false);
       } catch (e) {
-        developer.log('Error updating profile: $e', name: 'MTI_Profile', error: e);
+        developer.log(
+          'Error updating profile: $e',
+          name: 'MTI_Profile',
+          error: e,
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to update profile: ${e.toString()}'),
@@ -215,10 +232,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            color: Colors.white,
-          ),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
           onPressed: () => Get.toNamed(AppRoutes.settings),
         ),
         actions: [
@@ -250,32 +264,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // Minimalist Edit Mode Chip
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 350),
-                    child: _isEditing
-                        ? Container(
-                            key: const ValueKey('edit_mode'),
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.withOpacity(0.10),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.edit, color: AppTheme.goldColor, size: 16),
-                                const SizedBox(width: 6),
-                                Text(
-                                  "Edit Mode",
-                                  style: TextStyle(
+                    child:
+                        _isEditing
+                            ? Container(
+                              key: const ValueKey('edit_mode'),
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.10),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.edit,
                                     color: AppTheme.goldColor,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 13,
+                                    size: 16,
                                   ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : const SizedBox(height: 12),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    "Edit Mode",
+                                    style: TextStyle(
+                                      color: AppTheme.goldColor,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                            : const SizedBox(height: 12),
                   ),
                   // Minimalist Card
                   Container(
@@ -294,8 +316,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     child: Padding(
                       padding: EdgeInsets.symmetric(
-                        horizontal: (screenWidth * 0.06).clamp(12, 22).toDouble(),
-                        vertical: (screenHeight * 0.03).clamp(12, 22).toDouble(),
+                        horizontal:
+                            (screenWidth * 0.06).clamp(12, 22).toDouble(),
+                        vertical:
+                            (screenHeight * 0.03).clamp(12, 22).toDouble(),
                       ),
                       child: Form(
                         key: _formKey,
@@ -313,7 +337,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   height: avatarSize,
                                   decoration: BoxDecoration(
                                     color: AppTheme.secondaryBackgroundColor,
-                                    borderRadius: BorderRadius.circular(avatarSize / 2),
+                                    borderRadius: BorderRadius.circular(
+                                      avatarSize / 2,
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.10),
@@ -322,43 +348,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       ),
                                     ],
                                   ),
-                                  child: _isLoading
-                                      ? const Center(child: CircularProgressIndicator(color: AppTheme.goldColor))
-                                      : ClipRRect(
-                                          borderRadius: BorderRadius.circular((avatarSize / 2) - 2),
-                                          child: _profileImage != null
-                                              ? Image.file(
-                                                  File(_profileImage!.path),
+                                  child:
+                                      _isLoading
+                                          ? const Center(
+                                            child: CircularProgressIndicator(
+                                              color: AppTheme.goldColor,
+                                            ),
+                                          )
+                                          : ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              (avatarSize / 2) - 2,
+                                            ),
+                                            child: Builder(builder: (context) {
+                                              // Handle profile image display based on source and platform
+                                              if (_profileImage != null) {
+                                                // For locally selected images
+                                                if (kIsWeb) {
+                                                  // For web platform, we can't use Image.file directly
+                                                  // Just show a person icon until the image is uploaded and saved
+                                                  return Icon(
+                                                    Icons.person,
+                                                    size: avatarSize * 0.5,
+                                                    color: AppTheme.goldColor,
+                                                  );
+                                                } else {
+                                                  // Mobile platforms can use Image.file
+                                                  return Image.file(
+                                                    File(_profileImage!.path),
+                                                    fit: BoxFit.cover,
+                                                  );
+                                                }
+                                              } else if (_profileImageUrl != null && 
+                                                       _profileImageUrl!.isNotEmpty) {
+                                                // For remote images
+                                                developer.log('Loading profile image from URL: $_profileImageUrl', name: 'MTI_Profile');
+                                                
+                                                String imageUrl = _profileImageUrl!;
+                                                
+                                                // Make sure the URL is properly formatted for web
+                                                if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+                                                  if (kIsWeb) {
+                                                    // For web, we need to ensure the full URL is used
+                                                    // Usually the API returns a relative path like 'storage/avatars/filename.jpg'
+                                                    // First remove any leading slash for consistency
+                                                    if (imageUrl.startsWith('/')) {
+                                                      imageUrl = imageUrl.substring(1);
+                                                    }
+                                                    
+                                                    // Now prepend the base URL
+                                                    imageUrl = '${AppConstants.baseUrl}/${imageUrl}';
+                                                    developer.log('Web image URL: $imageUrl', name: 'MTI_Profile');
+                                                  } else {
+                                                    // For mobile, use standard path handling
+                                                    if (imageUrl.startsWith('/')) {
+                                                      imageUrl = '${AppConstants.baseUrl}${imageUrl}';
+                                                    } else {
+                                                      imageUrl = '${AppConstants.baseUrl}/${imageUrl}';
+                                                    }
+                                                  }
+                                                  developer.log('Final image URL: $imageUrl', name: 'MTI_Profile');
+                                                }
+                                                return Image.network(
+                                                  imageUrl,
                                                   fit: BoxFit.cover,
-                                                )
-                                              : _profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                                                  ? Image.network(
-                                                      _profileImageUrl!,
-                                                      fit: BoxFit.cover,
-                                                      loadingBuilder: (context, child, loadingProgress) {
-                                                        if (loadingProgress == null) return child;
-                                                        return Center(
-                                                          child: CircularProgressIndicator(
-                                                            value: loadingProgress.expectedTotalBytes != null
-                                                                ? loadingProgress.cumulativeBytesLoaded /
-                                                                    loadingProgress.expectedTotalBytes!
-                                                                : null,
-                                                            color: AppTheme.goldColor,
-                                                          ),
-                                                        );
-                                                      },
-                                                      errorBuilder: (context, error, stackTrace) => Icon(
-                                                        Icons.person,
-                                                        size: avatarSize * 0.5,
+                                                  loadingBuilder: (context, child, loadingProgress) {
+                                                    if (loadingProgress == null) return child;
+                                                    return Center(
+                                                      child: CircularProgressIndicator(
+                                                        value: loadingProgress.expectedTotalBytes != null
+                                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                                loadingProgress.expectedTotalBytes!
+                                                            : null,
                                                         color: AppTheme.goldColor,
                                                       ),
-                                                    )
-                                                  : Icon(
+                                                    );
+                                                  },
+                                                  errorBuilder: (context, error, stackTrace) {
+                                                    // Log error for debugging
+                                                    developer.log(
+                                                      'Error loading profile image: $error',
+                                                      name: 'MTI_Profile',
+                                                      error: error,
+                                                    );
+                                                    return Icon(
                                                       Icons.person,
                                                       size: avatarSize * 0.5,
                                                       color: AppTheme.goldColor,
-                                                    ),
-                                        ),
+                                                    );
+                                                  },
+                                                );
+                                              } else {
+                                                // Fallback to icon when no image is available
+                                                return Icon(
+                                                  Icons.person,
+                                                  size: avatarSize * 0.5,
+                                                  color: AppTheme.goldColor,
+                                                );
+                                              }
+                                            }),
+                                          ),
                                 ),
                                 if (_isEditing)
                                   Positioned(
@@ -373,13 +461,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           shape: BoxShape.circle,
                                           boxShadow: [
                                             BoxShadow(
-                                              color: AppTheme.goldColor.withOpacity(0.18),
+                                              color: AppTheme.goldColor
+                                                  .withOpacity(0.18),
                                               blurRadius: 8,
                                               offset: const Offset(0, 2),
                                             ),
                                           ],
                                         ),
-                                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                                        child: const Icon(
+                                          Icons.camera_alt,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -391,11 +484,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               duration: const Duration(milliseconds: 300),
                               curve: Curves.easeOutCubic,
                               decoration: BoxDecoration(
-                                color: _isEditing ? AppTheme.surfaceColor.withOpacity(0.10) : Colors.transparent,
+                                color:
+                                    _isEditing
+                                        ? AppTheme.surfaceColor.withOpacity(
+                                          0.10,
+                                        )
+                                        : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border(
                                   bottom: BorderSide(
-                                    color: _isEditing ? AppTheme.goldColor.withOpacity(0.5) : Colors.transparent,
+                                    color:
+                                        _isEditing
+                                            ? AppTheme.goldColor.withOpacity(
+                                              0.5,
+                                            )
+                                            : Colors.transparent,
                                     width: 1.2,
                                   ),
                                 ),
@@ -422,11 +525,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               duration: const Duration(milliseconds: 300),
                               curve: Curves.easeOutCubic,
                               decoration: BoxDecoration(
-                                color: _isEditing ? AppTheme.surfaceColor.withOpacity(0.10) : Colors.transparent,
+                                color:
+                                    _isEditing
+                                        ? AppTheme.surfaceColor.withOpacity(
+                                          0.10,
+                                        )
+                                        : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border(
                                   bottom: BorderSide(
-                                    color: _isEditing ? AppTheme.goldColor.withOpacity(0.5) : Colors.transparent,
+                                    color:
+                                        _isEditing
+                                            ? AppTheme.goldColor.withOpacity(
+                                              0.5,
+                                            )
+                                            : Colors.transparent,
                                     width: 1.2,
                                   ),
                                 ),
@@ -448,20 +561,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   Icons.email_outlined,
                                   color: AppTheme.goldColor.withOpacity(0.7),
                                 ),
-                                suffix: _isEditing
-                                    ? IconButton(
-                                        icon: const Icon(
-                                          Icons.verified_outlined,
-                                          color: AppTheme.primaryColor,
-                                        ),
-                                        onPressed: () {
-                                          Get.toNamed(
-                                            AppRoutes.emailVerification,
-                                            arguments: {'email': _emailController.text},
-                                          );
-                                        },
-                                      )
-                                    : null,
+                                suffix:
+                                    _isEditing
+                                        ? IconButton(
+                                          icon: const Icon(
+                                            Icons.verified_outlined,
+                                            color: AppTheme.primaryColor,
+                                          ),
+                                          onPressed: () {
+                                            Get.toNamed(
+                                              AppRoutes.emailVerification,
+                                              arguments: {
+                                                'email': _emailController.text,
+                                              },
+                                            );
+                                          },
+                                        )
+                                        : null,
                               ),
                             ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
                             const SizedBox(height: 14),
@@ -470,11 +586,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               duration: const Duration(milliseconds: 300),
                               curve: Curves.easeOutCubic,
                               decoration: BoxDecoration(
-                                color: _isEditing ? AppTheme.surfaceColor.withOpacity(0.10) : Colors.transparent,
+                                color:
+                                    _isEditing
+                                        ? AppTheme.surfaceColor.withOpacity(
+                                          0.10,
+                                        )
+                                        : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border(
                                   bottom: BorderSide(
-                                    color: _isEditing ? AppTheme.goldColor.withOpacity(0.5) : Colors.transparent,
+                                    color:
+                                        _isEditing
+                                            ? AppTheme.goldColor.withOpacity(
+                                              0.5,
+                                            )
+                                            : Colors.transparent,
                                     width: 1.2,
                                   ),
                                 ),
@@ -524,12 +650,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     color: AppTheme.primaryColor,
                                   ),
                                   onPressed: () async {
-                                    await Clipboard.setData(ClipboardData(text: _refCodeController.text));
+                                    await Clipboard.setData(
+                                      ClipboardData(
+                                        text: _refCodeController.text,
+                                      ),
+                                    );
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Row(
                                           children: const [
-                                            Icon(Icons.check_circle, color: Colors.white, size: 20),
+                                            Icon(
+                                              Icons.check_circle,
+                                              color: Colors.white,
+                                              size: 20,
+                                            ),
                                             SizedBox(width: 10),
                                             Text("Reference code copied!"),
                                           ],
@@ -548,11 +682,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               duration: const Duration(milliseconds: 300),
                               curve: Curves.easeOutCubic,
                               decoration: BoxDecoration(
-                                color: _isEditing ? AppTheme.surfaceColor.withOpacity(0.10) : Colors.transparent,
+                                color:
+                                    _isEditing
+                                        ? AppTheme.surfaceColor.withOpacity(
+                                          0.10,
+                                        )
+                                        : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border(
                                   bottom: BorderSide(
-                                    color: _isEditing ? AppTheme.goldColor.withOpacity(0.5) : Colors.transparent,
+                                    color:
+                                        _isEditing
+                                            ? AppTheme.goldColor.withOpacity(
+                                              0.5,
+                                            )
+                                            : Colors.transparent,
                                     width: 1.2,
                                   ),
                                 ),
@@ -602,7 +746,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   borderRadius: BorderRadius.circular(10),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppTheme.goldColor.withOpacity(0.18),
+                                      color: AppTheme.goldColor.withOpacity(
+                                        0.18,
+                                      ),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),
@@ -615,38 +761,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     foregroundColor: Colors.white,
                                     shadowColor: Colors.transparent,
                                     elevation: 0,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
-                                    minimumSize: const Size(double.infinity, 48),
+                                    minimumSize: const Size(
+                                      double.infinity,
+                                      48,
+                                    ),
                                   ),
-                                  child: _isLoading
-                                      ? const SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2.5,
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                          ),
-                                        )
-                                      : Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: const [
-                                            Icon(Icons.save, color: Colors.white, size: 20),
-                                            SizedBox(width: 10),
-                                            Text(
-                                              "Save Changes",
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                                  child:
+                                      _isLoading
+                                          ? const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.5,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    Colors.white,
+                                                  ),
                                             ),
-                                          ],
-                                        ),
+                                          )
+                                          : Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: const [
+                                              Icon(
+                                                Icons.save,
+                                                color: Colors.white,
+                                                size: 20,
+                                              ),
+                                              SizedBox(width: 10),
+                                              Text(
+                                                "Save Changes",
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                 ),
-                              ).animate().fadeIn(delay: 700.ms, duration: 500.ms),
+                              ).animate().fadeIn(
+                                delay: 700.ms,
+                                duration: 500.ms,
+                              ),
                             const SizedBox(height: 10),
                           ],
                         ),

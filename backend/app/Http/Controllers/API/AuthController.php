@@ -28,7 +28,7 @@ class AuthController extends Controller
             'phonenumber' => 'required|string|max:20|unique:users',
             'address' => 'nullable|string|max:500',
             'date_of_birth' => 'required|date|before:-18 years',
-            'reference_code' => 'nullable|string|exists:users,ref_code',
+            'reference_code' => 'nullable|string|exists:users,affiliate_code', // For backward compatibility
             'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // Support both field names
@@ -45,8 +45,14 @@ class AuthController extends Controller
         // Generate a unique 6-character referral code
         $refCode = $this->generateUniqueRefCode();
 
-        // Set default reference code if not provided
-        $referenceCode = $request->reference_code ?? 'ADMIN01';
+        // Find referrer user if reference code is provided
+        $referralId = null;
+        if ($request->reference_code) {
+            $referrer = User::where('affiliate_code', $request->reference_code)->first();
+            if ($referrer) {
+                $referralId = $referrer->id;
+            }
+        }
 
         // Handle profile image upload
         $profileImage = 'avatars/default.png';
@@ -65,11 +71,11 @@ class AuthController extends Controller
             'phonenumber' => $request->phonenumber,
             'address' => $request->address,
             'date_of_birth' => $request->date_of_birth,
-            'reference_code' => $referenceCode,
+            'referral_id' => $referralId,
             'profile_image' => $profileImage,
             'usdt_address' => null, // Initialize as null
             'password' => Hash::make($request->password),
-            'ref_code' => $refCode,
+            'affiliate_code' => $refCode,
         ]);
 
         // Generate OTP for email verification
@@ -346,7 +352,7 @@ class AuthController extends Controller
             for ($i = 0; $i < 6; $i++) {
                 $refCode .= $characters[rand(0, strlen($characters) - 1)];
             }
-        } while (User::where('ref_code', $refCode)->exists());
+        } while (User::where('affiliate_code', $refCode)->exists());
         
         return $refCode;
     }
