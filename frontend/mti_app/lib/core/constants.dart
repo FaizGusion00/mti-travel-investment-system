@@ -19,9 +19,17 @@ class AppConstants {
   static String get baseUrl => Environment.apiBaseUrl;
   
   /// API v1 base URL - ALWAYS use this for all API calls
-  static String get apiV1BaseUrl => kIsWeb 
-      ? Environment.webApiV1Url  // Web-specific URL handling
-      : Environment.apiV1Url;    // Mobile URL handling
+  static String get apiV1BaseUrl {
+    // IMPORTANT: Force use of production URL when isProductionUrl is true
+    if (Environment.isProductionUrl) {
+      return 'https://panel.metatravel.ai/api/v1';
+    }
+    
+    // For development or different platforms
+    return kIsWeb 
+        ? Environment.webApiV1Url  // Web-specific URL handling
+        : Environment.apiV1Url;    // Mobile URL handling
+  }
   
   /// Get environment mode for easy toggling
   static bool get isProductionMode => Environment.isProductionUrl;
