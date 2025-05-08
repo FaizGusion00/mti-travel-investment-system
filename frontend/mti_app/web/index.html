@@ -136,25 +136,45 @@
     
     // Check for updates and force refresh if needed
     function checkForAppUpdate() {
-      const savedVersion = localStorage.getItem('mti_app_version');
+      // Get stored version from localStorage
+      const storedVersion = localStorage.getItem('app_version');
       
-      if (savedVersion && savedVersion !== APP_VERSION) {
-        console.log('App update detected:', savedVersion, '->', APP_VERSION);
-        localStorage.setItem('mti_app_version', APP_VERSION);
+      // If version differs from current version, force refresh
+      if (storedVersion && storedVersion !== APP_VERSION) {
+        console.log(`Version changed from ${storedVersion} to ${APP_VERSION}, refreshing...`);
         
-        // Clear cache and reload
-        if ('caches' in window) {
-          caches.keys().then(function(names) {
-            names.forEach(function(name) {
-              caches.delete(name);
+        // Clear caches on version change via service worker
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          try {
+            navigator.serviceWorker.controller.postMessage({
+              type: 'CLEAR_CACHE'
             });
-          });
+            console.log('Cache clear message sent to service worker');
+          } catch(e) {
+            console.error('Error sending message to service worker:', e);
+          }
         }
         
-        // Force reload from server
-        window.location.reload(true);
+        // Update stored version before reload to prevent loops
+        localStorage.setItem('app_version', APP_VERSION);
+        
+        // Set reload flag but don't reload immediately
+        localStorage.setItem('should_refresh', 'true');
+        
+        // Delay reload slightly to ensure service worker messages are processed
+        setTimeout(() => {
+          // Only reload if we haven't already reloaded
+          if (localStorage.getItem('should_refresh') === 'true') {
+            localStorage.removeItem('should_refresh');
+            // Force reload without cache
+            window.location.reload(true);
+          }
+        }, 500);
       } else {
-        localStorage.setItem('mti_app_version', APP_VERSION);
+        // Store current version
+        localStorage.setItem('app_version', APP_VERSION);
+        // Clear any pending refresh
+        localStorage.removeItem('should_refresh');
       }
     }
     
@@ -192,10 +212,11 @@
             console.error('Service worker registration failed:', error);
           });
           
-        // If the service worker changes, reload the page
+        // Only reload on new service worker if there's an actual version change
         navigator.serviceWorker.addEventListener('controllerchange', function() {
-          console.log('Service worker controller changed, reloading...');
-          window.location.reload(true);
+          // Skip the automatic reload - this prevents the infinite loop
+          console.log('Service worker controller changed');
+          // We'll let the version check handle any needed reloads instead
         });
       }
     });

@@ -23,7 +23,7 @@
             <!--
             <pins-digest algorithm="SHA-256">
                 <pin-set expiration="2026-01-01">
-                    <!-- Replace with your actual certificate pin -->
+                    Replace with your actual certificate pin below:
                     <pin digest="YOUR_CERT_PIN_HERE" />
                 </pin-set>
             </pins-digest>

@@ -352,15 +352,37 @@ function apiNetworkFirstStrategy(event) {
 
 // Enhanced message handling for better control and communication
 self.addEventListener('message', event => {
-  const message = event.data;
+  if (!event.data) return;
   
-  if (!message) return;
+  console.log('Service worker received message:', event.data.type);
   
-  trackEvent('message_received', { type: message.type });
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
   
-  switch (message.type) {
-    case 'SKIP_WAITING':
-      self.skipWaiting();
+  if (event.data.type === 'CLEAR_CACHE') {
+    console.log('Service worker clearing caches');
+    // Clear all caches managed by this service worker
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          console.log('Deleting cache:', cacheName);
+          return caches.delete(cacheName);
+        })
+      );
+    }).then(() => {
+      console.log('All caches cleared successfully');
+    }).catch(err => {
+      console.error('Error clearing caches:', err);
+    });
+  }
+  
+  trackEvent('message_received', { type: event.data.type });
+  
+  switch (event.data.type) {
+    // SKIP_WAITING is already handled above
+    case 'CLEAR_CACHE':
+      // Already handled above
       break;
       
     case 'CACHE_URLS':
