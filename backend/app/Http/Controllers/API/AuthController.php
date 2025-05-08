@@ -45,13 +45,12 @@ class AuthController extends Controller
         // Generate a unique 6-character referral code
         $refCode = $this->generateUniqueRefCode();
 
-        // Find referrer user if reference code is provided
+        // Find referrer's affiliate code if provided
         $referralId = null;
         if ($request->reference_code) {
-            $referrer = User::where('affiliate_code', $request->reference_code)->first();
-            if ($referrer) {
-                $referralId = $referrer->id;
-            }
+            // Store the referrer's affiliate_code directly in referral_id
+            // based on the actual database structure
+            $referralId = $request->reference_code;
         }
 
         // Handle profile image upload

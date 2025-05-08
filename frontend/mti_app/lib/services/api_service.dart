@@ -1205,6 +1205,198 @@ class ApiService {
     }
   }
 
+  // Get network data with specified levels
+  static Future<Map<String, dynamic>> getNetwork({int levels = 5}) async {
+    _log('Getting network data with $levels levels');
+    try {
+      final token = await getToken();
+      if (token == null) {
+        _log('No token found for network request');
+        return {'status': 'error', 'message': 'Authentication token required'};
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/network?levels=$levels'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        _log('Successfully retrieved network data');
+        
+        // Process the network data into a more usable format
+        final userData = responseData['data']['user'];
+        final downlines = responseData['data']['downlines'] ?? [];
+        
+        // Create root node structure for the current user
+        final Map<String, dynamic> networkTree = {
+          'id': userData['affiliate_code'] ?? '',
+          'name': userData['full_name'] ?? 'You',
+          'level': 'Level 0',
+          'downlines': downlines.length,
+          'isActive': true,
+          'status': 'Active',
+          'joinDate': _formatDate(userData['created_at']),
+          'children': _processDownlines(downlines, 1),
+        };
+        
+        return {'status': 'success', 'data': networkTree};
+      } else {
+        var errorMessage = 'Failed to get network data. Status code: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage = errorData['message'] ?? errorMessage;
+        } catch (e) {
+          // Ignore JSON decode errors on error responses
+        }
+
+        _log('Failed to get network data', error: errorMessage);
+        return {'status': 'error', 'message': errorMessage};
+      }
+    } catch (e) {
+      _log('Exception getting network data', error: e.toString());
+      return {'status': 'error', 'message': 'Failed to get network data: $e'};
+    }
+  }
+  
+  // Helper method to process downlines recursively
+  static List<Map<String, dynamic>> _processDownlines(List<dynamic> downlines, int level) {
+    List<Map<String, dynamic>> result = [];
+    
+    for (var downline in downlines) {
+      final children = downline['children'] ?? [];
+      
+      result.add({
+        'id': downline['affiliate_code'] ?? '',
+        'name': downline['full_name'] ?? '',
+        'level': 'Level $level',
+        'downlines': children.length,
+        'isActive': true, // Default to active, can be updated if status is available
+        'status': 'Active', // Default status
+        'joinDate': _formatDate(downline['created_at']),
+        'children': _processDownlines(children, level + 1),
+      });
+    }
+    
+    return result;
+  }
+  
+  // Helper to format date
+  static String _formatDate(String? dateString) {
+    if (dateString == null) return '';
+    try {
+      final date = DateTime.parse(dateString);
+      // Format as 'MMM d, yyyy'
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  // Get network statistics
+  static Future<Map<String, dynamic>> getNetworkStats() async {
+    _log('Getting network statistics');
+    try {
+      final token = await getToken();
+      if (token == null) {
+        _log('No token found for network stats request');
+        return {'status': 'error', 'message': 'Authentication token required'};
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/network/stats'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        _log('Successfully retrieved network statistics');
+        return {'status': 'success', 'data': responseData['data']};
+      } else {
+        var errorMessage = 'Failed to get network statistics. Status code: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage = errorData['message'] ?? errorMessage;
+        } catch (e) {
+          // Ignore JSON decode errors on error responses
+        }
+
+        _log('Failed to get network statistics', error: errorMessage);
+        return {'status': 'error', 'message': errorMessage};
+      }
+    } catch (e) {
+      _log('Exception getting network statistics', error: e.toString());
+      return {'status': 'error', 'message': 'Failed to get network statistics: $e'};
+    }
+  }
+
+  // Get commissions data
+  static Future<Map<String, dynamic>> getCommissions() async {
+    _log('Getting commission data');
+    try {
+      final token = await getToken();
+      if (token == null) {
+        _log('No token found for commissions request');
+        return {'status': 'error', 'message': 'Authentication token required'};
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/network/commissions'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        _log('Successfully retrieved commission data');
+        return {'status': 'success', 'data': responseData['data']};
+      } else {
+        var errorMessage = 'Failed to get commission data. Status code: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage = errorData['message'] ?? errorMessage;
+        } catch (e) {
+          // Ignore JSON decode errors on error responses
+        }
+
+        _log('Failed to get commission data', error: errorMessage);
+        return {'status': 'error', 'message': errorMessage};
+      }
+    } catch (e) {
+      _log('Exception getting commission data', error: e.toString());
+      return {'status': 'error', 'message': 'Failed to get commission data: $e'};
+    }
+  }
+
+  // Get current user's affiliate code
+  static Future<String?> getUserAffiliateCode() async {
+    _log('Getting user affiliate code from profile');
+    try {
+      final profileResponse = await getProfile();
+      if (profileResponse['success'] == true && profileResponse['user'] != null) {
+        final userData = profileResponse['user'];
+        final affiliateCode = userData['affiliate_code']?.toString() ?? '';
+        _log('Successfully retrieved affiliate code: $affiliateCode');
+        return affiliateCode;
+      } else {
+        _log('Failed to get affiliate code', error: profileResponse['message']);
+        return null;
+      }
+    } catch (e) {
+      _log('Exception getting affiliate code', error: e.toString());
+      return null;
+    }
+  }
+
   // Check token validity and refresh if needed
   static Future<bool> checkAndRefreshTokenIfNeeded() async {
     try {

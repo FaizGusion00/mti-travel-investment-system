@@ -4,17 +4,32 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b039df96-2b3a-4e63-a9a5-08ce17edeaa7" name="Changes" comment="1. Added transaction and notification tables.&#10;2. Added wallet api and function to backend and mti_app.&#10;3. Added environment easy switching into environment.dart&#10;4. Added web platform into mti_web but problem on displaying profile image or image related.&#10;5. Added transaction history and receipt in settings_screen.dart&#10;6. Added swap screen with transfer and history tabs. Successfully search and transfer cash wallet amount to another user.&#10;7. Added receipt in transaction_history_screen.dart&#10;8. For money number, have proper format using number_formatter.dart&#10;9. Account will be validated or approved when cash wallet is above USDT100&#10;10. Only isTrader=true, the swap button will display and permitted to transfer.&#10;11. Admin side now can manage user and also appoint trader.&#10;12. When click on Register button in home_screen.dart, it will automatically pass affiliate code to the web for new user registration.&#10;13. Enhance user_log and smooth operation.">
-      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
+    <list default="true" id="b039df96-2b3a-4e63-a9a5-08ce17edeaa7" name="Changes" comment="...">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2024_05_01_000000_users_table.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/migrations/2024_05_01_000000_users_table.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/core/environment.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/core/environment.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/Http/Controllers/API/AuthController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Http/Controllers/API/AuthController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/Http/Controllers/API/NetworkController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Http/Controllers/API/NetworkController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/android/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/android/app/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/android/app/src/main/res/xml/backup_rules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/android/app/src/main/res/xml/backup_rules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/android/app/src/main/res/xml/network_security_config.xml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/android/app/src/main/res/xml/network_security_config.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Flutter/AppFrameworkInfo.plist" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Flutter/AppFrameworkInfo.plist" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/AppDelegate.swift" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/AppDelegate.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Base.lproj/LaunchScreen.storyboard" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Base.lproj/LaunchScreen.storyboard" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Info.plist" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Info.plist" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/core/constants.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/core/constants.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/main.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/deposit_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/deposit_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/home_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/home_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/home_screen_backup.dart" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/login_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/login_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/network_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/network_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/notification_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/notification_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/splash_screen_backup.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/withdraw_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/withdraw_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/services/api_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/services/api_service.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/pubspec.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/web/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/web/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/web/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/web/manifest.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/mti_web/app/register/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_web/app/register/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_web/app/utils/environment.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_web/app/utils/environment.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_web/app/verify-otp/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_web/app/verify-otp/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_web/next.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_web/next.config.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_web/src/services/auth.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_web/src/services/auth.service.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -89,12 +104,29 @@
       <option name="project" value="LOCAL" />
       <updated>1746651389053</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="...">
+      <option name="closed" value="true" />
+      <created>1746716281576</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1746716281576</updated>
+    </task>
+    <task id="LOCAL-00004" summary="...">
+      <option name="closed" value="true" />
+      <created>1746717198994</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1746717198995</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="1. Improve uiux design in home, login, network, profile and settings screen.&#10;2. Enhance security performance and stability of this app especially at main.dart.&#10;3. Now the app check for the token session for auto login.&#10;4. Token valid for 3 days." />
     <MESSAGE value="1. Added transaction and notification tables.&#10;2. Added wallet api and function to backend and mti_app.&#10;3. Added environment easy switching into environment.dart&#10;4. Added web platform into mti_web but problem on displaying profile image or image related.&#10;5. Added transaction history and receipt in settings_screen.dart&#10;6. Added swap screen with transfer and history tabs. Successfully search and transfer cash wallet amount to another user.&#10;7. Added receipt in transaction_history_screen.dart&#10;8. For money number, have proper format using number_formatter.dart&#10;9. Account will be validated or approved when cash wallet is above USDT100&#10;10. Only isTrader=true, the swap button will display and permitted to transfer.&#10;11. Admin side now can manage user and also appoint trader.&#10;12. When click on Register button in home_screen.dart, it will automatically pass affiliate code to the web for new user registration.&#10;13. Enhance user_log and smooth operation." />
-    <option name="LAST_COMMIT_MESSAGE" value="1. Added transaction and notification tables.&#10;2. Added wallet api and function to backend and mti_app.&#10;3. Added environment easy switching into environment.dart&#10;4. Added web platform into mti_web but problem on displaying profile image or image related.&#10;5. Added transaction history and receipt in settings_screen.dart&#10;6. Added swap screen with transfer and history tabs. Successfully search and transfer cash wallet amount to another user.&#10;7. Added receipt in transaction_history_screen.dart&#10;8. For money number, have proper format using number_formatter.dart&#10;9. Account will be validated or approved when cash wallet is above USDT100&#10;10. Only isTrader=true, the swap button will display and permitted to transfer.&#10;11. Admin side now can manage user and also appoint trader.&#10;12. When click on Register button in home_screen.dart, it will automatically pass affiliate code to the web for new user registration.&#10;13. Enhance user_log and smooth operation." />
+    <MESSAGE value="..." />
+    <option name="LAST_COMMIT_MESSAGE" value="..." />
   </component>
 </project>

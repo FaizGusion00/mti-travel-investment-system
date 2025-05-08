@@ -12,6 +12,8 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
+  // Current implementation preserved as comments for future use
+  /*
   final List<Map<String, dynamic>> _notifications = [
     {
       'title': 'New Referral Bonus',
@@ -56,6 +58,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
       'type': 'promotion',
     },
   ];
+  */
+  
+  // Empty list for coming soon implementation
+  final List<Map<String, dynamic>> _notifications = [];
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +79,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
           ),
         ),
         centerTitle: true,
+        // Actions removed for coming soon implementation
+        /*
         actions: [
           IconButton(
             icon: const Icon(
@@ -96,11 +104,38 @@ class _NotificationScreenState extends State<NotificationScreen> {
             },
           ),
         ],
+        */
       ),
-      body: _notifications.isEmpty
-          ? _buildEmptyState()
-          : _buildNotificationList(),
-      
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.notifications_active,
+              size: 80,
+              color: Colors.amber[300],
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "Coming Soon",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "Notification functionality will be available soon",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        ),
+      ).animate().fadeIn(duration: 500.ms),
     );
   }
 

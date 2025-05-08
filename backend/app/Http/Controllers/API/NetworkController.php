@@ -152,9 +152,9 @@ class NetworkController extends Controller
     /**
      * Get downline tree recursively
      *
-     * @param  string  $refCode
-     * @param  int  $maxLevel
-     * @param  int  $currentLevel
+     * @param  int  $userId - User ID of the person whose downlines we're finding
+     * @param  int  $maxLevel - Maximum depth of levels to retrieve
+     * @param  int  $currentLevel - Current level being processed
      * @return array
      */
     private function getDownlineTree($userId, $maxLevel, $currentLevel = 1)
@@ -163,8 +163,16 @@ class NetworkController extends Controller
             return [];
         }
         
-        $downlines = User::where('referral_id', $userId)
-            ->select('id', 'full_name', 'email', 'affiliate_code', 'created_at')
+        // Get the user's affiliate code first
+        $user = User::select('affiliate_code')->find($userId);
+        
+        if (!$user || empty($user->affiliate_code)) {
+            return [];
+        }
+        
+        // Find users whose referral_id matches this user's affiliate_code
+        $downlines = User::where('referral_id', $user->affiliate_code)
+            ->select('id', 'full_name', 'email', 'affiliate_code', 'referral_id', 'created_at')
             ->get();
         
         $result = [];
@@ -181,6 +189,7 @@ class NetworkController extends Controller
                 'full_name' => $downline->full_name,
                 'email' => $downline->email,
                 'affiliate_code' => $downline->affiliate_code,
+                'referral_id' => $downline->referral_id, // Include referral_id to help troubleshoot
                 'created_at' => $downline->created_at,
                 'level' => $currentLevel,
                 'children' => $children,

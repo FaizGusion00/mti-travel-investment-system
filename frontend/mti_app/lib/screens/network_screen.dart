@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 import '../config/theme.dart';
-import '../shared/widgets/bottom_nav_bar.dart';
 import '../widgets/custom_button.dart';
 import 'dart:math';
+import '../services/api_service.dart';
+import 'dart:developer' as developer;
 
 class NetworkScreen extends StatefulWidget {
   const NetworkScreen({Key? key}) : super(key: key);
@@ -17,12 +17,94 @@ class NetworkScreen extends StatefulWidget {
 
 class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final String _referralCode = "MTI12345";
+  String _referralCode = "";
+  bool _isLoading = true;
+  bool _isNetworkDataLoading = true;
+  
+  // Network data from API
+  Map<String, dynamic> _networkData = {};
+  Map<String, dynamic> _networkStats = {};
+  
+  // View type for network tab (list or hierarchy)
+  bool _isHierarchyView = true; // Default to hierarchy view
   
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    
+    // Load user's affiliate code
+    _loadAffiliateCode();
+    
+    // Load network data
+    _loadNetworkData();
+  }
+  
+  // Load user's affiliate code from profile
+  Future<void> _loadAffiliateCode() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      final affiliateCode = await ApiService.getUserAffiliateCode();
+      if (affiliateCode != null && affiliateCode.isNotEmpty) {
+        setState(() {
+          _referralCode = affiliateCode;
+          _isLoading = false;
+        });
+        developer.log('Loaded affiliate code: $_referralCode', name: 'Network');
+      } else {
+        setState(() {
+          _referralCode = "N/A";
+          _isLoading = false;
+        });
+        developer.log('No affiliate code found', name: 'Network');
+      }
+    } catch (e) {
+      setState(() {
+        _referralCode = "N/A";
+        _isLoading = false;
+      });
+      developer.log('Error loading affiliate code: $e', name: 'Network');
+    }
+  }
+  
+  // Load network data from backend
+  Future<void> _loadNetworkData() async {
+    setState(() {
+      _isNetworkDataLoading = true;
+    });
+    
+    try {
+      // Get network data (hierarchical structure)
+      final networkResponse = await ApiService.getNetwork(levels: 5);
+      if (networkResponse['status'] == 'success') {
+        setState(() {
+          _networkData = networkResponse['data'] ?? {};
+        });
+        developer.log('Loaded network data successfully', name: 'Network');
+      } else {
+        developer.log('Failed to load network data: ${networkResponse['message']}', name: 'Network');
+      }
+      
+      // Get network statistics
+      final statsResponse = await ApiService.getNetworkStats();
+      if (statsResponse['status'] == 'success') {
+        setState(() {
+          _networkStats = statsResponse['data'] ?? {};
+        });
+        developer.log('Loaded network stats successfully', name: 'Network');
+      } else {
+        developer.log('Failed to load network stats: ${statsResponse['message']}', name: 'Network');
+      }
+    } catch (e) {
+      developer.log('Error loading network data: $e', name: 'Network');
+    } finally {
+      setState(() {
+        _isNetworkDataLoading = false;
+      });
+    }
   }
   
   @override
@@ -32,11 +114,23 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   }
 
   void _shareReferralCode() async {
+    // Don't try to share if code is not loaded yet
+    if (_referralCode.isEmpty || _referralCode == "N/A") {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Affiliate code not available yet. Please try again later.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
     try {
-      // First copy to clipboard as a backup
-      final String referralLink = 'https://mti.travel/ref/${_referralCode}';
+      // Construct the link with the web registration page and affiliate_code parameter
+      final String referralLink = 'https://register.metatravel.ai/register?affiliate_code=${_referralCode}';
       final String shareMessage = 'Join MTI Travel Investment using my referral code: $_referralCode\n\nSign up here: $referralLink';
       
+      // First copy to clipboard as a backup
       await Clipboard.setData(ClipboardData(text: shareMessage));
       
       // Show loading indicator
@@ -56,12 +150,17 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       // Wait a moment before showing share dialog
       await Future.delayed(const Duration(milliseconds: 500));
       
+      // Log sharing action
+      developer.log('Sharing referral link: $referralLink', name: 'Network');
+      
       // Use share_plus to share the referral link
       await Share.share(
         shareMessage,
         subject: 'MTI Travel Investment Referral',
       );
     } catch (e) {
+      developer.log('Error sharing referral code: $e', name: 'Network');
+      
       // Show success message for clipboard at least
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -103,16 +202,18 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         // Remove default divider
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(70),
-          child: Container(
-            margin: const EdgeInsets.only(top: 10, left: 16, right: 16, bottom: 5),
-            decoration: BoxDecoration(
-              color: AppTheme.secondaryBackgroundColor.withOpacity(0.7),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppTheme.goldColor.withOpacity(0.2), width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
+          child: _isLoading 
+              ? const Center(child: CircularProgressIndicator(color: AppTheme.goldColor))
+              : Container(
+                  margin: const EdgeInsets.only(top: 10, left: 16, right: 16, bottom: 5),
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondaryBackgroundColor.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppTheme.goldColor.withOpacity(0.2), width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
                 BoxShadow(
@@ -186,6 +287,39 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   }
 
   Widget _buildEarningsTab() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(height: 100),
+          Icon(
+            Icons.access_time_rounded,
+            size: 80,
+            color: Colors.amber[300],
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            "Coming Soon",
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            "Earnings functionality will be available soon",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.white70,
+            ),
+          ),
+        ],
+      ),
+    );
+    // Original implementation preserved for future use
+    /*
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(), // Smooth scrolling for Android
       child: Padding(
@@ -200,6 +334,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         ),
       ),
     );
+    */
   }
 
   Widget _buildReferralCard() {
@@ -255,7 +390,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
           ),
           const SizedBox(height: 16),
           const Text(
-            "Share your referral code and earn 10% of your referrals' earnings",
+            "Share your referral code now!",
             style: TextStyle(
               color: Colors.white70,
               fontSize: 14,
@@ -322,6 +457,12 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   }
 
   Widget _buildNetworkStats() {
+    // Extract data from network stats or provide defaults
+    final totalMembers = _networkStats.isEmpty ? "--" : (_networkStats['total_downlines'] ?? 0).toString();
+    final directReferrals = _networkStats.isEmpty ? "--" : (_networkStats['direct_downlines'] ?? 0).toString();
+    final teamVolume = "Coming Soon";
+    final totalEarnings = "Coming Soon";
+  
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -339,7 +480,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
             Expanded(
               child: _buildStatCard(
                 "Total Members",
-                "--",
+                totalMembers,
                 Icons.people_outline,
                 AppTheme.primaryColor,
               ),
@@ -348,7 +489,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
             Expanded(
               child: _buildStatCard(
                 "Direct Referrals",
-                "--",
+                directReferrals,
                 Icons.person_add_outlined,
                 AppTheme.accentColor,
               ),
@@ -361,7 +502,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
             Expanded(
               child: _buildStatCard(
                 "Team Volume",
-                "----- USDT",
+                teamVolume,
                 Icons.bar_chart_outlined,
                 AppTheme.tertiaryColor,
               ),
@@ -370,7 +511,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
             Expanded(
               child: _buildStatCard(
                 "Total Earnings",
-                "----- USDT",
+                totalEarnings,
                 Icons.account_balance_wallet_outlined,
                 AppTheme.infoColor,
               ),
@@ -423,6 +564,30 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   }
 
   Widget _buildNetworkTab() {
+    // Show loading indicator while network data is loading
+    if (_isNetworkDataLoading) {
+      return Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: AppTheme.goldColor),
+              const SizedBox(height: 16),
+              Text(
+                "Loading your network...",
+                style: TextStyle(
+                  color: AppTheme.goldColor.withOpacity(0.8),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Padding(
@@ -432,29 +597,91 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
           children: [
             // Stylish header with icon
             Container(
-              margin: const EdgeInsets.only(bottom: 24),
+              margin: const EdgeInsets.only(bottom: 16),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppTheme.goldColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.goldColor.withOpacity(0.3), width: 1),
-                    ),
-                    child: const Icon(
-                      Icons.account_tree_rounded,
-                      color: AppTheme.goldColor,
-                      size: 24,
-                    ),
+                  // Title with icon
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppTheme.goldColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.goldColor.withOpacity(0.3), width: 1),
+                        ),
+                        child: const Icon(
+                          Icons.account_tree_rounded,
+                          color: AppTheme.goldColor,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        "Network Structure",
+                        style: TextStyle(
+                          color: AppTheme.goldColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    "Network Structure",
-                    style: TextStyle(
-                      color: AppTheme.goldColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  
+                  // View toggle switch
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isHierarchyView = !_isHierarchyView;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.backgroundColor.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppTheme.goldColor.withOpacity(0.3), width: 1),
+                      ),
+                      child: Row(
+                        children: [
+                          // List View Toggle
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: _isHierarchyView ? Colors.transparent : AppTheme.goldColor.withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              "List",
+                              style: TextStyle(
+                                color: _isHierarchyView ? Colors.grey : Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          
+                          const SizedBox(width: 8),
+                          
+                          // Hierarchy View Toggle
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: _isHierarchyView ? AppTheme.goldColor.withOpacity(0.7) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              "Hierarchy",
+                              style: TextStyle(
+                                color: _isHierarchyView ? Colors.white : Colors.grey,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -472,7 +699,9 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(color: AppTheme.goldColor.withOpacity(0.15), width: 1),
                   ),
-                  child: _buildNetworkTree(_getNetworkData()),
+                  child: _isHierarchyView
+                      ? _buildNetworkTree(_getNetworkData())
+                      : _buildNetworkList(_getNetworkData()),
                 ),
               ),
             ),
@@ -483,10 +712,17 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   }
 
   Map<String, dynamic> _getNetworkData() {
-    // Network data structure with levels
+    // Use real network data if available, otherwise use mock data
+    if (_networkData.isNotEmpty) {
+      developer.log('Using real network data from API', name: 'Network');
+      return _networkData;
+    }
+    
+    // Mock data structure with levels as fallback
+    developer.log('Using mock network data (API data not available)', name: 'Network');
     return {
-      'id': 'MTI12345',
-      'name': 'Faiz Gusion',
+      'id': _referralCode.isEmpty ? 'MTI12345' : _referralCode,
+      'name': 'You',
       'level': 'Level 0',
       'downlines': 8,
       'children': [
@@ -577,11 +813,126 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     };
   }
 
+  Widget _buildNetworkList(Map<String, dynamic> networkData) {
+    // Extract all downlines and flatten into a single list
+    List<Map<String, dynamic>> allMembers = [];
+    
+    // Add the root user (current user)
+    allMembers.add({
+      'id': networkData['id'] ?? '',
+      'name': networkData['name'] ?? 'You',
+      'level': 'Level 0',
+      'joinDate': 'You',
+      'status': 'Active',
+      'isActive': true,
+    });
+    
+    // Process all children (level 1)
+    final children = networkData['children'] as List<dynamic>? ?? [];
+    for (var child in children) {
+      allMembers.add({
+        'id': child['id'] ?? '',
+        'name': child['name'] ?? '',
+        'level': 'Level 1',
+        'joinDate': child['joinDate'] ?? '',
+        'status': child['status'] ?? 'Inactive',
+        'isActive': child['isActive'] ?? false,
+      });
+      
+      // Process all grandchildren (level 2)
+      final grandchildren = child['children'] as List<dynamic>? ?? [];
+      for (var grandchild in grandchildren) {
+        allMembers.add({
+          'id': grandchild['id'] ?? '',
+          'name': grandchild['name'] ?? '',
+          'level': 'Level 2',
+          'joinDate': grandchild['joinDate'] ?? '',
+          'status': grandchild['status'] ?? 'Inactive',
+          'isActive': grandchild['isActive'] ?? false,
+        });
+      }
+    }
+    
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: allMembers.length,
+      itemBuilder: (context, index) {
+        final member = allMembers[index];
+        final bool isRoot = index == 0;
+        final bool isActive = member['isActive'] ?? false;
+        
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: AppTheme.secondaryBackgroundColor.withOpacity(0.8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isRoot ? AppTheme.goldColor : Colors.transparent,
+              width: isRoot ? 2 : 0,
+            ),
+          ),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: isActive ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+              child: Icon(
+                Icons.person,
+                color: isActive ? Colors.green : Colors.grey,
+              ),
+            ),
+            title: Text(
+              member['name'] ?? '',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: isRoot ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  member['level'] ?? '',
+                  style: const TextStyle(
+                    color: AppTheme.secondaryTextColor,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "ID: ${member['id']}",
+                  style: const TextStyle(
+                    color: AppTheme.secondaryTextColor,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: isActive ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                isActive ? 'Active' : 'Inactive',
+                style: TextStyle(
+                  color: isActive ? Colors.green : Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildNetworkTree(Map<String, dynamic> rootNode) {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Calculate available width for the tree
         final availableWidth = constraints.maxWidth;
+        
         // Calculate the widest level based on root node's children
         double requiredWidth = 800.0; // Minimum width
         if (rootNode['children'] != null) {
@@ -589,11 +940,11 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
           int maxChildCount = 0;
           for (var child in rootNode['children']) {
             if (child['children'] != null) {
-              maxChildCount = max(maxChildCount, child['children'].length);
+              maxChildCount = max(maxChildCount, (child['children'] as List).length);
             }
           }
           // Estimate required width based on structure
-          requiredWidth = max(rootNode['children'].length * 250.0, maxChildCount * 180.0 + 300);
+          requiredWidth = max((rootNode['children'] as List).length * 250.0, maxChildCount * 180.0 + 300);
         }
         
         return SingleChildScrollView(
@@ -633,7 +984,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                   const SizedBox(height: 30), // Increased spacing
                   
                   // Connect to first level
-                  if (rootNode['children'].isNotEmpty) ...[
+                  if (rootNode['children'].isNotEmpty) ...[  
                     _buildVerticalConnector(60), // Longer connector
                     _buildFirstLevel(rootNode['children']),
                   ],
@@ -760,7 +1111,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     final Color glowColor = isRoot 
         ? AppTheme.goldColor 
         : (isActive ? Colors.green : Colors.red);
-    final String initials = node['name'].split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase();
+    final String initials = (node['name'] ?? '').split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase();
 
     return GestureDetector(
       onTap: () {

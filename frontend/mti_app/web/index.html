@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -18,21 +18,251 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="MTI Travel Investment App - Manage your investments, referrals, and earnings in one secure platform. Track your portfolio, invite friends, and grow your network.">
+  <meta name="keywords" content="mti,investment,travel,referral,affiliate,earnings,network,portfolio">
+  <meta name="author" content="MTI Investment">
+  <meta name="theme-color" content="#1a1c1e">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <!-- Disable caching for development, selective caching for production -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="mti_app">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MTI Investment">
+  
+  <!-- Apple Touch Icons -->
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/Icon-152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/Icon-180.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="icons/Icon-167.png">
+  
+  <!-- Apple Splash Screens -->
+  <link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="icons/splash/apple_splash_640x1136.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="icons/splash/apple_splash_750x1334.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="icons/splash/apple_splash_1242x2208.png">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="assets/images/mti_logo.png"/>
+  <!-- Favicons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
+  <link rel="mask-icon" href="icons/safari-pinned-tab.svg" color="#5bbad5">
+  <link rel="shortcut icon" href="favicon.ico">
 
-  <title>MTI Investment</title>
-  <link rel="manifest" href="manifest.json">
+  <title>MTI Investment | Secure Travel Investment Platform</title>
+  <link rel="manifest" href="manifest.json?v=0.0.4">
+  
+  <!-- App version for cache busting -->
+  <meta name="app-version" content="0.0.4">
+  
+  <!-- Preconnect to important domains -->
+  <link rel="preconnect" href="https://api.metatravel.ai">
+  <link rel="dns-prefetch" href="https://api.metatravel.ai">
+  
+  <!-- Preload critical assets -->
+  <link rel="preload" href="assets/images/mti_logo.png" as="image">
+  <link rel="preload" href="assets/fonts/Poppins-Regular.ttf" as="font" type="font/ttf" crossorigin="anonymous">
+  
+  <!-- Critical CSS for faster rendering -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #1a1c1e;
+      color: white;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+    }
+    
+    #loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #1a1c1e 0%, #2a2d36 100%);
+    }
+    
+    .loader-container {
+      text-align: center;
+    }
+    
+    .logo-pulse {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      margin-top: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #9370DB;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+  
+  <script>
+    // Current app version
+    const APP_VERSION = '0.0.4';
+    
+    // Disable cache for main.dart.js
+    function addMainDartScript() {
+      // Check if main.dart.js already exists to avoid duplicates
+      if (document.querySelector('script[src*="main.dart.js"]')) return;
+      
+      const timestamp = new Date().getTime();
+      const script = document.createElement('script');
+      script.src = 'main.dart.js?v=' + APP_VERSION + '&t=' + timestamp;
+      script.defer = true;
+      document.body.appendChild(script);
+    }
+    
+    // Check for updates and force refresh if needed
+    function checkForAppUpdate() {
+      const savedVersion = localStorage.getItem('mti_app_version');
+      
+      if (savedVersion && savedVersion !== APP_VERSION) {
+        console.log('App update detected:', savedVersion, '->', APP_VERSION);
+        localStorage.setItem('mti_app_version', APP_VERSION);
+        
+        // Clear cache and reload
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            names.forEach(function(name) {
+              caches.delete(name);
+            });
+          });
+        }
+        
+        // Force reload from server
+        window.location.reload(true);
+      } else {
+        localStorage.setItem('mti_app_version', APP_VERSION);
+      }
+    }
+    
+    // Initialize cache busting
+    window.addEventListener('load', function() {
+      checkForAppUpdate();
+      
+      // Load main.dart.js with cache busting
+      addMainDartScript();
+      
+      // Register custom service worker for better cache control
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('custom_service_worker.js?v=' + APP_VERSION)
+          .then(function(reg) {
+            console.log('Service worker registered with scope:', reg.scope);
+            
+            // Check if there's a waiting service worker
+            if (reg.waiting) {
+              // New version is waiting to activate
+              reg.waiting.postMessage({type: 'SKIP_WAITING'});
+            }
+            
+            reg.addEventListener('updatefound', function() {
+              // A new service worker is installing
+              const newWorker = reg.installing;
+              
+              newWorker.addEventListener('statechange', function() {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New version is installed and ready to take over
+                  newWorker.postMessage({type: 'SKIP_WAITING'});
+                }
+              });
+            });
+          }).catch(function(error) {
+            console.error('Service worker registration failed:', error);
+          });
+          
+        // If the service worker changes, reload the page
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+          console.log('Service worker controller changed, reloading...');
+          window.location.reload(true);
+        });
+      }
+    });
+  </script>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <!-- Enhanced loading indicator with better UX -->
+  <div id="loading">
+    <div class="loader-container">
+      <img src="assets/images/mti_logo.png" alt="MTI Logo" width="120" height="120" class="logo-pulse">
+      <p style="color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin-top: 20px; font-size: 16px;">MTI Investment v0.0.4</p>
+      <div class="loading-spinner"></div>
+      <p id="loading-message" style="color: #9370DB; font-size: 14px; margin-top: 20px;">Initializing application...</p>
+    </div>
+  </div>
+  
+  <!-- Error display container (hidden by default) -->
+  <div id="error-container" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #1a1c1e; z-index: 9999; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px;">
+    <img src="assets/images/error_icon.png" alt="Error" width="80" height="80" onerror="this.src='data:image/svg+xml;utf8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23ff5252%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%2210%22%3E%3C/circle%3E%3Cline x1=%2212%22 y1=%228%22 x2=%2212%22 y2=%2212%22%3E%3C/line%3E%3Cline x1=%2212%22 y1=%2216%22 x2=%2212%22 y2=%2216%22%3E%3C/line%3E%3C/svg%3E';">
+    <h1 style="color: white; font-size: 22px; margin-top: 20px;">Something went wrong</h1>
+    <p id="error-message" style="color: #ff5252; margin: 10px 0 20px 0; font-size: 16px;">Failed to load the application</p>
+    <button onclick="window.location.reload(true)" style="background-color: #9370DB; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer;">Try Again</button>
+  </div>
+  
+  <!-- Enhanced app initialization -->
+  <script>
+    // Show different loading messages
+    const loadingMessages = [
+      'Initializing application...',
+      'Loading resources...',
+      'Preparing your dashboard...',
+      'Almost there...',
+    ];
+    let messageIndex = 0;
+    const messageElement = document.getElementById('loading-message');
+    
+    const messageInterval = setInterval(() => {
+      messageElement.textContent = loadingMessages[messageIndex % loadingMessages.length];
+      messageIndex++;
+    }, 2500);
+    
+    // Handle bootstrap errors
+    window.onerror = function(message, source, lineno, colno, error) {
+      clearInterval(messageInterval);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error-container').style.display = 'flex';
+      document.getElementById('error-message').textContent = 'Error: ' + (message || 'Application failed to initialize');
+      console.error('Bootstrap error:', message, error);
+      return true;
+    };
+    
+    // Track startup time
+    window.appStartTime = new Date().getTime();
+  </script>
+  
+  <!-- Bootstrap script with cache busting -->
+  <script src="flutter_bootstrap.js?v=0.0.4&t=" defer id="bootstrap-script"></script>
+  <script>
+    // Append current timestamp to bootstrap script src
+    document.getElementById('bootstrap-script').src += new Date().getTime();
+    
+    // Track app load time
+    window.addEventListener('flutterInAppWebViewPlatformReady', function() {
+      clearInterval(messageInterval);
+      const loadTime = new Date().getTime() - window.appStartTime;
+      console.log('App initialized in ' + loadTime + 'ms');
+    });
+  </script>
 </body>
 </html>

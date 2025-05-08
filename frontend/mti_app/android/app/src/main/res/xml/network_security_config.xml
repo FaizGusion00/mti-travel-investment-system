@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Base secure network configuration -->
+    <!-- Base secure network configuration - enforce HTTPS by default -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <!-- Trust the pre-installed system CAs -->
@@ -8,13 +8,35 @@
         </trust-anchors>
     </base-config>
     
-    <!-- Allow cleartext traffic to specific domains if needed -->
-    <!-- Uncomment and modify if you need to connect to non-HTTPS domains -->
-    <!--
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">your-api-domain.com</domain>
+    <!-- Enhanced security for MTI API domains with certificate pinning -->
+    <domain-config>
+        <!-- Pin the certificates for production API domains -->
+        <domain includeSubdomains="true">metatravel.ai</domain>
+        <domain includeSubdomains="true">app.metatravel.ai</domain>
+        <domain includeSubdomains="true">panel.metatravel.ai</domain>
+        <domain includeSubdomains="true">register.metatravel.ai</domain>
+        
+        <!-- Set reasonable timeouts for certificate verification -->
+        <trust-anchors>
+            <certificates src="system" />
+            <!-- Add certificate pinning in production by uncommenting and adding your cert hash -->
+            <!--
+            <pins-digest algorithm="SHA-256">
+                <pin-set expiration="2026-01-01">
+                    <!-- Replace with your actual certificate pin -->
+                    <pin digest="YOUR_CERT_PIN_HERE" />
+                </pin-set>
+            </pins-digest>
+            -->
+        </trust-anchors>
     </domain-config>
-    -->
+    
+    <!-- Allow localhost connections for development -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain> <!-- Android Emulator localhost -->
+        <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
     
     <!-- Debug only overrides - only active in debug builds -->
     <debug-overrides>

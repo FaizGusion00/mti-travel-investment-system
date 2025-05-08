@@ -12,7 +12,7 @@ import '../services/api_service.dart';
 import 'swap_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import '../core/constants.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -250,13 +250,13 @@ class _HomeScreenState extends State<HomeScreen>
   // Method to launch MTI web registration page with current user's reference code
   Future<void> _launchMTIWebRegistration() async {
     try {
-      // Construct the URL with reference code parameter for Next.js routing
-      final urlString =
-          '${AppConstants.registrationUrl}/register?ref=${_refCode}';
+      // Use the correct URL format for the web registration page
+      // Change to use 'register.metatravel.ai/register' with affiliate_code parameter
+      final urlString = 'https://register.metatravel.ai/register?affiliate_code=${_refCode}';
 
       // Log the URL being launched
       developer.log(
-        'Launching MTI web registration with ref code: $_refCode',
+        'Launching MTI web registration with affiliate code: $_refCode',
         name: 'MTI_Home',
       );
       developer.log('URL: $urlString', name: 'MTI_Home');
