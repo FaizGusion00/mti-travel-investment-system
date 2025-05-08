@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000/api/v1';
+// Use the production URL for API connections
+const API_URL = 'https://panel.metatravel.ai/api/v1';
 
 export interface RegisterData {
   full_name: string;

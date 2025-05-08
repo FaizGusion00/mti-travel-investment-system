@@ -4,43 +4,17 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b039df96-2b3a-4e63-a9a5-08ce17edeaa7" name="Changes" comment="1. Improve uiux design in home, login, network, profile and settings screen.&#10;2. Enhance security performance and stability of this app especially at main.dart.&#10;3. Now the app check for the token session for auto login.&#10;4. Token valid for 3 days.">
+    <list default="true" id="b039df96-2b3a-4e63-a9a5-08ce17edeaa7" name="Changes" comment="1. Added transaction and notification tables.&#10;2. Added wallet api and function to backend and mti_app.&#10;3. Added environment easy switching into environment.dart&#10;4. Added web platform into mti_web but problem on displaying profile image or image related.&#10;5. Added transaction history and receipt in settings_screen.dart&#10;6. Added swap screen with transfer and history tabs. Successfully search and transfer cash wallet amount to another user.&#10;7. Added receipt in transaction_history_screen.dart&#10;8. For money number, have proper format using number_formatter.dart&#10;9. Account will be validated or approved when cash wallet is above USDT100&#10;10. Only isTrader=true, the swap button will display and permitted to transfer.&#10;11. Admin side now can manage user and also appoint trader.&#10;12. When click on Register button in home_screen.dart, it will automatically pass affiliate code to the web for new user registration.&#10;13. Enhance user_log and smooth operation.">
       <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/Http/Controllers/API/AuthController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Http/Controllers/API/AuthController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/Http/Controllers/API/NetworkController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Http/Controllers/API/NetworkController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/Http/Controllers/API/ProfileController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Http/Controllers/API/ProfileController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/Http/Controllers/API/UserController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Http/Controllers/API/UserController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/Http/Controllers/DashboardController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Http/Controllers/DashboardController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/Http/Middleware/IsAdmin.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Http/Middleware/IsAdmin.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/Models/User.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Models/User.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/app/Providers/AppServiceProvider.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Providers/AppServiceProvider.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/resources/views/layouts/admin.blade.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/resources/views/layouts/admin.blade.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/api.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/api.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/web.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/web.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/.metadata" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/.metadata" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage.png" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Base.lproj/LaunchScreen.storyboard" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Base.lproj/LaunchScreen.storyboard" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Info.plist" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Info.plist" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/config/routes.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/config/routes.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/core/constants.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/core/constants.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2024_05_01_000000_users_table.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/migrations/2024_05_01_000000_users_table.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/core/environment.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/core/environment.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/home_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/home_screen.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/login_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/login_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/profile_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/profile_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/settings_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/settings_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/splash_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/splash_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/services/api_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/services/api_service.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/linux/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/linux/flutter/generated_plugin_registrant.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/linux/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/linux/flutter/generated_plugins.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/macos/Flutter/GeneratedPluginRegistrant.swift" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/macos/Flutter/GeneratedPluginRegistrant.swift" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/pubspec.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/pubspec.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/web/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/web/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/windows/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/windows/flutter/generated_plugin_registrant.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/windows/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/windows/flutter/generated_plugins.cmake" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/mti_web/app/register/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_web/app/register/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_web/app/utils/environment.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_web/app/utils/environment.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_web/app/verify-otp/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_web/app/verify-otp/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_web/next.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_web/next.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_web/src/services/auth.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_web/src/services/auth.service.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -78,7 +52,7 @@
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;ScreenRecorder.SavePath&quot;: &quot;C:\\Users\\faizh\\Downloads&quot;,
+    &quot;ScreenRecorder.SavePath&quot;: &quot;C:\\Users\\faizh\\Downloads\\update 8\\5&quot;,
     &quot;ScreenshotViewer.SavePath&quot;: &quot;C:/Users/faizh/Downloads&quot;,
     &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
     &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
@@ -107,11 +81,20 @@
       <option name="project" value="LOCAL" />
       <updated>1746488493925</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="1. Added transaction and notification tables.&#10;2. Added wallet api and function to backend and mti_app.&#10;3. Added environment easy switching into environment.dart&#10;4. Added web platform into mti_web but problem on displaying profile image or image related.&#10;5. Added transaction history and receipt in settings_screen.dart&#10;6. Added swap screen with transfer and history tabs. Successfully search and transfer cash wallet amount to another user.&#10;7. Added receipt in transaction_history_screen.dart&#10;8. For money number, have proper format using number_formatter.dart&#10;9. Account will be validated or approved when cash wallet is above USDT100&#10;10. Only isTrader=true, the swap button will display and permitted to transfer.&#10;11. Admin side now can manage user and also appoint trader.&#10;12. When click on Register button in home_screen.dart, it will automatically pass affiliate code to the web for new user registration.&#10;13. Enhance user_log and smooth operation.">
+      <option name="closed" value="true" />
+      <created>1746651389053</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1746651389053</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="1. Improve uiux design in home, login, network, profile and settings screen.&#10;2. Enhance security performance and stability of this app especially at main.dart.&#10;3. Now the app check for the token session for auto login.&#10;4. Token valid for 3 days." />
-    <option name="LAST_COMMIT_MESSAGE" value="1. Improve uiux design in home, login, network, profile and settings screen.&#10;2. Enhance security performance and stability of this app especially at main.dart.&#10;3. Now the app check for the token session for auto login.&#10;4. Token valid for 3 days." />
+    <MESSAGE value="1. Added transaction and notification tables.&#10;2. Added wallet api and function to backend and mti_app.&#10;3. Added environment easy switching into environment.dart&#10;4. Added web platform into mti_web but problem on displaying profile image or image related.&#10;5. Added transaction history and receipt in settings_screen.dart&#10;6. Added swap screen with transfer and history tabs. Successfully search and transfer cash wallet amount to another user.&#10;7. Added receipt in transaction_history_screen.dart&#10;8. For money number, have proper format using number_formatter.dart&#10;9. Account will be validated or approved when cash wallet is above USDT100&#10;10. Only isTrader=true, the swap button will display and permitted to transfer.&#10;11. Admin side now can manage user and also appoint trader.&#10;12. When click on Register button in home_screen.dart, it will automatically pass affiliate code to the web for new user registration.&#10;13. Enhance user_log and smooth operation." />
+    <option name="LAST_COMMIT_MESSAGE" value="1. Added transaction and notification tables.&#10;2. Added wallet api and function to backend and mti_app.&#10;3. Added environment easy switching into environment.dart&#10;4. Added web platform into mti_web but problem on displaying profile image or image related.&#10;5. Added transaction history and receipt in settings_screen.dart&#10;6. Added swap screen with transfer and history tabs. Successfully search and transfer cash wallet amount to another user.&#10;7. Added receipt in transaction_history_screen.dart&#10;8. For money number, have proper format using number_formatter.dart&#10;9. Account will be validated or approved when cash wallet is above USDT100&#10;10. Only isTrader=true, the swap button will display and permitted to transfer.&#10;11. Admin side now can manage user and also appoint trader.&#10;12. When click on Register button in home_screen.dart, it will automatically pass affiliate code to the web for new user registration.&#10;13. Enhance user_log and smooth operation." />
   </component>
 </project>

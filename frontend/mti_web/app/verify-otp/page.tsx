@@ -57,7 +57,7 @@ export default function VerifyOTP() {
 
       // Send OTP verification request to API
       const apiUrl = Environment.apiBaseUrl;
-      const response = await fetch(`${apiUrl}/api/v1/verify-otp`, {
+      const response = await fetch(`${apiUrl}/verify-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ export default function VerifyOTP() {
     try {
       // Send request to resend OTP
       const apiUrl = Environment.apiBaseUrl;
-      const response = await fetch(`${apiUrl}/api/v1/resend-otp`, {
+      const response = await fetch(`${apiUrl}/resend-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

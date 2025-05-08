@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 /// Environment configuration class for managing environment-specific settings
 class Environment {
   /// MAIN TOGGLE: Set this to true to use production URLs, false for development
-  static bool isProductionUrl = false;
+  static bool isProductionUrl = true;
   
   /// Production mode flag (based on build environment)
   static bool get isProduction => _getEnvironmentFlag('ENV') == 'production';

@@ -128,9 +128,9 @@ export default function Register() {
       // Get API URL from environment
       const apiUrl = Environment.apiBaseUrl;
       
-      console.log('Sending registration to:', `${apiUrl}/api/v1/register`);
+      console.log('Sending registration to:', `${apiUrl}/register`);
       
-      const response = await fetch(`${apiUrl}/api/v1/register`, {
+      const response = await fetch(`${apiUrl}/register`, {
         method: 'POST',
         // Don't set Content-Type when using FormData, browser will set it with boundary
         headers: {
@@ -363,7 +363,7 @@ export default function Register() {
               </label>
               <div className={`w-full flex justify-center p-4 bg-gray-900/30 rounded-md ${!captchaToken ? 'border border-gray-700' : 'border border-green-500'}`}>
                 <Turnstile
-                  sitekey="1x00000000000000000000AA" // Replace with your actual sitekey
+                  sitekey={Environment.turnstileSiteKey}
                   onVerify={handleCaptchaVerify}
                   theme="dark"
                 />

@@ -21,7 +21,6 @@ return new class extends Migration
             $table->text('address')->nullable();
             $table->date('date_of_birth');
             $table->string('ref_code', 10)->nullable();
-            $table->string('referral_code', 10)->nullable();
             $table->string('profile_image')->nullable();
             $table->string('password');
             $table->rememberToken();

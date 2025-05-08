@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloudflare_turnstile/cloudflare_turnstile.dart';
 import '../config/routes.dart';
 import '../config/theme.dart';
 import '../widgets/custom_button.dart';
@@ -30,8 +29,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   bool _rememberMe = false;
   bool _isLoading = false;
   bool _obscurePassword = true;
-  bool _captchaVerified = false;
-  String? _captchaToken;
   final ApiService _apiService = ApiService();
   
   // Animation controller for logo pulsing
@@ -112,17 +109,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
-      // Check if captcha is verified
-      if (!_captchaVerified) {
-        developer.log('Login attempt without captcha verification', name: 'MTI_Login');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please complete the captcha verification'),
-            backgroundColor: AppTheme.errorColor,
-          ),
-        );
-        return;
-      }
 
       setState(() {
         _isLoading = true;
@@ -136,8 +122,8 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         
         // Use the actual API service to login
         try {
-          developer.log('Sending login request with captcha token', name: 'MTI_Login');
-          final response = await ApiService.login(email, password, captchaToken: _captchaToken);
+          developer.log('Sending login request', name: 'MTI_Login');
+          final response = await ApiService.login(email, password);
           developer.log('Login API response: ${response.toString()}', name: 'MTI_Login');
           
           if (response['success'] == true || response.containsKey('token') && response['token'] != null) {
@@ -579,168 +565,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                     curve: Curves.easeOutQuad,
                   ),
                     const SizedBox(height: 18),
-                    // Captcha Button - Redesigned with better UI
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                    width: double.infinity,
-                      height: 56,
-                    decoration: BoxDecoration(
-                        gradient: _captchaVerified 
-                            ? AppTheme.depositGradient.withOpacity(0.1)
-                            : LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  AppTheme.cardColor.withOpacity(0.3),
-                                  AppTheme.surfaceColor.withOpacity(0.6),
-                                ],
-                              ),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _captchaVerified
-                            ? AppTheme.successColor.withOpacity(0.5)
-                              : AppTheme.goldColor.withOpacity(0.3),
-                          width: 1.2,
-                      ),
-                        boxShadow: _captchaVerified ? [
-                          BoxShadow(
-                            color: AppTheme.successColor.withOpacity(0.18),
-                            blurRadius: 6,
-                            spreadRadius: 1,
-                          )
-                        ] : [],
-                    ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () async {
-                        // Create a custom screen that properly displays and handles the captcha
-                        developer.log('Opening Cloudflare Turnstile verification', name: 'MTI_Login');
-                        final token = await Get.to(() => 
-                          Scaffold(
-                            appBar: AppBar(
-                                  title: const Text(
-                                    'Captcha Verification',
-                                    style: TextStyle(fontWeight: FontWeight.w600),
-                                  ),
-                              backgroundColor: AppTheme.backgroundColor,
-                                  elevation: 0,
-                              leading: IconButton(
-                                icon: const Icon(Icons.arrow_back),
-                                onPressed: () => Get.back(),
-                              ),
-                            ),
-                                body: Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        AppTheme.backgroundColor,
-                                        AppTheme.cardColor,
-                                      ],
-                                    ),
-                                  ),
-                                  child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                        const Icon(
-                                          Icons.security,
-                                          color: AppTheme.goldColor,
-                                          size: 48,
-                                        ),
-                                        const SizedBox(height: 20),
-                                  const Text(
-                                    'Please complete the verification',
-                                    style: TextStyle(
-                                      color: AppTheme.primaryTextColor,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.surfaceColor.withOpacity(0.8),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(
-                                              color: AppTheme.borderColor.withOpacity(0.3),
-                                              width: 1,
-                                            ),
-                                          ),
-                                          padding: const EdgeInsets.all(12),
-                                          margin: const EdgeInsets.symmetric(horizontal: 24),
-                                          child: CloudflareTurnstile(
-                                    siteKey: AppConstants.captchaSiteKey,
-                                    onTokenReceived: (token) {
-                                      // Return the token to the previous screen
-                                      developer.log('Turnstile token received: ${token.substring(0, 10)}...', name: 'MTI_Login');
-                                      Get.back(result: token);
-                                    },
-                                          ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  ElevatedButton(
-                                    onPressed: () => Get.back(),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppTheme.cardColor,
-                                            foregroundColor: AppTheme.secondaryTextColor,
-                                            elevation: 0,
-                                            side: BorderSide(
-                                              color: AppTheme.borderColor.withOpacity(0.3),
-                                              width: 1,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                          ),
-                                    child: const Text('Cancel'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                                ),
-                              ),
-                        );
-                        
-                        if (token != null) {
-                          setState(() {
-                            _captchaToken = token;
-                            _captchaVerified = true;
-                          });
-                        }
-                      },
-                      child: Center(
-                            child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                                Shimmer.fromColors(
-                                  baseColor: AppTheme.goldColor,
-                                  highlightColor: AppTheme.tertiaryColor,
-                                  period: const Duration(seconds: 2),
-                                  child: Icon(
-                                    _captchaVerified ? Icons.check_circle : Icons.shield_outlined,
-                              color: _captchaVerified ? AppTheme.successColor : AppTheme.goldColor,
-                                    size: 20,
-                                  ),
-                            ),
-                                const SizedBox(width: 8),
-                            Text(
-                                  _captchaVerified ? "Verified" : "Verify Security",
-                              style: TextStyle(
-                                color: _captchaVerified ? AppTheme.successColor : AppTheme.secondaryTextColor,
-                                fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                     const SizedBox(height: 28),
                     // Login button - Redesigned with better animation and gradient
                     ValueListenableBuilder<bool>(
