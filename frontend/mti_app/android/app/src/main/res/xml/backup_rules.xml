@@ -1,19 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <!-- Backup only essential app data while protecting sensitive information -->
+    <!-- Backup all app data except sensitive information -->
     <include domain="sharedpref" path="."/>
     <include domain="database" path="."/>
     <include domain="file" path="."/>
     
-    <!-- Exclude all sensitive files and preferences for MTI app -->
-    <exclude domain="sharedpref" path="FlutterSecureStorage"/>
+    <!-- Exclude sensitive files and preferences -->
     <exclude domain="sharedpref" path="credentials.xml"/>
     <exclude domain="sharedpref" path="auth_tokens.xml"/>
-    <exclude domain="sharedpref" path="auth.prefs.xml"/>
-    <exclude domain="sharedpref" path="token.xml"/>
-    <exclude domain="database" path="auth_database"/>
     <exclude domain="file" path="private_keys/"/>
-    <exclude domain="file" path=".secret/"/>
-    <exclude domain="file" path="sensitive/"/>
-    <exclude domain="file" path="cache/"/>
 </full-backup-content>

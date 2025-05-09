@@ -6,7 +6,7 @@ class AppConstants {
   // App info
   static const String appName = 'MTI';
   static const String appFullName = 'Meta Travel International';
-  static const String appVersion = '0.0.4';
+  static const String appVersion = '1.0.0';
   static const String appPackageName = 'com.mti.travel.investment';
   static const String appDownloadUrl = 'https://mti.travel/app';
   

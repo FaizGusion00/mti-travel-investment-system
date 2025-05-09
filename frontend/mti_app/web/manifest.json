@@ -1,90 +1,17 @@
 {
-    "name": "MTI Investment",
-    "short_name": "MTI",
-    "start_url": "/?source=pwa",
+    "name": "mti_app",
+    "short_name": "mti_app",
+    "start_url": ".",
     "display": "standalone",
-    "background_color": "#1a1c1e",
-    "theme_color": "#9370DB",
-    "description": "MTI Travel Investment App - Manage your investments, referrals, and earnings securely. Track your portfolio, invite friends, and grow your network.",
-    "orientation": "portrait",
+    "background_color": "#0175C2",
+    "theme_color": "#0175C2",
+    "description": "A new Flutter project.",
+    "orientation": "portrait-primary",
     "prefer_related_applications": false,
-    "scope": "/",
-    "id": "/",
-    "lang": "en-US",
-    "dir": "ltr",
-    "categories": ["finance", "business", "investment", "travel"],
-    "screenshots": [
-        {
-            "src": "screenshots/dashboard.png",
-            "sizes": "1080x1920",
-            "type": "image/png",
-            "platform": "narrow",
-            "label": "Dashboard"
-        },
-        {
-            "src": "screenshots/investments.png",
-            "sizes": "1080x1920",
-            "type": "image/png",
-            "platform": "narrow",
-            "label": "Investments"
-        },
-        {
-            "src": "screenshots/network.png",
-            "sizes": "1080x1920",
-            "type": "image/png",
-            "platform": "narrow",
-            "label": "Network"
-        }
-    ],
     "icons": [
-        {
-            "src": "icons/favicon-16x16.png",
-            "sizes": "16x16",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/favicon-32x32.png",
-            "sizes": "32x32",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/favicon-48x48.png",
-            "sizes": "48x48",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-72.png",
-            "sizes": "72x72",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-96.png",
-            "sizes": "96x96",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-128.png",
-            "sizes": "128x128",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-144.png",
-            "sizes": "144x144",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-152.png",
-            "sizes": "152x152",
-            "type": "image/png"
-        },
         {
             "src": "icons/Icon-192.png",
             "sizes": "192x192",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-384.png",
-            "sizes": "384x384",
             "type": "image/png"
         },
         {
@@ -103,37 +30,6 @@
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
-        }
-    ],
-    "shortcuts": [
-        {
-            "name": "Dashboard",
-            "url": "/dashboard",
-            "description": "View your investment dashboard",
-            "icons": [{ "src": "icons/shortcuts/dashboard.png", "sizes": "96x96" }]
-        },
-        {
-            "name": "My Network",
-            "url": "/network",
-            "description": "Manage your referral network",
-            "icons": [{ "src": "icons/shortcuts/network.png", "sizes": "96x96" }]
-        },
-        {
-            "name": "Investments",
-            "url": "/investments",
-            "description": "View your active investments",
-            "icons": [{ "src": "icons/shortcuts/investments.png", "sizes": "96x96" }]
-        }
-    ],
-    "related_applications": [
-        {
-            "platform": "play",
-            "url": "https://play.google.com/store/apps/details?id=ai.metatravel.app",
-            "id": "ai.metatravel.app"
-        },
-        {
-            "platform": "itunes",
-            "url": "https://apps.apple.com/app/mti-investment/id1234567890"
         }
     ]
 }

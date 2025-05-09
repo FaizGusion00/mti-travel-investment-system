@@ -5,7 +5,22 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b039df96-2b3a-4e63-a9a5-08ce17edeaa7" name="Changes" comment="...">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/android/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/android/app/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/android/app/src/main/res/xml/backup_rules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/android/app/src/main/res/xml/backup_rules.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/mti_app/android/app/src/main/res/xml/network_security_config.xml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/android/app/src/main/res/xml/network_security_config.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Flutter/AppFrameworkInfo.plist" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Flutter/AppFrameworkInfo.plist" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/AppDelegate.swift" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/AppDelegate.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Base.lproj/LaunchScreen.storyboard" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Base.lproj/LaunchScreen.storyboard" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Info.plist" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Info.plist" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/core/constants.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/core/constants.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/main.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/withdraw_screen(backup).dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/withdraw_screen(backup).dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/pubspec.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/web/custom_service_worker.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/web/custom_service_worker.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/web/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/web/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/web/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/web/manifest.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/web/offline.html" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
