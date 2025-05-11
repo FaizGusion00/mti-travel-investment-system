@@ -24,6 +24,7 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
+            'username' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'phonenumber' => 'required|string|max:20|unique:users',
             'address' => 'nullable|string|max:500',
@@ -56,13 +57,13 @@ class AuthController extends Controller
         // Handle profile image upload
         $profileImage = 'avatars/default.png';
         $imageFile = $request->file('profile_image') ?: $request->file('avatar');
-        
+
         if ($imageFile) {
             $fileName = time() . '_' . Str::random(10) . '.' . $imageFile->getClientOriginalExtension();
             $imageFile->storeAs('avatars', $fileName, 'public');
             $profileImage = 'avatars/' . $fileName;
         }
-        
+
         // Create user
         $user = User::create([
             'full_name' => $request->full_name,
@@ -79,11 +80,11 @@ class AuthController extends Controller
 
         // Generate OTP for email verification
         $otp = mt_rand(100000, 999999);
-        
+
         // Store OTP in session or database
         // In a real application, you would send this OTP via email
         // For now, we'll return it in the response for testing purposes
-        
+
         // Log the registration
         UserLog::create([
             'user_id' => $user->id,
@@ -94,7 +95,7 @@ class AuthController extends Controller
 
         // Add avatar_url to response
         $user->avatar_url = url('storage/' . $profileImage);
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'User registered successfully. Please verify your email with the OTP.',
@@ -183,9 +184,9 @@ class AuthController extends Controller
 
         // In a real application, you would verify the OTP against what's stored
         // For this example, we'll assume the OTP is valid
-        
+
         $user = User::where('email', $request->email)->first();
-        
+
         // Log the verification
         UserLog::create([
             'user_id' => $user->id,
@@ -222,9 +223,9 @@ class AuthController extends Controller
 
         // Generate new OTP
         $otp = mt_rand(100000, 999999);
-        
+
         // In a real application, you would store this OTP and send it via email
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'OTP resent successfully',
@@ -256,9 +257,9 @@ class AuthController extends Controller
 
         // Generate password reset token
         $token = Str::random(60);
-        
+
         // In a real application, you would store this token and send it via email
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'Password reset link sent to your email',
@@ -292,11 +293,11 @@ class AuthController extends Controller
 
         // In a real application, you would verify the token
         // For this example, we'll assume the token is valid
-        
+
         $user = User::where('email', $request->email)->first();
         $user->password = Hash::make($request->password);
         $user->save();
-        
+
         // Log the password reset
         UserLog::create([
             'user_id' => $user->id,
@@ -345,14 +346,14 @@ class AuthController extends Controller
     {
         $characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ123456789';
         $refCode = '';
-        
+
         do {
             $refCode = '';
             for ($i = 0; $i < 6; $i++) {
                 $refCode .= $characters[rand(0, strlen($characters) - 1)];
             }
         } while (User::where('affiliate_code', $refCode)->exists());
-        
+
         return $refCode;
     }
 }

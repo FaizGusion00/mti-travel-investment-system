@@ -23,13 +23,13 @@ class ProfileController extends Controller
     public function getProfile(Request $request)
     {
         $user = $request->user();
-        
+
         // Calculate avatar URL from profile_image
         $avatarUrl = null;
         if ($user->profile_image) {
             $avatarUrl = url('storage/' . $user->profile_image);
         }
-        
+
         return response()->json([
             'status' => 'success',
             'data' => [
@@ -48,9 +48,10 @@ class ProfileController extends Controller
     public function updateProfile(Request $request)
     {
         $user = $request->user();
-        
+
         $validator = Validator::make($request->all(), [
             'full_name' => 'sometimes|string|max:255',
+            'username' => 'sometimes|string|max:255',
             'phonenumber' => 'sometimes|string|max:20|unique:users,phonenumber,' . $user->id,
             'address' => 'sometimes|string|max:500',
             'date_of_birth' => 'sometimes|date|before:-18 years',
@@ -77,7 +78,7 @@ class ProfileController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        
+
         // Log changes
         foreach ($request->only(['full_name', 'phonenumber', 'address', 'date_of_birth', 'usdt_address', 'affiliate_code']) as $key => $value) {
             if ($user->$key != $value) {
@@ -89,9 +90,9 @@ class ProfileController extends Controller
                 ]);
             }
         }
-        
+
         $user->update($request->only(['full_name', 'phonenumber', 'address', 'date_of_birth', 'usdt_address', 'affiliate_code']));
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'Profile updated successfully',
@@ -121,30 +122,30 @@ class ProfileController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        
+
         $user = $request->user();
-        
+
         // Get the image file from either field
         $imageFile = $request->file('avatar') ?: $request->file('profile_image');
-        
+
         if (!$imageFile) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'No image file provided'
             ], 422);
         }
-        
+
         // Delete old avatar if it's not the default and exists
         $oldImage = $user->profile_image;
         if ($oldImage && $oldImage != 'avatars/default.png' && Storage::disk('public')->exists($oldImage)) {
             Storage::disk('public')->delete($oldImage);
         }
-        
+
         // Store new avatar
         $fileName = time() . '_' . Str::random(10) . '.' . $imageFile->getClientOriginalExtension();
         $path = $imageFile->storeAs('avatars', $fileName, 'public');
         $profileImage = 'avatars/' . $fileName;
-        
+
         // Log change
         UserLog::create([
             'user_id' => $user->id,
@@ -152,11 +153,11 @@ class ProfileController extends Controller
             'old_value' => $oldImage,
             'new_value' => $profileImage
         ]);
-        
+
         // Update user
         $user->profile_image = $profileImage;
         $user->save();
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'Avatar updated successfully',
@@ -187,9 +188,9 @@ class ProfileController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        
+
         $user = $request->user();
-        
+
         // Check current password
         if (!Hash::check($request->current_password, $user->password)) {
             return response()->json([
@@ -197,7 +198,7 @@ class ProfileController extends Controller
                 'message' => 'Current password is incorrect'
             ], 401);
         }
-        
+
         // Log change
         UserLog::create([
             'user_id' => $user->user_id,
@@ -205,11 +206,11 @@ class ProfileController extends Controller
             'old_value' => 'Password changed',
             'new_value' => 'Password changed'
         ]);
-        
+
         // Update password
         $user->password = Hash::make($request->password);
         $user->save();
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'Password changed successfully'
@@ -235,13 +236,13 @@ class ProfileController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        
+
         // Generate OTP for email verification
         $otp = mt_rand(100000, 999999);
-        
+
         // In a real application, you would store this OTP and send it to the new email
         // For this example, we'll return it in the response for testing purposes
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'Verification code sent to your new email',
@@ -272,12 +273,12 @@ class ProfileController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        
+
         $user = $request->user();
-        
+
         // In a real application, you would verify the OTP
         // For this example, we'll assume it's valid
-        
+
         // Log change
         UserLog::create([
             'user_id' => $user->user_id,
@@ -285,11 +286,11 @@ class ProfileController extends Controller
             'old_value' => $user->email,
             'new_value' => $request->email
         ]);
-        
+
         // Update email
         $user->email = $request->email;
         $user->save();
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'Email updated successfully',
@@ -318,9 +319,9 @@ class ProfileController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        
+
         $user = $request->user();
-        
+
         // Log change
         UserLog::create([
             'user_id' => $user->user_id,
@@ -328,11 +329,11 @@ class ProfileController extends Controller
             'old_value' => $user->usdt_address,
             'new_value' => $request->usdt_address
         ]);
-        
+
         // Update wallet
         $user->usdt_address = $request->usdt_address;
         $user->save();
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'Wallet address updated successfully',

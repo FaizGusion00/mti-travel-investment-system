@@ -21,6 +21,7 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
+            'username' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'phonenumber' => 'required|string|max:20|unique:users',
             'address' => 'nullable|string',
@@ -126,6 +127,7 @@ class AuthController extends Controller
 
         $validator = Validator::make($request->all(), [
             'full_name' => 'sometimes|string|max:255',
+            'username' => 'sometimes|string|max:255',
             'phonenumber' => 'sometimes|string|max:20|unique:users,phonenumber,' . $user->id,
             'address' => 'nullable|string',
             'date_of_birth' => 'sometimes|date|date_format:Y-m-d',

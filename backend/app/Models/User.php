@@ -34,6 +34,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'full_name',
+        'username',
         'email',
         'phonenumber',
         'address',
@@ -81,7 +82,7 @@ class User extends Authenticatable
      *
      * @var bool
      */
-    public $timestamps = false;
+    public $timestamps = true;
 
     /**
      * The name of the "created at" column.
@@ -131,7 +132,7 @@ class User extends Authenticatable
     {
         return (bool) $this->is_trader;
     }
-    
+
     /**
      * Get the user who referred this user.
      *
@@ -141,7 +142,7 @@ class User extends Authenticatable
     {
         return $this->belongsTo(User::class, 'referral_id');
     }
-    
+
     /**
      * Get the users who were referred by this user.
      *

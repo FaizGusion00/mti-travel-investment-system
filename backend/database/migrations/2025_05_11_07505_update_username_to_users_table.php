@@ -12,10 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Remove redundant reference_code field
-            if (Schema::hasColumn('users', 'reference_code')) {
-                $table->dropColumn('reference_code');
-            }
+            $table->string('username')->nullable()->after('full_name');
         });
     }
 
@@ -25,10 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Add back reference_code field if needed
-            if (!Schema::hasColumn('users', 'reference_code')) {
-                $table->string('reference_code', 10)->nullable()->after('ref_code');
-            }
+            $table->dropColumn('username');
         });
     }
 };

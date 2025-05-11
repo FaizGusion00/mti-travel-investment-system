@@ -8,6 +8,151 @@ import 'dart:math';
 import '../services/api_service.dart';
 import 'dart:developer' as developer;
 
+// Custom layout delegate for positioning root and level 1 nodes
+class NetworkLayoutDelegate extends MultiChildLayoutDelegate {
+  final Map<String, dynamic> rootNode;
+  final List<dynamic> level1Nodes;
+
+  NetworkLayoutDelegate(this.rootNode, this.level1Nodes);
+
+  @override
+  void performLayout(Size size) {
+    // Position the root node at the top center
+    final rootSize = layoutChild('root', BoxConstraints.loose(size));
+    positionChild('root', Offset((size.width - rootSize.width) / 2, 0));
+
+    // Calculate positions for level 1 nodes
+    final levelHeight = 120.0; // Distance from root to level 1
+    final level1Width = size.width * 0.8;
+    final spacing = level1Width / max(level1Nodes.length, 1);
+
+    // Position each level 1 node
+    for (int i = 0; i < level1Nodes.length; i++) {
+      final String nodeId = 'level1_$i';
+      final nodeSize = layoutChild(nodeId, BoxConstraints.loose(size));
+
+      // Calculate position with even spacing
+      final nodeX = (size.width - level1Width) / 2 + i * spacing + (spacing - nodeSize.width) / 2;
+      final nodeY = levelHeight;
+
+      positionChild(nodeId, Offset(nodeX, nodeY));
+
+      // Calculate line positions
+      final rootCenterX = (size.width - rootSize.width) / 2 + rootSize.width / 2;
+      final rootBottomY = rootSize.height;
+      final level1NodeTopX = nodeX + nodeSize.width / 2;
+      final level1NodeTopY = nodeY;
+
+      // Layout and position connecting line
+      final lineId = 'line_root_$i';
+      final lineSize = layoutChild(lineId, BoxConstraints.loose(size));
+
+      // Position the line at the center of the connection
+      final centerX = (rootCenterX + level1NodeTopX) / 2;
+      final centerY = (rootBottomY + level1NodeTopY) / 2;
+      final lineX = centerX - lineSize.width / 2;
+      final lineY = centerY - lineSize.height / 2;
+      positionChild(lineId, Offset(lineX, lineY));
+    }
+  }
+
+  @override
+  bool shouldRelayout(NetworkLayoutDelegate oldDelegate) {
+    return oldDelegate.rootNode != rootNode || oldDelegate.level1Nodes != level1Nodes;
+  }
+}
+
+// Custom layout delegate for level 2 nodes
+class Level2LayoutDelegate extends MultiChildLayoutDelegate {
+  final List<dynamic> level2Nodes;
+  final double totalWidth;
+
+  Level2LayoutDelegate(this.level2Nodes, this.totalWidth);
+
+  @override
+  void performLayout(Size size) {
+    // Parent node is assumed to be positioned above
+    final parentCenterX = size.width / 2;
+    final parentBottomY = 0.0; // Parent is at the top of this container
+
+    // Calculate positions for each level 2 node
+    final nodeSpacing = size.width / max(level2Nodes.length, 1);
+    final nodeY = 70.0; // Distance from parent to level 2
+
+    for (int i = 0; i < level2Nodes.length; i++) {
+      final String nodeId = 'node_$i';
+      final nodeSize = layoutChild(nodeId, BoxConstraints.loose(size));
+
+      // Calculate position with even spacing
+      final nodeX = i * nodeSpacing + (nodeSpacing - nodeSize.width) / 2;
+
+      positionChild(nodeId, Offset(nodeX, nodeY));
+
+      // Calculate endpoints for the line
+      final level2NodeTopX = nodeX + nodeSize.width / 2;
+      final level2NodeTopY = nodeY;
+
+      // Layout and position connecting line
+      final lineId = 'line_$i';
+      final lineSize = layoutChild(lineId, BoxConstraints.loose(size));
+
+      // Position the line at the center of the connection
+      final centerX = (parentCenterX + level2NodeTopX) / 2;
+      final centerY = (parentBottomY + level2NodeTopY) / 2;
+      final lineX = centerX - lineSize.width / 2;
+      final lineY = centerY - lineSize.height / 2;
+      positionChild(lineId, Offset(lineX, lineY));
+    }
+  }
+
+  @override
+  bool shouldRelayout(Level2LayoutDelegate oldDelegate) {
+    return oldDelegate.level2Nodes != level2Nodes ||
+        oldDelegate.totalWidth != totalWidth;
+  }
+}
+
+// Line painter to draw direct connecting lines
+class LinePainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+
+  LinePainter({
+    required this.color,
+    required this.strokeWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Simple clean straight line for network connections
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    // Draw a vertical line from top to bottom
+    final start = Offset(size.width / 2, 0);
+    final end = Offset(size.width / 2, size.height);
+
+    canvas.drawLine(start, end, paint);
+  }
+
+  @override
+  bool shouldRepaint(LinePainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth;
+  }
+}
+
+// Class to store line data for the painter
+class LinePainterData {
+  final Offset start;
+  final Offset end;
+
+  LinePainterData({required this.start, required this.end});
+}
+
 class NetworkScreen extends StatefulWidget {
   const NetworkScreen({Key? key}) : super(key: key);
 
@@ -20,32 +165,32 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   String _referralCode = "";
   bool _isLoading = true;
   bool _isNetworkDataLoading = true;
-  
+
   // Network data from API
   Map<String, dynamic> _networkData = {};
   Map<String, dynamic> _networkStats = {};
-  
+
   // View type for network tab (list or hierarchy)
   bool _isHierarchyView = true; // Default to hierarchy view
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
     // Load user's affiliate code
     _loadAffiliateCode();
-    
+
     // Load network data
     _loadNetworkData();
   }
-  
+
   // Load user's affiliate code from profile
   Future<void> _loadAffiliateCode() async {
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       final affiliateCode = await ApiService.getUserAffiliateCode();
       if (affiliateCode != null && affiliateCode.isNotEmpty) {
@@ -69,13 +214,13 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       developer.log('Error loading affiliate code: $e', name: 'Network');
     }
   }
-  
+
   // Load network data from backend
   Future<void> _loadNetworkData() async {
     setState(() {
       _isNetworkDataLoading = true;
     });
-    
+
     try {
       // Get network data (hierarchical structure)
       final networkResponse = await ApiService.getNetwork(levels: 5);
@@ -87,7 +232,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       } else {
         developer.log('Failed to load network data: ${networkResponse['message']}', name: 'Network');
       }
-      
+
       // Get network statistics
       final statsResponse = await ApiService.getNetworkStats();
       if (statsResponse['status'] == 'success') {
@@ -106,7 +251,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       });
     }
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -124,15 +269,15 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       );
       return;
     }
-    
+
     try {
       // Construct the link with the web registration page and affiliate_code parameter
       final String referralLink = 'https://register.metatravel.ai/register?affiliate_code=${_referralCode}';
       final String shareMessage = 'Join MTI Travel Investment using my referral code: $_referralCode\n\nSign up here: $referralLink';
-      
+
       // First copy to clipboard as a backup
       await Clipboard.setData(ClipboardData(text: shareMessage));
-      
+
       // Show loading indicator
       final loadingSnackBar = SnackBar(
         content: Row(
@@ -146,13 +291,13 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         backgroundColor: AppTheme.secondaryBackgroundColor,
       );
       ScaffoldMessenger.of(context).showSnackBar(loadingSnackBar);
-      
+
       // Wait a moment before showing share dialog
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       // Log sharing action
       developer.log('Sharing referral link: $referralLink', name: 'Network');
-      
+
       // Use share_plus to share the referral link
       await Share.share(
         shareMessage,
@@ -160,7 +305,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       );
     } catch (e) {
       developer.log('Error sharing referral code: $e', name: 'Network');
-      
+
       // Show success message for clipboard at least
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -202,18 +347,18 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         // Remove default divider
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(70),
-          child: _isLoading 
+          child: _isLoading
               ? const Center(child: CircularProgressIndicator(color: AppTheme.goldColor))
               : Container(
-                  margin: const EdgeInsets.only(top: 10, left: 16, right: 16, bottom: 5),
-                  decoration: BoxDecoration(
-                    color: AppTheme.secondaryBackgroundColor.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.goldColor.withOpacity(0.2), width: 1),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
+            margin: const EdgeInsets.only(top: 10, left: 16, right: 16, bottom: 5),
+            decoration: BoxDecoration(
+              color: AppTheme.secondaryBackgroundColor.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.goldColor.withOpacity(0.2), width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
                 BoxShadow(
@@ -423,7 +568,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                   onPressed: () async {
                     // Copy to clipboard using Flutter's Clipboard
                     await Clipboard.setData(ClipboardData(text: _referralCode));
-                    
+
                     // Show success message
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -462,7 +607,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     final directReferrals = _networkStats.isEmpty ? "--" : (_networkStats['direct_downlines'] ?? 0).toString();
     final teamVolume = "Coming Soon";
     final totalEarnings = "Coming Soon";
-  
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -587,49 +732,31 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         ),
       );
     }
-    
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Stylish header with icon
+            // View toggle header
             Container(
               margin: const EdgeInsets.only(bottom: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Title with icon
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppTheme.goldColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.goldColor.withOpacity(0.3), width: 1),
-                        ),
-                        child: const Icon(
-                          Icons.account_tree_rounded,
-                          color: AppTheme.goldColor,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        "Network Structure",
-                        style: TextStyle(
-                          color: AppTheme.goldColor,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  const Text(
+                    "Network Structure",
+                    style: TextStyle(
+                      color: AppTheme.goldColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  
-                  // View toggle switch
+
+                  // View toggle switch - more compact
                   GestureDetector(
                     onTap: () {
                       setState(() {
@@ -640,17 +767,17 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppTheme.backgroundColor.withOpacity(0.8),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: AppTheme.goldColor.withOpacity(0.3), width: 1),
                       ),
                       child: Row(
                         children: [
                           // List View Toggle
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: _isHierarchyView ? Colors.transparent : AppTheme.goldColor.withOpacity(0.7),
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               "List",
@@ -661,18 +788,18 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                               ),
                             ),
                           ),
-                          
-                          const SizedBox(width: 8),
-                          
+
+                          const SizedBox(width: 4),
+
                           // Hierarchy View Toggle
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: _isHierarchyView ? AppTheme.goldColor.withOpacity(0.7) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              "Hierarchy",
+                              "Tree",
                               style: TextStyle(
                                 color: _isHierarchyView ? Colors.white : Colors.grey,
                                 fontWeight: FontWeight.bold,
@@ -687,16 +814,16 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                 ],
               ),
             ),
-            
-            // Network visualization with scrolling capability
+
+            // Network visualization - optimized for better scrolling
             SizedBox(
-              height: MediaQuery.of(context).size.height - 220, // Fixed height with room for bottom nav
+              height: MediaQuery.of(context).size.height - 200, // Give more vertical space
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(16),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: AppTheme.goldColor.withOpacity(0.15), width: 1),
                   ),
                   child: _isHierarchyView
@@ -708,115 +835,31 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
           ],
         ),
       ),
-    ).animate().fadeIn(delay: 400.ms, duration: 500.ms);
+    );
   }
 
   Map<String, dynamic> _getNetworkData() {
-    // Use real network data if available, otherwise use mock data
+    // Use real network data if available
     if (_networkData.isNotEmpty) {
-      developer.log('Using real network data from API', name: 'Network');
+      developer.log('Using network data from API', name: 'Network');
       return _networkData;
     }
-    
-    // Mock data structure with levels as fallback
-    developer.log('Using mock network data (API data not available)', name: 'Network');
+
+    // If no data, return minimal structure
+    developer.log('No network data available', name: 'Network');
     return {
-      'id': _referralCode.isEmpty ? 'MTI12345' : _referralCode,
+      'id': _referralCode.isEmpty ? 'N/A' : _referralCode,
       'name': 'You',
       'level': 'Level 0',
-      'downlines': 8,
-      'children': [
-        {
-          'id': 'MTI23456',
-          'name': 'Jane Smith',
-          'level': 'Level 1',
-          'downlines': 3,
-          'joinDate': 'Apr 10, 2025',
-          'status': 'Active',
-          'isActive': true,
-          'children': [
-            {
-              'id': 'MTI34567',
-              'name': 'Sarah Williams',
-              'level': 'Level 2',
-              'downlines': 0,
-              'joinDate': 'Apr 5, 2025',
-              'status': 'Inactive',
-              'isActive': false,
-              'children': [],
-            },
-            {
-              'id': 'MTI45678',
-              'name': 'Emily Davis',
-              'level': 'Level 2',
-              'downlines': 0,
-              'joinDate': 'Mar 28, 2025',
-              'status': 'Active',
-              'isActive': true,
-              'children': [],
-            },
-          ],
-        },
-        {
-          'id': 'MTI56789',
-          'name': 'Mike Johnson',
-          'level': 'Level 1',
-          'downlines': 2,
-          'joinDate': 'Apr 8, 2025',
-          'status': 'Active',
-          'isActive': true,
-          'children': [
-            {
-              'id': 'MTI67890',
-              'name': 'David Wilson',
-              'level': 'Level 2',
-              'downlines': 0,
-              'joinDate': 'Apr 3, 2025',
-              'status': 'Active',
-              'isActive': true,
-              'children': [],
-            },
-            {
-              'id': 'MTI78901',
-              'name': 'Lisa Taylor',
-              'level': 'Level 2',
-              'downlines': 0,
-              'joinDate': 'Mar 25, 2025',
-              'status': 'Active',
-              'isActive': true,
-              'children': [],
-            },
-          ],
-        },
-        {
-          'id': 'MTI89012',
-          'name': 'Robert Brown',
-          'level': 'Level 1',
-          'downlines': 1,
-          'joinDate': 'Apr 2, 2025',
-          'status': 'Active',
-          'isActive': true,
-          'children': [
-            {
-              'id': 'MTI90123',
-              'name': 'Jennifer Clark',
-              'level': 'Level 2',
-              'downlines': 0,
-              'joinDate': 'Mar 20, 2025',
-              'status': 'Active',
-              'isActive': true,
-              'children': [],
-            },
-          ],
-        },
-      ],
+      'downlines': 0,
+      'children': [], // Empty network when no data is available
     };
   }
 
   Widget _buildNetworkList(Map<String, dynamic> networkData) {
     // Extract all downlines and flatten into a single list
     List<Map<String, dynamic>> allMembers = [];
-    
+
     // Add the root user (current user)
     allMembers.add({
       'id': networkData['id'] ?? '',
@@ -826,7 +869,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       'status': 'Active',
       'isActive': true,
     });
-    
+
     // Process all children (level 1)
     final children = networkData['children'] as List<dynamic>? ?? [];
     for (var child in children) {
@@ -838,7 +881,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         'status': child['status'] ?? 'Inactive',
         'isActive': child['isActive'] ?? false,
       });
-      
+
       // Process all grandchildren (level 2)
       final grandchildren = child['children'] as List<dynamic>? ?? [];
       for (var grandchild in grandchildren) {
@@ -852,31 +895,41 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         });
       }
     }
-    
+
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       itemCount: allMembers.length,
       itemBuilder: (context, index) {
         final member = allMembers[index];
         final bool isRoot = index == 0;
         final bool isActive = member['isActive'] ?? false;
-        
+
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
-            color: AppTheme.secondaryBackgroundColor.withOpacity(0.8),
-            borderRadius: BorderRadius.circular(12),
+            color: AppTheme.secondaryBackgroundColor.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isRoot ? AppTheme.goldColor : Colors.transparent,
-              width: isRoot ? 2 : 0,
+              width: isRoot ? 1 : 0,
             ),
           ),
           child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: isActive ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
-              child: Icon(
-                Icons.person,
-                color: isActive ? Colors.green : Colors.grey,
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            leading: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isActive ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.person,
+                  color: isActive ? Colors.green : Colors.grey,
+                  size: 18,
+                ),
               ),
             ),
             title: Text(
@@ -884,39 +937,27 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: isRoot ? FontWeight.bold : FontWeight.normal,
+                fontSize: 14,
               ),
             ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  member['level'] ?? '',
-                  style: const TextStyle(
-                    color: AppTheme.secondaryTextColor,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "ID: ${member['id']}",
-                  style: const TextStyle(
-                    color: AppTheme.secondaryTextColor,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+            subtitle: Text(
+              "${member['level']} · ID: ${member['id']}",
+              style: const TextStyle(
+                color: AppTheme.secondaryTextColor,
+                fontSize: 12,
+              ),
             ),
             trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: isActive ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 isActive ? 'Active' : 'Inactive',
                 style: TextStyle(
                   color: isActive ? Colors.green : Colors.grey,
-                  fontSize: 12,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -928,436 +969,585 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   }
 
   Widget _buildNetworkTree(Map<String, dynamic> rootNode) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Calculate available width for the tree
-        final availableWidth = constraints.maxWidth;
-        
-        // Calculate the widest level based on root node's children
-        double requiredWidth = 800.0; // Minimum width
-        if (rootNode['children'] != null) {
-          // Base width on deepest structure
-          int maxChildCount = 0;
-          for (var child in rootNode['children']) {
-            if (child['children'] != null) {
-              maxChildCount = max(maxChildCount, (child['children'] as List).length);
-            }
-          }
-          // Estimate required width based on structure
-          requiredWidth = max((rootNode['children'] as List).length * 250.0, maxChildCount * 180.0 + 300);
-        }
-        
-        return SingleChildScrollView(
-          scrollDirection: Axis.vertical,
-          physics: const BouncingScrollPhysics(),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Container(
-              // Set minimum width to ensure scrolling works properly
-              width: max(availableWidth, requiredWidth), // Dynamically calculated width
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-              child: Column(
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // Network Legend
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Status legend
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    margin: const EdgeInsets.only(bottom: 30), // Increased spacing
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.goldColor.withOpacity(0.2), width: 1),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildLegendItem(Colors.green, "Active"),
-                        const SizedBox(width: 32),
-                        _buildLegendItem(Colors.red, "Inactive"),
-                      ],
-                    ),
-                  ),
-                  
-                  // Root node
-                  _buildNetworkNode(rootNode, isRoot: true),
-                  const SizedBox(height: 30), // Increased spacing
-                  
-                  // Connect to first level
-                  if (rootNode['children'].isNotEmpty) ...[  
-                    _buildVerticalConnector(60), // Longer connector
-                    _buildFirstLevel(rootNode['children']),
-                  ],
+                  _buildColoredLegendItem(Colors.red, "You"),
+                  const SizedBox(width: 16),
+                  _buildColoredLegendItem(Colors.blue, "Level 1"),
+                  const SizedBox(width: 16),
+                  _buildColoredLegendItem(Colors.green, "Level 2"),
+                  const SizedBox(width: 16),
+                  _buildColoredLegendItem(Colors.grey, "Level 3"),
                 ],
               ),
             ),
-          ),
-        );
-      }
-    );
-  }
 
-  // Build first level of nodes
-  Widget _buildFirstLevel(List<dynamic> nodes) {
-    // Calculate appropriate width based on number of nodes
-    final double levelWidth = max(nodes.length * 250.0, 700.0); // Increase width per node
-    
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Horizontal connecting line
-        Container(
-          width: levelWidth - 80, // Width based on number of nodes with more margin
-          height: 2,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                AppTheme.goldColor.withOpacity(0.5),
-                AppTheme.goldColor.withOpacity(0.8),
-                AppTheme.goldColor.withOpacity(0.5),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        
-        // First level nodes row
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            for (var node in nodes) 
-              SizedBox(
-                width: levelWidth / nodes.length, // Evenly distribute width
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _buildVerticalConnector(30),
-                    _buildNetworkNode(node, isRoot: false),
-                    
-                    // If has children, build second level
-                    if (node['children'] != null && node['children'].isNotEmpty) ...[
-                      const SizedBox(height: 30),
-                      _buildVerticalConnector(40),
-                      _buildSecondLevel(node['children']),
-                    ],
-                  ],
-                ),
+            // Network Tree
+            Container(
+              // Ensure enough height for scrolling
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height * 0.7,
               ),
+              child: _buildCleanNetworkStructure(rootNode),
+            ),
+
+            // Add extra padding at the bottom for better scrolling
+            const SizedBox(height: 100),
           ],
         ),
-      ],
+      ),
     );
   }
 
-  // Build second level of nodes
-  Widget _buildSecondLevel(List<dynamic> nodes) {
-    // Calculate width based on number of children
-    final double childWidth = max(nodes.length * 160.0, 320.0); // Increased width per node
-    
+  Widget _buildCleanNetworkStructure(Map<String, dynamic> rootNode) {
+    // If no children, show only the root node
+    if (rootNode['children'] == null || (rootNode['children'] as List).isEmpty) {
+      return Column(
+        children: [
+          _buildColoredNetworkNode(rootNode, isRoot: true, level: 0),
+          const SizedBox(height: 40),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.withOpacity(0.3)),
+            ),
+            child: const Text(
+              "No downlines in your network yet",
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          // Add more padding for scrollable area even with no network
+          const SizedBox(height: 200),
+        ],
+      );
+    }
+
+    // Get children nodes
+    final List<dynamic> children = rootNode['children'] as List;
+
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Root node (You) - Level 0
+          _buildColoredNetworkNode(rootNode, isRoot: true, level: 0),
+
+          // Render each branch with a connecting line
+          for (int i = 0; i < children.length; i++)
+            _buildNetworkBranch(children[i], i, children.length),
+
+          // Add extra space after the network for scrolling
+          const SizedBox(height: 150),
+        ],
+      ),
+    );
+  }
+
+  // Build a branch with connecting line
+  Widget _buildNetworkBranch(Map<String, dynamic> node, int index, int totalNodes) {
+    // Check if there are sub-children
+    final List<dynamic> subChildren = node['children'] as List? ?? [];
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Horizontal connecting line
+        // Connecting line from parent
         Container(
-          width: childWidth - 20,
-          height: 2,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                AppTheme.goldColor.withOpacity(0.3),
-                AppTheme.goldColor.withOpacity(0.6),
-                AppTheme.goldColor.withOpacity(0.3),
-              ],
+          width: 2,
+          height: 120, // Increased height for better spacing
+          color: AppTheme.goldColor,
+        ),
+
+        // Level 1 node
+        _buildColoredNetworkNode(node, isRoot: false, level: 1),
+
+        // If this node has children, show them
+        if (subChildren.isNotEmpty) ...[
+          // Line connecting to sub-children
+          Container(
+            width: 2,
+            height: 100, // Increased height for better spacing
+            color: AppTheme.goldColor,
+          ),
+
+          // First sub-child
+          _buildColoredNetworkNode(
+            subChildren.first,
+            isRoot: false,
+            level: 2,
+            isSmall: subChildren.length > 2,
+          ),
+
+          // Additional sub-children if more than one
+          if (subChildren.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(top: 20), // More padding for better view
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (int i = 1; i < min(4, subChildren.length); i++)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: _buildColoredNetworkNode(
+                        subChildren[i],
+                        isRoot: false,
+                        level: 2,
+                        isSmall: true,
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        
-        // Second level nodes row with more spacing
-        SizedBox(
-          width: childWidth,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              for (var node in nodes) 
-                SizedBox(
-                  width: (childWidth / nodes.length) - 10, // Reduce width to add margin
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildVerticalConnector(30),
-                      _buildNetworkNode(node, isRoot: false, isSmall: true),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
+        ] else
+        // If no children, add some spacing
+          const SizedBox(height: 50),
       ],
     );
   }
 
-  // Build network node with consistent sizing and better text handling
-  Widget _buildNetworkNode(Map<String, dynamic> node, {required bool isRoot, bool isSmall = false}) {
-    final double cardSize = isRoot ? 110 : (isSmall ? 85 : 95);
+  Widget _buildColoredNetworkNode(Map<String, dynamic> node, {required bool isRoot, required int level, bool isSmall = false}) {
+    final double cardSize = isRoot ? 70 : (isSmall ? 50 : 60);
     final bool isActive = node.containsKey('isActive') ? node['isActive'] : true;
-    final Color glowColor = isRoot 
-        ? AppTheme.goldColor 
-        : (isActive ? Colors.green : Colors.red);
     final String initials = (node['name'] ?? '').split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase();
+    final int downlines = node['downlines'] ?? 0;
+
+    // Color coding based on level
+    Color nodeColor;
+    switch (level) {
+      case 0:
+        nodeColor = Colors.red; // Root (You)
+        break;
+      case 1:
+        nodeColor = Colors.blue; // First level (B, C)
+        break;
+      case 2:
+        nodeColor = Colors.green; // Second level (D, E, F, G)
+        break;
+      default:
+        nodeColor = Colors.grey; // Any deeper levels
+    }
+
+    // Letter label based on position
+    String? letterLabel;
+    if (isRoot) {
+      letterLabel = "A";
+    } else if (level == 1) {
+      // B and C for first level
+      letterLabel = String.fromCharCode('B'.codeUnitAt(0) + (node['position'] as num? ?? 0).toInt());
+    } else if (level == 2) {
+      // D, E, F, G for second level
+      letterLabel = String.fromCharCode('D'.codeUnitAt(0) + (node['position'] as num? ?? 0).toInt());
+    }
 
     return GestureDetector(
       onTap: () {
         showModalBottomSheet(
           context: context,
           backgroundColor: Colors.transparent,
-          builder: (_) => _buildNodeDetailModal(node, isRoot, isActive),
+          builder: (_) => _buildNodeDetailModal(node, isRoot, isActive, level: level),
         );
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeOutCubic,
-        width: isSmall ? 140 : 155,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Glassmorphism card with avatar/initials
-            Container(
-              width: cardSize,
-              height: cardSize,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(cardSize/2),
-                color: Colors.white.withOpacity(0.13),
-                border: Border.all(
-                  color: isRoot ? AppTheme.goldColor : (isActive ? Colors.green : Colors.red),
-                  width: isRoot ? 2.5 : 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: glowColor.withOpacity(isRoot ? 0.32 : 0.18),
-                    blurRadius: isRoot ? 18 : 10,
-                    spreadRadius: 1,
-                  ),
-                ],
-                backgroundBlendMode: BlendMode.overlay,
-              ),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Center(
-                    child: CircleAvatar(
-                      radius: (cardSize / 2) - 10,
-                      backgroundColor: Colors.black.withOpacity(0.7),
-                      child: Text(
-                        initials,
-                        style: TextStyle(
-                          color: isRoot ? AppTheme.goldColor : Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: isRoot ? 28 : 20,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Status indicator (only for non-root nodes)
-                  if (!isRoot)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        width: 14,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: isActive ? Colors.green : Colors.red,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 1.5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: (isActive ? Colors.green : Colors.red).withOpacity(0.5),
-                              blurRadius: 6,
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  // Crown/star for root
-                  if (isRoot)
-                    Positioned(
-                      top: -8,
-                      left: cardSize/2 - 16,
-                      child: Icon(Icons.emoji_events, color: AppTheme.goldColor, size: 28, shadows: [Shadow(color: Colors.black26, blurRadius: 6)]),
-                    ),
-                ],
-              ),
-            ).animate().fadeIn(duration: 400.ms).scale(begin: Offset(0.92, 0.92), end: Offset(1, 1), duration: 400.ms, curve: Curves.easeOutBack),
-            // Name and downline count
-            Container(
-              margin: const EdgeInsets.only(top: 10),
-              padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 12),
-              constraints: BoxConstraints(
-                maxWidth: isSmall ? 130 : 140,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.82),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isRoot ? AppTheme.goldColor.withOpacity(0.5) : (isActive ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3)),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    node['name'],
-                    style: TextStyle(
-                      color: isRoot ? AppTheme.goldColor : Colors.white,
-                      fontSize: isRoot ? 15 : (isSmall ? 12 : 13),
-                      fontWeight: FontWeight.w700,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    "${node['downlines']} Downlines",
-                    style: TextStyle(
-                      color: isRoot ? AppTheme.goldColor : AppTheme.goldColor.withOpacity(0.7),
-                      fontSize: isRoot ? 12 : (isSmall ? 10 : 11),
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Modal for node details
-  Widget _buildNodeDetailModal(Map<String, dynamic> node, bool isRoot, bool isActive) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.95),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: AppTheme.goldColor.withOpacity(0.15), width: 1),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.13),
-              border: Border.all(
-                color: isRoot ? AppTheme.goldColor : (isActive ? Colors.green : Colors.red),
-                width: isRoot ? 2.5 : 1.5,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                node['name'].split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase(),
-                style: TextStyle(
-                  color: isRoot ? AppTheme.goldColor : Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 28,
+          // Node avatar with color coding
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: cardSize,
+                height: cardSize,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(cardSize/2),
+                  color: nodeColor.withOpacity(0.7),
+                  border: Border.all(
+                    color: nodeColor,
+                    width: isRoot ? 2 : 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: nodeColor.withOpacity(0.3),
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    initials,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: isRoot ? 22 : (isSmall ? 14 : 18),
+                    ),
+                  ),
                 ),
               ),
-            ),
+
+              // Letter label at top left
+              if (letterLabel != null)
+                Positioned(
+                  top: -5,
+                  left: -5,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: nodeColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1),
+                    ),
+                    child: Text(
+                      letterLabel,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: isRoot ? 12 : 10,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Status indicator at bottom right
+              if (!isRoot)
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    width: isSmall ? 10 : 14,
+                    height: isSmall ? 10 : 14,
+                    decoration: BoxDecoration(
+                      color: isActive ? Colors.green : Colors.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            node['name'],
-            style: TextStyle(
-              color: isRoot ? AppTheme.goldColor : Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
+
+          // Name and downline count
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+            constraints: BoxConstraints(
+              maxWidth: isSmall ? 90 : 100,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            node['level'] ?? '',
-            style: TextStyle(
-              color: AppTheme.secondaryTextColor,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Downlines: ${node['downlines']}",
-            style: TextStyle(
-              color: AppTheme.goldColor,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          if (node['joinDate'] != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              "Joined: ${node['joinDate']}",
-              style: TextStyle(
-                color: AppTheme.tertiaryTextColor,
-                fontSize: 13,
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: nodeColor.withOpacity(0.4),
+                width: 0.5,
               ),
             ),
-          ],
-          if (node['status'] != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              "Status: ${node['status']}",
-              style: TextStyle(
-                color: isActive ? Colors.green : Colors.red,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  node['name'],
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isRoot ? 12 : (isSmall ? 9 : 10),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (downlines > 0)
+                  Text(
+                    "$downlines",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: isRoot ? 10 : (isSmall ? 8 : 9),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
             ),
-          ],
+          ),
         ],
       ),
     );
   }
 
-  // Build vertical connector with gold gradient and animation
-  Widget _buildVerticalConnector(double height) {
+  // Modal for node details with color coding
+  Widget _buildNodeDetailModal(Map<String, dynamic> node, bool isRoot, bool isActive, {int level = 0}) {
+    final String initials = (node['name'] ?? '').split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase();
+
+    // Color coding based on level
+    Color nodeColor;
+    switch (level) {
+      case 0:
+        nodeColor = Colors.red;
+        break;
+      case 1:
+        nodeColor = Colors.blue;
+        break;
+      case 2:
+        nodeColor = Colors.green;
+        break;
+      default:
+        nodeColor = Colors.grey;
+    }
+
+    // Letter label based on position
+    String? letterLabel;
+    if (isRoot) {
+      letterLabel = "A";
+    } else if (level == 1) {
+      letterLabel = String.fromCharCode('B'.codeUnitAt(0) + (node['position'] as num? ?? 0).toInt());
+    } else if (level == 2) {
+      letterLabel = String.fromCharCode('D'.codeUnitAt(0) + (node['position'] as num? ?? 0).toInt());
+    }
+
+    String levelName;
+    switch (level) {
+      case 0:
+        levelName = "You";
+        break;
+      case 1:
+        levelName = "Frontline";
+        break;
+      case 2:
+        levelName = "Level 2";
+        break;
+      default:
+        levelName = "Level ${level + 1}";
+    }
+
     return Container(
-      width: 3,
-      height: height,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(2),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppTheme.goldColor.withOpacity(0.9),
-            AppTheme.goldColor.withOpacity(0.4),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.goldColor.withOpacity(0.18),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+        color: Colors.black.withOpacity(0.95),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        border: Border.all(color: nodeColor.withOpacity(0.2), width: 1),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // User info header
+          Row(
+            children: [
+              // Avatar with coloring
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: nodeColor.withOpacity(0.7),
+                  border: Border.all(
+                    color: nodeColor,
+                    width: 2,
+                  ),
+                ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Center(
+                      child: Text(
+                        initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 22,
+                        ),
+                      ),
+                    ),
+                    if (letterLabel != null)
+                      Positioned(
+                        top: -5,
+                        left: -5,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: nodeColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1),
+                          ),
+                          child: Text(
+                            letterLabel,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+
+              // Name and status
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      node['name'],
+                      style: TextStyle(
+                        color: nodeColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.people,
+                          size: 16,
+                          color: nodeColor.withOpacity(0.7),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          levelName,
+                          style: TextStyle(
+                            color: nodeColor.withOpacity(0.8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const Divider(color: Colors.grey, height: 32, thickness: 0.5),
+
+          // Stats section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildUserStatItem("Status", isActive ? "Active" : "Inactive", isActive ? Colors.green : Colors.red),
+              _buildUserStatItem("Downlines", "${node['downlines'] ?? 0}", nodeColor),
+              if (node['joinDate'] != null)
+                _buildUserStatItem("Joined", node['joinDate'], null),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // ID section
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  "ID: ",
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  node['id'] ?? '',
+                  style: TextStyle(
+                    color: nodeColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.12, end: 0, duration: 350.ms, curve: Curves.easeOutCubic);
+    );
+  }
+
+  // Helper widget for user stats with color
+  Widget _buildUserStatItem(String label, String value, Color? valueColor) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            color: valueColor ?? Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Simple vertical connector - make it more visible
+  Widget _buildVerticalConnector(double height) {
+    return Container(
+      width: 2,
+      height: height,
+      color: AppTheme.goldColor.withOpacity(0.6),
+    );
+  }
+
+  // Colored legend item
+  Widget _buildColoredLegendItem(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 0.5),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildCustomTab(String text, IconData icon) {
@@ -1633,41 +1823,6 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         ),
       ],
     ).animate().fadeIn(delay: 300.ms, duration: 500.ms);
-  }
-
-  // Enhanced legend item
-  Widget _buildLegendItem(Color color, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 14,
-          height: 14,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.5),
-                blurRadius: 6,
-                spreadRadius: 1,
-              ),
-            ],
-            border: Border.all(color: Colors.white, width: 1.2),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.2,
-          ),
-        ),
-      ],
-    );
   }
 }
 

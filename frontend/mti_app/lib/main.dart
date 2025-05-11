@@ -22,19 +22,19 @@ Future<void> main() async {
   runZonedGuarded<Future<void>>(() async {
     // Ensure Flutter is initialized
     WidgetsFlutterBinding.ensureInitialized();
-    
+
     // Initialize performance utilities early to optimize rendering
     PerformanceUtils();
-    
+
     // Set preferred orientations for better performance
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
-    
+
     // Initialize required services
     await _initializeServices();
-    
+
     // Set system UI overlay style
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
@@ -44,7 +44,7 @@ Future<void> main() async {
         systemNavigationBarIconBrightness: Brightness.light,
       ),
     );
-    
+
     // Enhanced error handler
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);
@@ -55,15 +55,15 @@ Future<void> main() async {
         stackTrace: details.stack,
       );
     };
-    
+
     // Enable memory monitoring in debug mode
     if (kDebugMode) {
       _setupMemoryMonitoring();
     }
-    
+
     // Run the app
     runApp(const MyApp());
-    
+
   }, (error, stackTrace) {
     // Handle errors caught by Zone
     developer.log(
@@ -80,7 +80,7 @@ Future<void> _initializeServices() async {
   try {
     // Initialize SharedPreferences for general storage
     final prefs = await SharedPreferences.getInstance();
-    
+
     // Initialize secure storage with enhanced security
     const secureStorage = FlutterSecureStorage(
       aOptions: AndroidOptions(
@@ -93,7 +93,7 @@ Future<void> _initializeServices() async {
         synchronizable: false,
       ),
     );
-    
+
     // Initialize StorageService as a dependency
     await Get.putAsync(() async {
       final storageService = StorageService();
@@ -102,20 +102,20 @@ Future<void> _initializeServices() async {
       Get.put(secureStorage, tag: 'secure_storage');
       return storageService;
     }, permanent: true);
-    
+
     // Initialize ApiService as a dependency
     await Get.putAsync(() async {
       final apiService = ApiService();
       // ApiService doesn't have an init method, so we just return the instance
       return apiService;
     }, permanent: true);
-    
+
     // Check for app updates (could be expanded to implement actual update logic)
     await _checkForAppUpdates();
-    
+
     // Pre-load critical app data
     await _preloadAppData();
-    
+
     developer.log('All services initialized successfully', name: 'MTI.App.Init');
   } catch (e, stackTrace) {
     developer.log(
@@ -191,35 +191,52 @@ class MyApp extends StatelessWidget {
       builder: (context, child) {
         // Apply global error handling for widget errors
         ErrorWidget.builder = (FlutterErrorDetails details) {
+          // Log the error for debugging
+          developer.log(
+            'Widget error: ${details.exception}',
+            name: 'MTI.App.WidgetError',
+            error: details.exception,
+            stackTrace: details.stack,
+          );
+
           // In release mode, show a minimal error widget
           // In debug mode, show the full error
           if (kDebugMode) {
             return ErrorWidget(details.exception);
           }
-          
+
           // Custom error widget for production
           return Container(
             padding: const EdgeInsets.all(16),
-            child: const Center(
-              child: Text(
-                'Sorry, something went wrong.',
-                style: TextStyle(color: Colors.white),
-              ),
+            alignment: Alignment.center,
+            constraints: const BoxConstraints(
+              minWidth: 100,
+              minHeight: 100,
+            ),
+            child: const Text(
+              'Sorry, something went wrong.',
+              style: TextStyle(color: Colors.white),
             ),
           );
         };
-        
+
         // Add directionality and any other global styles
         return MediaQuery(
           // Prevent text scaling beyond reasonable limits for better UI consistency
           data: MediaQuery.of(context).copyWith(
             textScaler: TextScaler.linear((
-              MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2))
+                MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2))
             ),
           ),
           child: Directionality(
             textDirection: TextDirection.ltr,
-            child: child ?? const SizedBox(),
+            child: child != null ?
+            SafeArea(
+              // Add SafeArea to ensure proper layout constraints
+              bottom: false,
+              child: child,
+            ) :
+            const SizedBox(width: 100, height: 100),
           ),
         );
       },

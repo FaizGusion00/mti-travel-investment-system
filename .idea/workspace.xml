@@ -4,23 +4,33 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b039df96-2b3a-4e63-a9a5-08ce17edeaa7" name="Changes" comment="...">
+    <list default="true" id="b039df96-2b3a-4e63-a9a5-08ce17edeaa7" name="Changes" comment="11 May 2025 : Afternoon Update&#10;&#10;Email otp for registration v1.0">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/android/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/android/app/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/android/app/src/main/res/xml/backup_rules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/android/app/src/main/res/xml/backup_rules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/android/app/src/main/res/xml/network_security_config.xml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/android/app/src/main/res/xml/network_security_config.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Flutter/AppFrameworkInfo.plist" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Flutter/AppFrameworkInfo.plist" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/AppDelegate.swift" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/AppDelegate.swift" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Base.lproj/LaunchScreen.storyboard" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Base.lproj/LaunchScreen.storyboard" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Info.plist" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/ios/Runner/Info.plist" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/core/constants.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/core/constants.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/.env.example" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/Http/Controllers/API/AuthController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Http/Controllers/API/AuthController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/Http/Controllers/API/ProfileController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Http/Controllers/API/ProfileController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/Http/Controllers/AuthController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Http/Controllers/AuthController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/Models/User.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/app/Models/User.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2024_05_01_000000_users_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2024_05_01_000001_create_users_log_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2024_05_01_000002_create_admins_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2024_05_01_000003_create_sessions_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2025_04_22_151831_create_personal_access_tokens_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2025_05_05_154247_add_usdt_address_to_users_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2025_05_05_161133_rename_created_date_to_created_at_in_users_log_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2025_05_06_001500_add_referral_id_to_users_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2025_05_07_000000_add_trader_and_wallet_fields_to_users_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2025_05_07_000001_remove_reference_code_from_users_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2025_05_08_000000_create_notifications_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2025_05_08_010000_rename_ref_code_to_affiliate_code.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2025_05_08_010100_add_status_to_users_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/migrations/2025_05_08_010200_create_transactions_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/web.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/web.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/main.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/withdraw_screen(backup).dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/withdraw_screen(backup).dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/pubspec.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/web/custom_service_worker.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/web/custom_service_worker.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/login_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/login_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/network_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/network_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/mti_app/lib/screens/splash_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/lib/screens/splash_screen.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/mti_app/web/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/web/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/web/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/mti_app/web/manifest.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/mti_app/web/offline.html" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,6 +42,7 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="HARD" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
   &quot;lastFilter&quot;: {

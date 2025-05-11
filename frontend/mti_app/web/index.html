@@ -18,8 +18,8 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="MTI Travel Investment App - Manage your investments, referrals, and earnings.">
-  
+  <meta name="description" content="MetaTravel.ai - Manage your travel investments, referrals, and earnings.">
+
   <!-- Disable caching -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -28,42 +28,42 @@
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="MTI Investment">
+  <meta name="apple-mobile-web-app-title" content="MetaTravel.ai">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/images/mti_logo.png"/>
 
-  <title>MTI Investment</title>
+  <title>MetaTravel.ai</title>
   <link rel="manifest" href="manifest.json?v=0.0.3">
-  
+
   <!-- App version for cache busting -->
   <meta name="app-version" content="0.0.3">
-  
+
   <script>
     // Current app version
     const APP_VERSION = '0.0.3';
-    
+
     // Disable cache for main.dart.js
     function addMainDartScript() {
       // Check if main.dart.js already exists to avoid duplicates
       if (document.querySelector('script[src*="main.dart.js"]')) return;
-      
+
       const timestamp = new Date().getTime();
       const script = document.createElement('script');
       script.src = 'main.dart.js?v=' + APP_VERSION + '&t=' + timestamp;
       script.defer = true;
       document.body.appendChild(script);
     }
-    
+
     // Check for updates and force refresh if needed
     function checkForAppUpdate() {
       const savedVersion = localStorage.getItem('mti_app_version');
-      
+
       if (savedVersion && savedVersion !== APP_VERSION) {
         console.log('App update detected:', savedVersion, '->', APP_VERSION);
         localStorage.setItem('mti_app_version', APP_VERSION);
-        
+
         // Clear cache and reload
         if ('caches' in window) {
           caches.keys().then(function(names) {
@@ -72,37 +72,37 @@
             });
           });
         }
-        
+
         // Force reload from server
         window.location.reload(true);
       } else {
         localStorage.setItem('mti_app_version', APP_VERSION);
       }
     }
-    
+
     // Initialize cache busting
     window.addEventListener('load', function() {
       checkForAppUpdate();
-      
+
       // Load main.dart.js with cache busting
       addMainDartScript();
-      
+
       // Register custom service worker for better cache control
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('custom_service_worker.js?v=' + APP_VERSION)
           .then(function(reg) {
             console.log('Service worker registered with scope:', reg.scope);
-            
+
             // Check if there's a waiting service worker
             if (reg.waiting) {
               // New version is waiting to activate
               reg.waiting.postMessage({type: 'SKIP_WAITING'});
             }
-            
+
             reg.addEventListener('updatefound', function() {
               // A new service worker is installing
               const newWorker = reg.installing;
-              
+
               newWorker.addEventListener('statechange', function() {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   // New version is installed and ready to take over
@@ -113,7 +113,7 @@
           }).catch(function(error) {
             console.error('Service worker registration failed:', error);
           });
-          
+
         // If the service worker changes, reload the page
         navigator.serviceWorker.addEventListener('controllerchange', function() {
           console.log('Service worker controller changed, reloading...');
@@ -124,20 +124,17 @@
   </script>
 </head>
 <body>
-  <!-- Show loading indicator while the app loads -->
-  <div id="loading" style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #1a1c1e;">
-    <div style="text-align: center;">
-      <img src="assets/images/mti_logo.png" alt="MTI Logo" width="120" height="120">
-      <p style="color: white; font-family: Arial, sans-serif; margin-top: 20px;">Loading MTI Investment v0.0.3...</p>
-    </div>
-  </div>
-  
-  <!-- Bootstrap script with cache busting -->
-  <script src="flutter_bootstrap.js?v=0.0.3&t=" defer id="bootstrap-script">
-  </script>
-  <script>
-    // Append current timestamp to bootstrap script src
-    document.getElementById('bootstrap-script').src += new Date().getTime();
-  </script>
+<!-- Show loading indicator while the app loads -->
+<div id="loading" style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #1a1c1e;">
+  <video src="assets/splash/splash.mp4" autoplay muted loop playsinline style="max-width: 320px; width: 100%; border-radius: 16px; box-shadow: 0 4px 32px #0008;"></video>
+</div>
+
+<!-- Bootstrap script with cache busting -->
+<script src="flutter_bootstrap.js?v=0.0.3&t=" defer id="bootstrap-script">
+</script>
+<script>
+  // Append current timestamp to bootstrap script src
+  document.getElementById('bootstrap-script').src += new Date().getTime();
+</script>
 </body>
 </html>
