@@ -91,7 +91,7 @@ class ProfileController extends Controller
             }
         }
 
-        $user->update($request->only(['full_name', 'phonenumber', 'address', 'date_of_birth', 'usdt_address', 'affiliate_code']));
+        $user->update($request->only(['full_name', 'username', 'phonenumber', 'address', 'date_of_birth', 'usdt_address', 'affiliate_code']));
 
         return response()->json([
             'status' => 'success',

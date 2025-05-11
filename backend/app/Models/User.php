@@ -96,7 +96,7 @@ class User extends Authenticatable
      *
      * @var string
      */
-    const UPDATED_AT = 'updated_date';
+    const UPDATED_AT = 'updated_at';
 
     /**
      * Get the logs for the user.

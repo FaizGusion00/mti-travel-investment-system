@@ -16,11 +16,11 @@ class Otp extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'identifier',
-        'token',
+        'email',
+        'otp',
         'type',
         'used',
-        'valid_until',
+        'expires_at',
     ];
 
     /**
@@ -30,7 +30,7 @@ class Otp extends Model
      */
     protected $casts = [
         'used' => 'boolean',
-        'valid_until' => 'datetime',
+        'expires_at' => 'datetime',
     ];
 
     /**
@@ -42,7 +42,7 @@ class Otp extends Model
     public function scopeValid($query)
     {
         return $query->where('used', false)
-                     ->where('valid_until', '>', Carbon::now());
+                     ->where('expires_at', '>', Carbon::now());
     }
 
     /**

@@ -1,9 +1,25 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { FaApple, FaGooglePlay } from 'react-icons/fa';
 import { cn } from '../utils/cn';
+
+// Apple icon SVG component
+interface IconProps {
+  className?: string;
+}
+
+const AppleIcon: React.FC<IconProps> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="24" height="24" fill="currentColor" className={className}>
+    <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
+  </svg>
+);
+
+// Google Play icon SVG component
+const GooglePlayIcon: React.FC<IconProps> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="24" height="24" fill="currentColor" className={className}>
+    <path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/>
+  </svg>
+);
 
 const DownloadSection = () => {
   return (
@@ -19,22 +35,10 @@ const DownloadSection = () => {
       <div className="max-w-7xl mx-auto relative z-20">
         <div className="flex flex-col lg:flex-row items-center gap-16">
           {/* Content */}
-          <motion.div 
-            className="w-full lg:w-1/2 text-center lg:text-left"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.7 }}
-          >
-            <motion.div
-              className="inline-block mb-3 px-4 py-1 rounded-full bg-[rgba(255,215,0,0.1)] border border-[var(--accent-gold)] text-sm text-[var(--accent-gold)]"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1, duration: 0.7 }}
-            >
+          <div className="w-full lg:w-1/2 text-center lg:text-left">
+            <div className="inline-block mb-3 px-4 py-1 rounded-full bg-[rgba(255,215,0,0.1)] border border-[var(--accent-gold)] text-sm text-[var(--accent-gold)]">
               Get Started Today
-            </motion.div>
+            </div>
             
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
               <span className="text-[var(--accent-gold)]">Download</span> Our App
@@ -45,7 +49,7 @@ const DownloadSection = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center lg:justify-start">
-              <motion.a
+              <a
                 href="https://apps.apple.com/app/mti-travel-investment/id123456789" 
                 className={cn(
                   "flex items-center gap-4 px-6 py-4",
@@ -53,23 +57,17 @@ const DownloadSection = () => {
                   "hover:bg-[var(--accent-gold)]/10 transition-all duration-300",
                   "w-full sm:w-auto"
                 )}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
               >
                 <div className="w-12 h-12 rounded-full bg-[var(--accent-gold)]/10 flex items-center justify-center">
-                  <FaApple className="text-3xl text-[var(--accent-gold)]" />
+                  <AppleIcon className="text-3xl text-[var(--accent-gold)]" />
                 </div>
                 <div className="text-left">
                   <div className="text-sm text-gray-400">Download on the</div>
                   <div className="text-xl font-bold text-white">App Store</div>
                 </div>
-              </motion.a>
+              </a>
               
-              <motion.a
+              <a
                 href="https://play.google.com/store/apps/details?id=com.mti.travel.investment" 
                 className={cn(
                   "flex items-center gap-4 px-6 py-4",
@@ -77,52 +75,27 @@ const DownloadSection = () => {
                   "hover:bg-[var(--accent-gold)]/10 transition-all duration-300",
                   "w-full sm:w-auto"
                 )}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
               >
                 <div className="w-12 h-12 rounded-full bg-[var(--accent-gold)]/10 flex items-center justify-center">
-                  <FaGooglePlay className="text-3xl text-[var(--accent-gold)]" />
+                  <GooglePlayIcon className="text-3xl text-[var(--accent-gold)]" />
                 </div>
                 <div className="text-left">
                   <div className="text-sm text-gray-400">Get it on</div>
                   <div className="text-xl font-bold text-white">Google Play</div>
                 </div>
-              </motion.a>
+              </a>
             </div>
             
-            <motion.p
-              className="mt-8 text-gray-400 text-sm"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, delay: 0.5 }}
-            >
+            <p className="mt-8 text-gray-400 text-sm">
               Available for iOS and Android devices. Download now and join the Meta Travel International community.
-            </motion.p>
-          </motion.div>
+            </p>
+          </div>
           
           {/* Phone mockups */}
-          <motion.div
-            className="w-full lg:w-1/2 flex justify-center"
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-          >
+          <div className="w-full lg:w-1/2 flex justify-center">
             <div className="relative">
               {/* First phone */}
-              <motion.div 
-                className="absolute -left-16 top-8 w-64 h-[500px] animate-float"
-                style={{ animationDelay: "0.5s" }}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.4 }}
-              >
+              <div className="absolute -left-16 top-8 w-64 h-[500px] animate-float" style={{ animationDelay: "0.5s" }}>
                 <div className="absolute inset-0 rounded-[32px] border-8 border-[#333] bg-black overflow-hidden shadow-2xl">
                   {/* Screen content */}
                   <div className="absolute inset-0 overflow-hidden">
@@ -183,16 +156,10 @@ const DownloadSection = () => {
                 
                 {/* Glow effect */}
                 <div className="absolute -inset-4 bg-gradient-to-b from-blue-500 to-purple-500 opacity-20 rounded-[60px] blur-xl -z-10"></div>
-              </motion.div>
+              </div>
               
               {/* Second phone (main) */}
-              <motion.div 
-                className="relative z-20 w-72 h-[550px] animate-float"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.3 }}
-              >
+              <div className="relative z-20 w-72 h-[550px] animate-float">
                 <div className="absolute inset-0 rounded-[40px] border-8 border-[#333] bg-black overflow-hidden shadow-2xl">
                   {/* Screen content */}
                   <div className="absolute inset-0 overflow-hidden">
@@ -288,9 +255,9 @@ const DownloadSection = () => {
                 
                 {/* Glow effect */}
                 <div className="absolute -inset-4 bg-gradient-to-b from-[var(--accent-gold)] to-[var(--accent-blue)] opacity-20 rounded-[60px] blur-xl -z-10"></div>
-              </motion.div>
+              </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

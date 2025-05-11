@@ -43,6 +43,7 @@ export default function Register() {
   
   const [formData, setFormData] = useState({
     full_name: '',
+    username: '',
     email: '',
     phonenumber: '',
     address: '',
@@ -57,6 +58,13 @@ export default function Register() {
     let error = '';
     
     switch(name) {
+      case 'username':
+        if (!value || value.trim().length < 3) {
+          error = 'Username is required (min 3 characters)';
+        } else if (!/^[a-zA-Z0-9_]{3,32}$/.test(value)) {
+          error = 'Username must be 3-32 characters, alphanumeric or underscore only';
+        }
+        break;
       case 'email':
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
@@ -178,12 +186,25 @@ export default function Register() {
 
   // Handle captcha verification
   const handleCaptchaVerify = (token: string) => {
+    console.log('Captcha verified with token:', token ? token.substring(0, 10) + '...' : 'null');
     setCaptchaToken(token);
+  };
+
+  // Handle captcha error
+  const handleCaptchaError = () => {
+    console.error('Captcha verification failed');
+    setCaptchaToken(null);
+  };
+
+  // Handle captcha expiry
+  const handleCaptchaExpire = () => {
+    console.warn('Captcha token expired');
+    setCaptchaToken(null);
   };
 
   // Steps configuration
   const formSteps = [
-    { name: 'Personal Details', fields: ['full_name', 'email', 'phonenumber'] },
+    { name: 'Personal Details', fields: ['full_name', 'username', 'email', 'phonenumber'] },
     { name: 'Additional Info', fields: ['address', 'date_of_birth', 'reference_code'] },
     { name: 'Security', fields: ['password', 'password_confirmation'] },
     { name: 'Verification', fields: ['profile_image', 'captcha'] }
@@ -253,7 +274,7 @@ export default function Register() {
     setError('');
 
     try {
-      // Verify captcha first
+      // Captcha verification required
       if (!captchaToken) {
         setError('Please complete the captcha verification');
         setIsLoading(false);
@@ -303,40 +324,166 @@ export default function Register() {
 
       // Get API URL from environment
       const apiUrl = Environment.apiBaseUrl;
+      const registerEndpoint = '/api/v1/register'; // Correct path based on Laravel routes
+      console.log('Sending registration to:', `${apiUrl}${registerEndpoint}`);
       
-      console.log('Sending registration to:', `${apiUrl}/register`);
-      
-      const response = await fetch(`${apiUrl}/register`, {
-        method: 'POST',
-        // Don't set Content-Type when using FormData, browser will set it with boundary
-        headers: {
-          'Accept': 'application/json',
-        },
-        // Use FormData for multipart uploads
-        body: formDataObj,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || data.error || 'Registration failed');
-      }
-
-      // If successful, redirect to OTP verification page
-      localStorage.setItem('registrationEmail', formData.email);
-      
-      // In development, store the test OTP for debugging
-      if (Environment.isDevelopment && data.data?.otp) {
-        localStorage.setItem('registrationOtp', data.data.otp);
-        console.log('Development mode: OTP stored for testing:', data.data.otp);
+      // Debug form data being sent
+      console.log('Form Data Contents:');
+      for (let [key, value] of formDataObj.entries()) {
+        if (key === 'profile_image' || key === 'avatar') {
+          console.log(`${key}: [File Object]`);
+        } else {
+          console.log(`${key}: ${value}`);
+        }
       }
       
-      router.push('/verify-otp');
+      try {
+        // Attempt with the primary endpoint first
+        const response = await fetch(`${apiUrl}${registerEndpoint}`, {
+          method: 'POST',
+          // Don't set Content-Type when using FormData, browser will set it with boundary
+          headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          credentials: 'same-origin',
+          // Use FormData for multipart uploads
+          body: formDataObj,
+        });
+
+        // Detailed logging of the response
+        let data;
+        try {
+          data = await response.json();
+          console.log('Registration response status:', response.status);
+          console.log('Registration response:', data);
+        } catch (jsonError) {
+          console.error('Failed to parse response JSON:', jsonError);
+          throw new Error('Invalid response from server');
+        }
+        
+        // More detailed error logging
+        if (!response.ok && data.errors) {
+          console.error('Validation errors details:', data.errors);
+          const errorMessages = Object.entries(data.errors)
+            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('\n');
+          setError(`Validation errors: \n${errorMessages}`);
+          throw new Error(errorMessages || data.message || 'Registration failed with validation errors');
+        }
+
+        if (!response.ok) {
+          throw new Error(data.message || data.error || 'Registration failed');
+        }
+
+        // If successful, redirect to OTP verification page
+        localStorage.setItem('registrationEmail', formData.email);
+        
+        // Store form data as JSON (excluding sensitive items) as a backup
+        const backupData = {
+          full_name: formData.full_name,
+          username: formData.username,
+          email: formData.email,
+          phonenumber: formData.phonenumber,
+          address: formData.address,
+          date_of_birth: formData.date_of_birth,
+          reference_code: formData.reference_code,
+          // We don't store passwords in localStorage for security
+        };
+        
+        localStorage.setItem('registrationBackupData', JSON.stringify(backupData));
+        console.log('Backup registration data stored in localStorage');
+        
+        // In development, store the test OTP for debugging
+        if (Environment.isDevelopment && data.data?.otp) {
+          localStorage.setItem('registrationOtp', data.data.otp);
+          console.log('Development mode: OTP stored for testing:', data.data.otp);
+        }
+        
+        router.push('/verify-otp');
+      } catch (fetchError: any) {
+        console.error('Fetch error:', fetchError);
+        
+        // If first attempt fails, try alternate endpoints
+        if (fetchError.message === 'Failed to fetch') {
+          console.log('First attempt failed, trying alternative endpoints...');
+          let successfulResponse = false;
+          
+          // List of fallback endpoints to try
+          const fallbackEndpoints = [
+            '/register',              // Try direct endpoint
+            '/api/register',          // Try API prefix without version
+            '/api/v1/register'        // Try full path again
+          ];
+          
+          for (const endpoint of fallbackEndpoints) {
+            try {
+              console.log(`Trying fallback endpoint: ${apiUrl}${endpoint}`);
+              
+              const retryResponse = await fetch(`${apiUrl}${endpoint}`, {
+                method: 'POST',
+                headers: {
+                  'Accept': 'application/json',
+                  'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: formDataObj,
+              });
+              
+              // Try to parse JSON response
+              let retryData;
+              try {
+                retryData = await retryResponse.json();
+                console.log(`Response from ${endpoint}:`, retryData);
+              } catch (jsonError) {
+                console.error(`Failed to parse JSON from ${endpoint}:`, jsonError);
+                continue; // Skip to next endpoint
+              }
+              
+              if (retryResponse.ok) {
+                console.log(`Success with endpoint ${endpoint}`);
+                // Store email for verification
+                localStorage.setItem('registrationEmail', formData.email);
+                
+                // Store OTP in development mode
+                if (Environment.isDevelopment && retryData.data?.otp) {
+                  localStorage.setItem('registrationOtp', retryData.data.otp);
+                  console.log('Development mode: OTP stored for testing:', retryData.data.otp);
+                }
+                
+                // Navigate to verification page
+                router.push('/verify-otp');
+                successfulResponse = true;
+                break;
+              }
+              
+              // If we got a response but it has errors, show them
+              if (retryData && retryData.errors) {
+                const errorMessages = Object.entries(retryData.errors)
+                  .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+                  .join('\n');
+                setError(`Validation errors: \n${errorMessages}`);
+                throw new Error(errorMessages);
+              }
+            } catch (endpointError) {
+              console.error(`Error with endpoint ${endpoint}:`, endpointError);
+              // Continue to next endpoint
+            }
+          }
+          
+          if (!successfulResponse) {
+            throw new Error('Could not connect to the registration server. Please ensure the backend server is running at http://localhost:8000');
+          }
+        } else {
+          // If it's not a connection error, rethrow
+          throw fetchError;
+        }
+      }
     } catch (err: any) {
       console.error('Registration error:', err);
       
       if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
-        setError('Unable to connect to the server. Please check your network connection or try again later.');
+        setError('Unable to connect to the server. Please check if the backend is running at http://localhost:8000');
       } else {
         setError(err.message || 'An error occurred during registration.');
       }
@@ -441,6 +588,25 @@ export default function Register() {
                 />
                 {fieldsWithErrors.full_name && (
                   <p className="mt-1 text-xs text-red-400">{fieldsWithErrors.full_name}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-gray-200">
+                  Username
+                </label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  required
+                  value={formData.username}
+                  onChange={handleChange}
+                  className={`mt-1 block w-full px-3 py-2 bg-gray-900/70 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${fieldsWithErrors.username ? 'border-red-500' : 'border-gray-700 focus:border-purple-500'}`}
+                  placeholder="Choose a username"
+                />
+                {fieldsWithErrors.username && (
+                  <p className="mt-1 text-xs text-red-400">{fieldsWithErrors.username}</p>
                 )}
               </div>
 
@@ -657,19 +823,26 @@ export default function Register() {
                 <label className="block text-sm font-medium text-gray-200 self-start mb-2">
                   Verify you are human
                 </label>
-                <div className={`w-full flex justify-center p-4 bg-gray-900/30 rounded-md ${!captchaToken ? 'border border-gray-700' : 'border border-green-500'}`}>
+                <div className="w-full min-h-[100px] flex justify-center p-4 bg-gray-900/30 rounded-md border border-green-500">
+                  {/* Cloudflare Turnstile Captcha */}
                   <Turnstile
-                    sitekey={Environment.turnstileSiteKey}
+                    key="turnstile-component"
+                    sitekey={Environment.captchaSiteKey}
                     onVerify={handleCaptchaVerify}
+                    onError={handleCaptchaError}
+                    onExpire={handleCaptchaExpire}
+                    className="mx-auto"
+                    refreshExpired="auto"
                     theme="dark"
+                    size="normal"
                   />
                 </div>
-                {captchaToken && (
-                  <div className="mt-2 text-green-500 text-sm flex items-center">
+                {!captchaToken && (
+                  <div className="mt-2 text-amber-400 text-sm flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
                     </svg>
-                    Verification successful
+                    Please complete the captcha verification
                   </div>
                 )}
               </div>
@@ -703,7 +876,7 @@ export default function Register() {
               ) : (
                 <button
                   type="submit"
-                  disabled={isLoading || !captchaToken || !selectedImage}
+                  disabled={isLoading || !selectedImage}
                   className={`ml-auto px-6 py-2.5 rounded-md shadow-sm text-white font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 ${
                     (!captchaToken || !selectedImage) 
                       ? 'bg-gray-700 cursor-not-allowed' 
