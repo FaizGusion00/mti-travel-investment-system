@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 class AppConstants {
   // App info
   static const String appName = 'MTI';
-  static const String appFullName = 'Meta Travel International';
+  static const String appFullName = 'MetaTravel.ai';
   static const String appVersion = '1.0.0';
   static const String appPackageName = 'com.mti.travel.investment';
   static const String appDownloadUrl = 'https://mti.travel/app';
@@ -20,12 +20,7 @@ class AppConstants {
   
   /// API v1 base URL - ALWAYS use this for all API calls
   static String get apiV1BaseUrl {
-    // IMPORTANT: Force use of production URL when isProductionUrl is true
-    if (Environment.isProductionUrl) {
-      return 'https://panel.metatravel.ai/api/v1';
-    }
-    
-    // For development or different platforms
+    // Use Environment configuration system for URLs
     return kIsWeb 
         ? Environment.webApiV1Url  // Web-specific URL handling
         : Environment.apiV1Url;    // Mobile URL handling

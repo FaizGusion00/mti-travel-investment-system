@@ -19,6 +19,7 @@ export default function VerifyOTP() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const countdownInterval = useRef<NodeJS.Timeout | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [otpAttempts, setOtpAttempts] = useState(0); // Track number of failed attempts
 
   useEffect(() => {
     // Retrieve email from localStorage
@@ -43,17 +44,43 @@ export default function VerifyOTP() {
     };
   }, [countdown, canResend, router]);
 
-  // Show modal when successMessage is set
+  // Use a strong effect to ensure the success modal stays visible
   useEffect(() => {
+    // Only run if the success message is set
     if (successMessage) {
+      console.log('Success message set, showing modal: ', successMessage);
+      
+      // Show the modal
       setShowSuccessModal(true);
+      
+      // Prevent any navigation via history
+      const blockNavigation = () => {
+        console.log('Navigation blocked while success modal is active');
+        // Push current URL back to history to prevent navigation
+        window.history.pushState(null, '', window.location.pathname);
+        return false;
+      };
+      
+      // Capture all possible navigation events
+      window.addEventListener('popstate', blockNavigation);
+      window.addEventListener('beforeunload', blockNavigation);
+      
+      // Push current state to handle the first back button press
+      window.history.pushState(null, '', window.location.pathname);
+      
+      return () => {
+        // Clean up event listeners when component unmounts
+        window.removeEventListener('popstate', blockNavigation);
+        window.removeEventListener('beforeunload', blockNavigation);
+      };
     }
-  }, [successMessage]);
+  }, [successMessage]); // Only depend on successMessage
 
   // Prevent any navigation transitions while the modal is shown
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (showSuccessModal && !isTransitioning) {
+        console.log('Before unload prevented - success modal is active');
         e.preventDefault();
         e.returnValue = '';
         return '';
@@ -71,6 +98,25 @@ export default function VerifyOTP() {
     setIsLoading(true);
     setError('');
     setIsInvalidOtp(false);
+
+    // Check if we've reached max attempts (3)
+    if (otpAttempts >= 3) {
+      setError('Maximum verification attempts reached. Requesting a new code...');
+      setIsInvalidOtp(true);
+      setIsLoading(false);
+      
+      // Auto-resend OTP if we can
+      if (canResend) {
+        console.log('Auto-requesting new OTP after max attempts reached');
+        // Add slight delay before auto-resending
+        setTimeout(() => {
+          handleResendOTP();
+        }, 1500);
+      } else {
+        setError(`Maximum attempts reached. Please wait ${countdown} seconds to request a new code.`);
+      }
+      return;
+    }
 
     try {
       // Validate OTP format
@@ -110,6 +156,14 @@ export default function VerifyOTP() {
         try {
           data = await response.json();
           console.log('Response data:', data);
+          
+          // Check if we received an OTP in development mode
+          if (Environment.isDevelopment && data.data?.otp) {
+            console.log('Development mode OTP received:', data.data.otp);
+            // Store OTP for verification
+            localStorage.setItem('developmentOtp', data.data.otp);
+            alert(`Development mode: Your OTP is ${data.data.otp}`);
+          }
           
           // Log additional debug info if available
           if (data.debug_info) {
@@ -198,7 +252,9 @@ export default function VerifyOTP() {
           
           if (isExpiredOrInvalidOtp) {
             setIsInvalidOtp(true);
-            throw new Error(`${errorMessage}`);
+            // Increment failed attempts count
+            setOtpAttempts(prev => prev + 1);
+            throw new Error(`${errorMessage}. Attempt ${otpAttempts + 1} of 3.`);
           }
           
           throw new Error(errorMessage);
@@ -220,6 +276,7 @@ export default function VerifyOTP() {
             fetchError.message.toLowerCase().includes('expired') || 
             fetchError.message.toLowerCase().includes('otp'))) {
           setIsInvalidOtp(true);
+          setOtpAttempts(prev => prev + 1);
         }
         
         // Try alternative API URL if fetch fails
@@ -303,6 +360,7 @@ export default function VerifyOTP() {
           err.message.toLowerCase().includes('expired') || 
           err.message.toLowerCase().includes('otp'))) {
         setIsInvalidOtp(true);
+        setOtpAttempts(prev => prev + 1);
       }
       
       setError(err.message || 'An error occurred during verification.');
@@ -344,6 +402,14 @@ export default function VerifyOTP() {
         try {
           data = await response.json();
           console.log('Resend OTP response:', data);
+          
+          // Check if we received an OTP in development mode
+          if (Environment.isDevelopment && data.data?.otp) {
+            console.log('Development mode OTP received:', data.data.otp);
+            // Store OTP for verification
+            localStorage.setItem('developmentOtp', data.data.otp);
+            alert(`Development mode: Your new OTP is ${data.data.otp}`);
+          }
         } catch (jsonError) {
           console.error('Failed to parse response JSON:', jsonError);
           throw new Error('Invalid response from server');
@@ -357,6 +423,8 @@ export default function VerifyOTP() {
         setOtp('');
         // Reset invalid OTP state
         setIsInvalidOtp(false);
+        // Reset attempt counter when requesting a new OTP
+        setOtpAttempts(0);
         setSuccessMessage('A new verification code has been sent to your email. Previous codes are no longer valid.');
         setCanResend(false);
         setCountdown(60);
@@ -398,6 +466,8 @@ export default function VerifyOTP() {
                   setOtp('');
                   // Reset invalid OTP state
                   setIsInvalidOtp(false);
+                  // Reset attempt counter when requesting a new OTP
+                  setOtpAttempts(0);
                   setSuccessMessage('A new verification code has been sent to your email. Previous codes are no longer valid.');
                   setCanResend(false);
                   setCountdown(60);
@@ -432,15 +502,27 @@ export default function VerifyOTP() {
 
   // Handler for OK button with fixed navigation
   const handleSuccessOk = () => {
-    // Mark that we're intentionally transitioning to prevent beforeunload from blocking
-    setIsTransitioning(true);
-    // Close the modal first
-    setShowSuccessModal(false);
-    // Delay navigation slightly to ensure modal is closed properly
-    setTimeout(() => {
-      // Navigate to homepage
+    try {
+      console.log('Success modal OK button clicked');
+      
+      // Mark that we're intentionally navigating away
+      setIsTransitioning(true);
+      
+      // Clear any localStorage data
+      localStorage.removeItem('registrationEmail');
+      localStorage.removeItem('registrationBackupData');
+      
+      // First update UI to indicate navigation is happening
+      setSuccessMessage(successMessage + ' Redirecting...');
+      
+      // Use a more direct approach to navigation
       window.location.href = '/';
-    }, 100);
+      
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Force navigation as fallback
+      window.location.replace('/');
+    }
   };
 
   return (
@@ -533,6 +615,11 @@ export default function VerifyOTP() {
               autoComplete="off"
             />
             <p className="mt-1 text-xs text-gray-400 text-center">Enter the 6-digit code we sent to your email</p>
+            {otpAttempts > 0 && (
+              <p className="mt-1 text-xs text-amber-400 text-center">
+                You have {3 - otpAttempts} attempt{3 - otpAttempts !== 1 ? 's' : ''} remaining
+              </p>
+            )}
           </div>
 
           <div>
@@ -578,37 +665,42 @@ export default function VerifyOTP() {
         </div>
       </div>
 
-      {/* Success Modal - Will stay open until user clicks OK */}
+      {/* Success Modal - Fixed version that won't auto-close */}
       {showSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
-          <div className="bg-gray-900 rounded-2xl shadow-2xl p-8 max-w-sm w-full flex flex-col items-center relative animate-fade-in">
-            {/* Luxury Gold Checkmark Animation */}
-            <div className="mb-6">
-              <svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="45" cy="45" r="42" stroke="#FFD700" strokeWidth="6" fill="none" filter="url(#glow)" />
-                <path d="M28 48L41 61L63 36" stroke="#FFD700" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none">
-                  <animate attributeName="stroke-dasharray" from="0,100" to="40,100" dur="0.7s" fill="freeze" />
-                </path>
-                <defs>
-                  <filter id="glow" x="-10" y="-10" width="110" height="110" filterUnits="userSpaceOnUse">
-                    <feGaussianBlur stdDeviation="4" result="coloredBlur" />
-                    <feMerge>
-                      <feMergeNode in="coloredBlur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
-              </svg>
+        <div className="fixed inset-0 z-[9999] bg-black bg-opacity-80 flex items-center justify-center"
+             style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+             onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gray-900 rounded-xl border-2 border-yellow-400 shadow-[0_0_30px_rgba(255,215,0,0.3)] p-8 max-w-md w-full animate-fade-in"
+               style={{ position: 'relative', zIndex: 10000 }}
+               onClick={(e) => e.stopPropagation()}>
+            
+            {/* Gold Success Icon */}
+            <div className="flex justify-center mb-6">
+              <div className="rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 p-3 shadow-lg">
+                <svg className="w-16 h-16 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
             </div>
-            <h2 className="text-2xl font-bold text-gold-400 mb-2">Success!</h2>
-            <p className="text-lg text-gray-200 mb-4 text-center">{successMessage}</p>
-            <button
-              onClick={handleSuccessOk}
-              className="mt-2 px-6 py-4 rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 font-semibold shadow-lg hover:from-yellow-500 hover:to-yellow-700 transition-all text-lg"
-            >
-              OK
-            </button>
-            <p className="mt-4 text-sm text-gray-400">Click OK to continue to the home page</p>
+            
+            <h2 className="text-2xl font-bold text-center text-yellow-400 mb-4">Success!</h2>
+            
+            <div className="border-t border-b border-gray-700 py-4 my-4">
+              <p className="text-white text-center text-lg">{successMessage}</p>
+            </div>
+            
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={handleSuccessOk}
+                className="transition-all duration-300 px-10 py-3 bg-gradient-to-r from-yellow-500 to-amber-600 rounded-lg text-gray-900 font-bold text-lg shadow-[0_0_15px_rgba(255,215,0,0.5)] hover:shadow-[0_0_20px_rgba(255,215,0,0.7)] focus:outline-none"
+              >
+                Okay, Got It!
+              </button>
+            </div>
+            
+            <p className="mt-6 text-center text-gray-400 text-sm">
+              Click the button above to continue
+            </p>
           </div>
         </div>
       )}

@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\UserLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
@@ -122,38 +123,79 @@ class UserController extends Controller
      */
     public function updateUser(Request $request, $id)
     {
-        $user = User::findOrFail($id);
+        try {
+            $user = User::findOrFail($id);
 
-        $validatedData = $request->validate([
-            'full_name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|string|email|max:255|unique:users,email,' . $id . ',user_id',
-            'phonenumber' => 'sometimes|string|max:20|unique:users,phonenumber,' . $id . ',user_id',
-            'date_of_birth' => 'sometimes|date',
-            'reference_code' => 'sometimes|string',
-            'usdt_address' => 'sometimes|nullable|string|max:255',
-        ]);
+            $rules = [
+                'full_name' => 'sometimes|string|max:255',
+                'username' => 'sometimes|string|max:255',
+                'email' => 'sometimes|string|email|max:255|unique:users,email,' . $id . ',id',
+                'phonenumber' => 'sometimes|string|max:20|unique:users,phonenumber,' . $id . ',id',
+                'date_of_birth' => 'sometimes|date',
+                'reference_code' => 'sometimes|string|nullable',
+                'address' => 'sometimes|nullable|string|max:500',
+                'is_trader' => 'sometimes|boolean',
+                'status' => 'sometimes|in:pending,approved',
+                'affiliate_code' => 'sometimes|string|nullable|max:10',
+                'referral_id' => 'sometimes|string|nullable|max:10',
+                'profile_image' => 'sometimes|nullable|image|mimes:jpeg,png,jpg|max:2048',
+                'usdt_address' => 'sometimes|nullable|string|max:255',
+            ];
 
-        // Log changes
-        foreach ($validatedData as $key => $value) {
-            if ($user->$key != $value) {
-                UserLog::create([
-                    'user_id' => $user->user_id,
-                    'column_name' => $key,
-                    'old_value' => $user->$key,
-                    'new_value' => $value
-                ]);
+            $validator = Validator::make($request->all(), $rules);
+            
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
             }
+            
+            $validatedData = $validator->validated();
+
+            // Handle profile image upload if present
+            if ($request->hasFile('profile_image')) {
+                $imageFile = $request->file('profile_image');
+                $fileName = time() . '_' . uniqid() . '.' . $imageFile->getClientOriginalExtension();
+                $stored = $imageFile->storeAs('avatars', $fileName, 'public');
+                if (!$stored) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Failed to upload profile image.'
+                    ], 500);
+                }
+                $validatedData['profile_image'] = 'avatars/' . $fileName;
+            }
+
+            // Log changes
+            foreach ($validatedData as $key => $value) {
+                if ($user->$key != $value) {
+                    UserLog::create([
+                        'user_id' => $user->id,
+                        'column_name' => $key,
+                        'old_value' => $user->$key,
+                        'new_value' => $value
+                    ]);
+                }
+            }
+
+            $user->update($validatedData);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'User updated successfully',
+                'data' => [
+                    'user' => $user
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('User update error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to update user: ' . $e->getMessage()
+            ], 500);
         }
-
-        $user->update($validatedData);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User updated successfully',
-            'data' => [
-                'user' => $user
-            ]
-        ]);
     }
 
     /**
@@ -164,13 +206,46 @@ class UserController extends Controller
      */
     public function deleteUser($id)
     {
-        $user = User::findOrFail($id);
-        $user->delete();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User deleted successfully'
-        ]);
+        try {
+            $user = User::findOrFail($id);
+            
+            // Prevent deleting self
+            if (auth()->id() == $user->id) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'You cannot delete your own account.'
+                ], 403);
+            }
+            
+            // Prevent deleting super admin (assume id 1 is super admin, adjust as needed)
+            if ($user->id == 1) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'You cannot delete the super admin account.'
+                ], 403);
+            }
+            
+            // Log the deletion
+            UserLog::create([
+                'user_id' => auth()->id(),
+                'column_name' => 'delete_user',
+                'old_value' => 'User ID: ' . $user->id,
+                'new_value' => 'User deleted: ' . $user->full_name . ' (' . $user->email . ')'
+            ]);
+            
+            $user->delete();
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => 'User deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('User delete error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to delete user: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

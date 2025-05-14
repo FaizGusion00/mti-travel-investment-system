@@ -246,14 +246,14 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
                 // Video player takes the full screen
                 if (_isVideoInitialized && _videoPlayerController.value.isInitialized)
-                  Center(
-                    child: Container(
-                      constraints: BoxConstraints(
-                        maxWidth: constraints.maxWidth,
-                        maxHeight: constraints.maxHeight,
-                      ),
-                      child: AspectRatio(
-                        aspectRatio: _videoPlayerController.value.aspectRatio,
+                  Container(
+                    width: constraints.maxWidth,
+                    height: constraints.maxHeight,
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: _videoPlayerController.value.size.width,
+                        height: _videoPlayerController.value.size.height,
                         child: VideoPlayer(_videoPlayerController),
                       ),
                     ),

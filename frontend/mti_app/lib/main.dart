@@ -116,6 +116,9 @@ Future<void> _initializeServices() async {
     // Pre-load critical app data
     await _preloadAppData();
 
+    // Log API configuration at startup for debugging
+    ApiService.logApiConfiguration();
+
     developer.log('All services initialized successfully', name: 'MTI.App.Init');
   } catch (e, stackTrace) {
     developer.log(

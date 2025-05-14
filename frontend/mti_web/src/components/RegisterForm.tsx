@@ -8,7 +8,7 @@ interface RegisterData {
   phonenumber: string;
   address: string;
   date_of_birth: string;
-  ref_code: string;
+  referral_id: string;
   password: string;
   profile_image?: File;
 }
@@ -28,7 +28,7 @@ const RegisterForm: React.FC = () => {
     phonenumber: '',
     address: '',
     date_of_birth: '',
-    ref_code: '',
+    referral_id: '',
     password: '',
   });
   const [error, setError] = useState<string | null>(null);
@@ -162,14 +162,14 @@ const RegisterForm: React.FC = () => {
               />
             </div>
             <div>
-              <label htmlFor="ref_code" className="sr-only">Reference Code (Optional)</label>
+              <label htmlFor="referral_id" className="sr-only">Referral Code (Optional)</label>
               <input
-                id="ref_code"
-                name="ref_code"
+                id="referral_id"
+                name="referral_id"
                 type="text"
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Reference Code (Optional)"
-                value={formData.ref_code}
+                placeholder="Referral Code (Optional)"
+                value={formData.referral_id}
                 onChange={handleChange}
               />
             </div>

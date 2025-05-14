@@ -1612,4 +1612,23 @@ class ApiService {
       return false;
     }
   }
+
+  // Add debugging method to log current API configuration
+  static void logApiConfiguration() {
+    final env = Environment.isProductionUrl ? 'PRODUCTION' : 'DEVELOPMENT';
+    _log('===== API CONFIGURATION =====');
+    _log('Environment: $env');
+    _log('Base URL: ${AppConstants.baseUrl}');
+    _log('API V1 URL: ${AppConstants.apiV1BaseUrl}');
+    _log('Request Timeout: ${AppConstants.requestTimeout}s');
+    _log('=============================');
+  }
+
+  // Toggle between development and production environment
+  static void toggleEnvironment() {
+    Environment.isProductionUrl = !Environment.isProductionUrl;
+    final env = Environment.isProductionUrl ? 'PRODUCTION' : 'DEVELOPMENT';
+    _log('Switched to $env environment');
+    logApiConfiguration();
+  }
 }

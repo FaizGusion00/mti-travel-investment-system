@@ -41,6 +41,9 @@ Route::middleware(['auth:admin'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
     Route::get('/users', [DashboardController::class, 'users'])->name('admin.users');
     Route::get('/users/{id}', [DashboardController::class, 'userDetail'])->name('admin.user.detail');
+    Route::get('/users/{id}/json', [DashboardController::class, 'getUserJson'])->name('admin.user.json');
+    Route::post('/users/{id}/update', [DashboardController::class, 'updateUser'])->name('admin.user.update');
+    Route::post('/users/{id}/delete', [DashboardController::class, 'deleteUser'])->name('admin.user.delete');
     Route::get('/logs', [DashboardController::class, 'logs'])->name('admin.logs');
 
     // Trader management routes

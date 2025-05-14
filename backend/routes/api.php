@@ -102,6 +102,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/users', [UserController::class, 'getAllUsers']);
         Route::get('/users/{id}', [UserController::class, 'getUserById']);
         Route::post('/users/{id}', [UserController::class, 'updateUser']);
+        Route::put('/users/{id}', [UserController::class, 'updateUser']);
         Route::delete('/users/{id}', [UserController::class, 'deleteUser']);
         Route::get('/users/{id}/logs', [UserController::class, 'getUserLogs']);
         

@@ -32,6 +32,21 @@ class AuthController extends Controller
             config(['app.debug' => false]);
         }
 
+        // Registration limit: max 5 per email (users + pending OTPs)
+        $email = $request->email;
+        $userCount = \App\Models\User::where('email', $email)->count();
+        $pendingOtpCount = \App\Models\Otp::where('email', $email)
+            ->where('type', 'email_verification')
+            ->where('used', false)
+            ->count();
+        $totalAttempts = $userCount + $pendingOtpCount;
+        if ($totalAttempts >= 5) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'This email has reached the maximum number of registration attempts (5). Please contact support if you need help.'
+            ], 429);
+        }
+
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
             'username' => 'required|string|max:255',

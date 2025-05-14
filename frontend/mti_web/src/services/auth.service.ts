@@ -9,7 +9,7 @@ export interface RegisterData {
   phonenumber: string;
   address?: string;
   date_of_birth: string;
-  ref_code?: string;
+  referral_id?: string;
   password: string;
   profile_image?: File;
 }
@@ -26,7 +26,7 @@ export interface UserProfile {
   phonenumber: string;
   address?: string;
   date_of_birth: string;
-  ref_code: string;
+  referral_id: string;
   profile_image?: string;
   created_at?: string;
   updated_at?: string;

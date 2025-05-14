@@ -3,7 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 import 'dart:developer' as developer;
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode, kReleaseMode;
 import '../config/theme.dart';
 import '../config/routes.dart';
 import '../shared/widgets/bottom_nav_bar.dart';
@@ -110,8 +110,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Icons.receipt_long_outlined,
                 onTap: () => Get.toNamed(AppRoutes.transactionHistory),
               ),
-              _buildCurrencyPreference(screenWidth),
-              _buildDarkModeToggle(screenWidth),
+              // _buildCurrencyPreference(screenWidth),
+              // _buildDarkModeToggle(screenWidth),
               const SizedBox(height: 24),
               _buildSectionTitle('OTHER'),
               _buildSettingsItem(
@@ -129,6 +129,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Icons.support_agent_outlined,
                 onTap: () => Get.toNamed(AppRoutes.contactUs),
               ),
+              // Debug mode item (only visible in debug/profile mode, hidden in release mode)
+              if (!kReleaseMode)
+                _buildSettingsItem(
+                  'Debug Settings',
+                  Icons.developer_mode,
+                  onTap: () {
+                    // Navigate to debug screen with proper error handling
+                    try {
+                      Get.toNamed(AppRoutes.debug);
+                    } catch (e) {
+                      developer.log('Error navigating to debug screen: $e', name: 'MTI_Settings', error: e);
+                      Get.snackbar(
+                        'Navigation Error', 
+                        'Could not open debug screen: ${e.toString()}',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.red.withOpacity(0.7),
+                        colorText: Colors.white,
+                        duration: const Duration(seconds: 5),
+                      );
+                    }
+                  },
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'DEV',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
               _buildSettingsItem(
                 'App Version',
                 Icons.info_outline,
@@ -247,93 +284,93 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutQuad);
   }
 
-  Widget _buildCurrencyPreference(double screenWidth) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: AppTheme.dividerColor.withOpacity(0.18),
-            width: 1,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.attach_money,
-            color: AppTheme.goldColor,
-            size: 22,
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
-            child: Text(
-              'Currency Preference',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTap: () {
-              // Show currency selection dialog
-              Get.dialog(
-                AlertDialog(
-                  backgroundColor: AppTheme.cardColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  title: const Text('Select Currency', style: TextStyle(color: Colors.white)),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildCurrencyOption('USD'),
-                      _buildCurrencyOption('EUR'),
-                      _buildCurrencyOption('MYR'),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      child: Text('Close', style: TextStyle(color: AppTheme.goldColor)),
-                    ),
-                  ],
-                ),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppTheme.secondaryBackgroundColor,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: AppTheme.goldColor.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    _selectedCurrency,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.arrow_drop_down,
-                    color: AppTheme.goldColor,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutQuad);
-  }
+  // Widget _buildCurrencyPreference(double screenWidth) {
+  //   return Container(
+  //     padding: const EdgeInsets.symmetric(vertical: 14),
+  //     decoration: BoxDecoration(
+  //       border: Border(
+  //         bottom: BorderSide(
+  //           color: AppTheme.dividerColor.withOpacity(0.18),
+  //           width: 1,
+  //         ),
+  //       ),
+  //     ),
+  //     child: Row(
+  //       children: [
+  //         const Icon(
+  //           Icons.attach_money,
+  //           color: AppTheme.goldColor,
+  //           size: 22,
+  //         ),
+  //         const SizedBox(width: 16),
+  //         const Expanded(
+  //           child: Text(
+  //             'Currency Preference',
+  //             style: TextStyle(
+  //               color: Colors.white,
+  //               fontSize: 15,
+  //               fontWeight: FontWeight.w500,
+  //             ),
+  //           ),
+  //         ),
+  //         GestureDetector(
+  //           onTap: () {
+  //             // Show currency selection dialog
+  //             Get.dialog(
+  //               AlertDialog(
+  //                 backgroundColor: AppTheme.cardColor,
+  //                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+  //                 title: const Text('Select Currency', style: TextStyle(color: Colors.white)),
+  //                 content: Column(
+  //                   mainAxisSize: MainAxisSize.min,
+  //                   children: [
+  //                     _buildCurrencyOption('USD'),
+  //                     _buildCurrencyOption('EUR'),
+  //                     _buildCurrencyOption('MYR'),
+  //                   ],
+  //                 ),
+  //                 actions: [
+  //                   TextButton(
+  //                     onPressed: () => Get.back(),
+  //                     child: Text('Close', style: TextStyle(color: AppTheme.goldColor)),
+  //                   ),
+  //                 ],
+  //               ),
+  //             );
+  //           },
+  //           child: Container(
+  //             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+  //             decoration: BoxDecoration(
+  //               color: AppTheme.secondaryBackgroundColor,
+  //               borderRadius: BorderRadius.circular(20),
+  //               border: Border.all(
+  //                 color: AppTheme.goldColor.withOpacity(0.3),
+  //                 width: 1,
+  //               ),
+  //             ),
+  //             child: Row(
+  //               children: [
+  //                 Text(
+  //                   _selectedCurrency,
+  //                   style: const TextStyle(
+  //                     color: Colors.white,
+  //                     fontSize: 14,
+  //                   ),
+  //                 ),
+  //                 const SizedBox(width: 4),
+  //                 const Icon(
+  //                   Icons.arrow_drop_down,
+  //                   color: AppTheme.goldColor,
+  //                   size: 20,
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutQuad);
+  // }
 
   Widget _buildCurrencyOption(String currency) {
     return ListTile(

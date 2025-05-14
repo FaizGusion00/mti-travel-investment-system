@@ -6,6 +6,7 @@ import '../config/routes.dart';
 import '../config/theme.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
+import '../widgets/galaxy_scaffold.dart';
 import '../core/constants.dart';
 import '../services/storage_service.dart';
 import '../services/api_service.dart';
@@ -225,19 +226,18 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     _screenHeight = MediaQuery.of(context).size.height;
     _screenWidth = MediaQuery.of(context).size.width;
 
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+    return GalaxyScaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: null,
       ),
+      starDensity: 1.2,
+      nebulaOpacity: 0.12,
+      showShootingStars: true,
       body: Stack(
         children: [
-          // Animated background (no logo or welcome here)
-          _buildAnimatedBackground(),
-
           // Animated logo and Welcome text (single instance, responsive)
           Positioned(
             top: _screenHeight * 0.10,
@@ -329,23 +329,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
             },
           ),
         ],
-      ),
-    );
-  }
-
-  // Creates an animated background with particles and blur effects
-  Widget _buildAnimatedBackground() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppTheme.backgroundColor,
-            AppTheme.backgroundColor.withOpacity(0.8),
-            AppTheme.surfaceColor.withOpacity(0.9),
-          ],
-        ),
       ),
     );
   }
@@ -624,9 +607,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                       Center(
                         child: TextButton(
                           onPressed: () {
-                            final Uri registrationUrl = Uri.parse(AppConstants.registrationUrl);
-                            // Show a modern dialog for registration options
-                            Get.dialog(
+                              Get.dialog(
                               Dialog(
                                 backgroundColor: Colors.transparent,
                                 insetPadding: const EdgeInsets.symmetric(horizontal: 20),
@@ -689,13 +670,13 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                           Get.back();
                                           try {
                                             launchUrl(
-                                              Uri.parse(AppConstants.registrationUrl),
+                                              Uri.parse("https://register.metatravel.ai/register"),
                                               mode: LaunchMode.externalApplication,
                                             );
                                           } catch (e) {
                                             Get.snackbar(
                                               "Error",
-                                              "Could not open website. Please visit "+AppConstants.registrationUrl+" manually.",
+                                              "Could not open website. Please visit https://register.metatravel.ai/register manually.",
                                               backgroundColor: AppTheme.errorColor.withOpacity(0.7),
                                               colorText: Colors.white,
                                             );

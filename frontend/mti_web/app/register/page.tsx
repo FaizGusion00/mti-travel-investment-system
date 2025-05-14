@@ -33,11 +33,11 @@ export default function Register() {
     const affiliateCode = searchParams.get('affiliate_code');
     if (affiliateCode) {
       console.log('Affiliate code found in URL:', affiliateCode);
-      setFormData(prev => ({ ...prev, reference_code: affiliateCode }));
+      setFormData(prev => ({ ...prev, referral_id: affiliateCode }));
     } else {
       // Set default reference code to ADMIN01 if no code is provided
       console.log('No affiliate code found, using default: ADMIN01');
-      setFormData(prev => ({ ...prev, reference_code: 'ADMIN01' }));
+      setFormData(prev => ({ ...prev, referral_id: 'ADMIN01' }));
     }
   }, [searchParams]);
   
@@ -48,7 +48,7 @@ export default function Register() {
     phonenumber: '',
     address: '',
     date_of_birth: '',
-    reference_code: '',
+    referral_id: '',
     password: '',
     password_confirmation: '',
   });
@@ -205,7 +205,7 @@ export default function Register() {
   // Steps configuration
   const formSteps = [
     { name: 'Personal Details', fields: ['full_name', 'username', 'email', 'phonenumber'] },
-    { name: 'Additional Info', fields: ['address', 'date_of_birth', 'reference_code'] },
+    { name: 'Additional Info', fields: ['address', 'date_of_birth', 'referral_id'] },
     { name: 'Security', fields: ['password', 'password_confirmation'] },
     { name: 'Verification', fields: ['profile_image', 'captcha'] }
   ];
@@ -223,8 +223,8 @@ export default function Register() {
     
     // Check if all required fields in the current step have values
     const hasEmptyRequiredFields = currentStepFields.some(field => {
-      // Skip reference_code as it's optional and captcha (handled separately)
-      if (field === 'reference_code' || field === 'captcha' || field === 'profile_image') return false;
+      // Skip referral_id as it's optional and captcha (handled separately)
+      if (field === 'referral_id' || field === 'captcha' || field === 'profile_image') return false;
       
       return !formData[field as keyof typeof formData];
     });
@@ -387,7 +387,7 @@ export default function Register() {
           phonenumber: formData.phonenumber,
           address: formData.address,
           date_of_birth: formData.date_of_birth,
-          reference_code: formData.reference_code,
+          referral_id: formData.referral_id,
           // We don't store passwords in localStorage for security
         };
         
@@ -691,14 +691,14 @@ export default function Register() {
               </div>
 
               <div>
-                <label htmlFor="reference_code" className="block text-sm font-medium text-gray-200">
+                <label htmlFor="referral_id" className="block text-sm font-medium text-gray-200">
                   Reference Code <span className="text-xs text-gray-400">(Auto-filled from link)</span>
                 </label>
                 <input
-                  id="reference_code"
-                  name="reference_code"
+                  id="referral_id"
+                  name="referral_id"
                   type="text"
-                  value={formData.reference_code}
+                  value={formData.referral_id}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 bg-gray-900/70 border border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
                   placeholder="Enter reference code (if any)"

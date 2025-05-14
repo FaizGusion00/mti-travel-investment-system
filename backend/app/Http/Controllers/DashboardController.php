@@ -194,4 +194,216 @@ class DashboardController extends Controller
         $walletName = str_replace('_', ' ', $walletType);
         return redirect()->back()->with('success', "User {$user->full_name}'s {$walletName} has been updated successfully");
     }
+
+    /**
+     * Update user details.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateUser(Request $request, $id)
+    {
+        try {
+            $user = User::findOrFail($id);
+            
+            // Debug log for username field
+            Log::debug('Username update data:', [
+                'username_input' => $request->input('username'),
+                'username_type' => gettype($request->input('username')),
+                'raw_request' => $request->all()
+            ]);
+            
+            // Clean up username field - if empty, set to null
+            if ($request->has('username') && empty($request->input('username'))) {
+                $request->merge(['username' => null]);
+            }
+            
+            $validated = $request->validate([
+                'full_name' => 'sometimes|string|max:255',
+                'username' => 'sometimes|nullable|string|max:255',
+                'email' => 'sometimes|string|email|max:255|unique:users,email,' . $id . ',id',
+                'phonenumber' => 'sometimes|string|max:20|unique:users,phonenumber,' . $id . ',id',
+                'date_of_birth' => 'sometimes|date',
+                'address' => 'sometimes|nullable|string|max:500',
+                'is_trader' => 'sometimes|boolean',
+                'status' => 'sometimes|in:pending,approved',
+                'affiliate_code' => 'sometimes|string|nullable|max:10',
+                'referral_id' => 'sometimes|string|nullable|max:10',
+                'usdt_address' => 'sometimes|nullable|string|max:255',
+            ]);
+            
+            // Handle profile image upload if present
+            if ($request->hasFile('profile_image')) {
+                $imageFile = $request->file('profile_image');
+                if ($imageFile->isValid()) {
+                    // Delete old image if it exists and is not the default
+                    if ($user->profile_image && $user->profile_image !== 'avatars/default.png') {
+                        $oldImagePath = 'public/' . $user->profile_image;
+                        if (\Storage::exists($oldImagePath)) {
+                            \Storage::delete($oldImagePath);
+                        }
+                    }
+                    
+                    // Store new image
+                    $fileName = time() . '_' . uniqid() . '.' . $imageFile->getClientOriginalExtension();
+                    $stored = $imageFile->storeAs('avatars', $fileName, 'public');
+                    if (!$stored) {
+                        throw new \Exception('Failed to upload profile image.');
+                    }
+                    $validated['profile_image'] = 'avatars/' . $fileName;
+                    
+                    // Log the profile image change
+                    Log::info('Profile image updated for user ID: ' . $user->id . ', New path: ' . $validated['profile_image']);
+                } else {
+                    throw new \Exception('Invalid profile image file.');
+                }
+            }
+            
+            // Log changes
+            foreach ($validated as $key => $value) {
+                if ($user->$key != $value) {
+                    UserLog::create([
+                        'user_id' => $user->id,
+                        'column_name' => $key,
+                        'old_value' => $user->$key,
+                        'new_value' => $value,
+                        'action' => 'update',
+                        'ip_address' => $request->ip(),
+                    ]);
+                }
+            }
+            
+            $user->update($validated);
+            
+            if ($request->ajax()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'User updated successfully',
+                    'user' => $user
+                ]);
+            }
+            
+            return redirect()->back()->with('success', 'User updated successfully');
+        } catch (\Exception $e) {
+            Log::error('User update error: ' . $e->getMessage());
+            
+            if ($request->ajax()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Failed to update user: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()->with('error', 'Failed to update user: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Delete a user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function deleteUser(Request $request, $id)
+    {
+        try {
+            $user = User::findOrFail($id);
+            
+            // Prevent deleting self
+            if (auth()->id() == $user->id) {
+                if ($request->ajax()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'You cannot delete your own account.'
+                    ], 403);
+                }
+                
+                return redirect()->back()->with('error', 'You cannot delete your own account.');
+            }
+            
+            // Prevent deleting super admin (assume ID 1 is super admin)
+            if ($user->id == 1) {
+                if ($request->ajax()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'You cannot delete the super admin account.'
+                    ], 403);
+                }
+                
+                return redirect()->back()->with('error', 'You cannot delete the super admin account.');
+            }
+            
+            // Create a log before deleting
+            UserLog::create([
+                'user_id' => auth()->id(), // Log who performed the deletion
+                'column_name' => 'user_deleted',
+                'old_value' => 'User ID: ' . $user->id,
+                'new_value' => 'User deleted: ' . $user->full_name . ' (' . $user->email . ')',
+                'action' => 'delete',
+                'ip_address' => $request->ip(),
+            ]);
+            
+            $user->delete();
+            
+            if ($request->ajax()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'User deleted successfully'
+                ]);
+            }
+            
+            return redirect()->route('admin.users')->with('success', 'User deleted successfully');
+        } catch (\Exception $e) {
+            Log::error('User delete error: ' . $e->getMessage());
+            
+            if ($request->ajax()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Failed to delete user: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()->with('error', 'Failed to delete user: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get user data as JSON for the edit form.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getUserJson($id)
+    {
+        try {
+            $user = User::findOrFail($id);
+            
+            // Return only the fields needed for editing
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'id' => $user->id,
+                    'full_name' => $user->full_name,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'phonenumber' => $user->phonenumber,
+                    'date_of_birth' => $user->date_of_birth,
+                    'address' => $user->address,
+                    'is_trader' => $user->is_trader,
+                    'status' => $user->status,
+                    'affiliate_code' => $user->affiliate_code,
+                    'referral_id' => $user->referral_id,
+                    'usdt_address' => $user->usdt_address,
+                    'profile_image' => $user->profile_image ? asset('storage/' . $user->profile_image) : null
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch user: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

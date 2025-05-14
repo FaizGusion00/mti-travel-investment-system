@@ -20,6 +20,7 @@ import '../screens/privacy_policy_screen.dart';
 import '../screens/contact_us_screen.dart';
 import '../screens/swap_screen.dart';
 import '../screens/transaction_history_screen.dart';
+import '../screens/debug_screen.dart';
 
 class AppRoutes {
   // Route names
@@ -42,6 +43,7 @@ class AppRoutes {
   static const String contactUs = '/contact_us';
   static const String swap = '/swap';
   static const String transactionHistory = '/transaction_history';
+  static const String debug = '/debug';
 
   // Route map for GetX
   static List<GetPage> routes = [
@@ -126,6 +128,12 @@ class AppRoutes {
     GetPage(
       name: transactionHistory,
       page: () => const TransactionHistoryScreen(),
+      transition: Transition.rightToLeft,
+    ),
+    // Debug screen route - only used in development
+    GetPage(
+      name: debug,
+      page: () => const DebugScreen(),
       transition: Transition.rightToLeft,
     ),
   ];

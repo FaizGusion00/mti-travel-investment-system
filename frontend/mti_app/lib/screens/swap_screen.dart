@@ -55,6 +55,8 @@ class _SwapScreenState extends State<SwapScreen> {
   @override
   void initState() {
     super.initState();
+    // Log API configuration for debugging
+    ApiService.logApiConfiguration();
     _loadWalletBalances();
   }
   

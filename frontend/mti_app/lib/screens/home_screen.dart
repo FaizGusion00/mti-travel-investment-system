@@ -28,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen>
   late AnimationController _animationController;
   late AnimationController _balanceGradientController;
   late AnimationController _typingAnimationController;
+  late AnimationController _statusPulseController;
   bool _useSimplifiedUI = false;
 
   // For typing animation
@@ -40,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen>
   String _fullName = "";
   bool _isTrader = false;
   String _refCode = ""; // Store user's reference code
+  String _userStatus = "pending"; // Add user status field
 
   // Wallet balances
   double _cashWallet = 0.0;
@@ -74,6 +76,12 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
+    
+    // Status pulse animation controller for pending status
+    _statusPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
 
     // Only repeat animations if not using simplified UI
     if (!_useSimplifiedUI) {
@@ -154,16 +162,20 @@ class _HomeScreenState extends State<HomeScreen>
         // Get reference code
         final refCode = userData['affiliate_code']?.toString() ?? '';
 
+        // Get user status - can be 'pending' or 'approved'
+        final status = userData['status']?.toString() ?? 'pending';
+
         setState(() {
           _fullName = fullName;
           _isTrader =
               userData['is_trader'] == 1 || userData['is_trader'] == true;
           _refCode = refCode;
+          _userStatus = status;
         });
 
         developer.log('User ref code: $_refCode', name: 'MTI_Home');
-
         developer.log('User is trader: $_isTrader', name: 'MTI_Home');
+        developer.log('User status: $_userStatus', name: 'MTI_Home');
       }
 
       // Get wallet balances
@@ -242,6 +254,7 @@ class _HomeScreenState extends State<HomeScreen>
     _animationController.dispose();
     _balanceGradientController.dispose();
     _typingAnimationController.dispose();
+    _statusPulseController.dispose();
     super.dispose();
   }
 
@@ -399,14 +412,101 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    _fullName.isEmpty ? "User" : _fullName,
-                    style: GoogleFonts.montserrat(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.1,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        _fullName.isEmpty ? "User" : _fullName,
+                        style: GoogleFonts.montserrat(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.1,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Status indicator - green if approved, red if pending
+                      Tooltip(
+                        message: _userStatus == 'approved' 
+                            ? 'Your account is active' 
+                            : 'Your account is pending approval',
+                        verticalOffset: 20,
+                        preferBelow: true,
+                        decoration: BoxDecoration(
+                          color: Colors.black87,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+                        child: AnimatedBuilder(
+                          animation: _statusPulseController,
+                          builder: (context, child) {
+                            // Only apply pulse animation when status is pending
+                            final scale = _userStatus == 'approved' 
+                                ? 1.0 
+                                : 1.0 + (_statusPulseController.value * 0.3);
+                                
+                            return Transform.scale(
+                              scale: scale,
+                              child: Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _userStatus == 'approved'
+                                      ? const Color(0xFF4CAF50) // Green when approved
+                                      : const Color(0xFFFF5252), // Red when pending
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: _userStatus == 'approved'
+                                          ? const Color(0xFF4CAF50).withOpacity(0.4)
+                                          : const Color(0xFFFF5252).withOpacity(0.4 + (_statusPulseController.value * 0.3)),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      // Trader badge if user is a trader
+                      if (_isTrader) ...[
+                        const SizedBox(width: 8),
+                        Tooltip(
+                          message: 'You have trader privileges',
+                          verticalOffset: 20,
+                          preferBelow: true,
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.goldColor.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: AppTheme.goldColor.withOpacity(0.5),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              'TRADER',
+                              style: GoogleFonts.inter(
+                                color: AppTheme.goldColor,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -550,10 +650,10 @@ class _HomeScreenState extends State<HomeScreen>
                       0.5,
                     ),
                     colors: const [
-                      Color(0xFF111111), // Deep black
-                      Color(0xFF1E1E1E), // Rich black
-                      Color(0xFF242424), // Dark charcoal
-                      Color(0xFF1A1A1A), // Medium black
+                      Color(0xFF0A1128), // Deep dark blue
+                      Color(0xFF0F2350), // Rich navy blue
+                      Color(0xFF0D1A45), // Dark blue
+                      Color(0xFF0A1128), // Back to deep dark blue
                     ],
                   ),
                   boxShadow: [
@@ -582,9 +682,9 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     colors: [
                       Colors.transparent,
-                      AppTheme.goldColor.withOpacity(0.03),
-                      AppTheme.goldColor.withOpacity(0.07),
-                      AppTheme.goldColor.withOpacity(0.03),
+                      Color(0xFF3B82F6).withOpacity(0.03), // Light blue accent
+                      Color(0xFF3B82F6).withOpacity(0.07), // Light blue accent
+                      Color(0xFF3B82F6).withOpacity(0.03), // Light blue accent
                       Colors.transparent,
                     ],
                     stops: const [0.0, 0.2, 0.5, 0.8, 1.0],

@@ -13,7 +13,7 @@
                     <span class="text-3xl font-bold">{{ substr($user->full_name, 0, 1) }}</span>
                 </div>
                 <h3 class="text-xl font-bold gold-text">{{ $user->full_name }}</h3>
-                <p class="text-gray-400 text-sm mt-1">User ID: {{ $user->user_id }}</p>
+                <p class="text-gray-400 text-sm mt-1">User ID: {{ $user->id }}</p>
             </div>
             
             <div class="space-y-4">
@@ -34,12 +34,12 @@
                 
                 <div class="flex justify-between items-center py-3 border-b border-gray-800">
                     <span class="text-gray-400">Reference Code</span>
-                    <span class="px-2 py-1 text-xs rounded-md bg-blue-900 bg-opacity-30 text-blue-300">{{ $user->ref_code }}</span>
+                    <span class="px-2 py-1 text-xs rounded-md bg-blue-900 bg-opacity-30 text-blue-300">{{ $user->affiliate_code }}</span>
                 </div>
                 
                 <div class="flex justify-between items-center py-3 border-b border-gray-800">
                     <span class="text-gray-400">Upline Reference</span>
-                    <span class="font-medium">{{ $user->reference_code }}</span>
+                    <span class="font-medium">{{ $user->referral_id }}</span>
                 </div>
                 
                 <div class="flex justify-between items-center py-3 border-b border-gray-800">
