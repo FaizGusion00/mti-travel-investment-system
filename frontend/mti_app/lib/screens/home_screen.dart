@@ -9,9 +9,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:developer' as developer;
 import '../utils/number_formatter.dart';
 import '../services/api_service.dart';
-import 'swap_screen.dart';
+import 'withdraw_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -750,16 +751,15 @@ class _HomeScreenState extends State<HomeScreen>
                             await _launchMTIWebRegistration();
                           },
                         ),
-                        if (_isTrader)
-                          _buildModernActionButton(
-                            label: "Swap",
-                            icon: Icons.swap_horiz,
-                            color: const Color(0xFFFFA000),
-                            onTap: () {
-                              // Navigate to swap page
-                              Get.to(() => const SwapScreen());
-                            },
-                          ),
+                        _buildModernActionButton(
+                          label: "Swap",
+                          icon: Icons.swap_horiz,
+                          color: const Color(0xFFFFA000),
+                          onTap: () {
+                            // Navigate to swap page
+                            Get.toNamed(AppRoutes.swap);
+                          },
+                        ),
                         _buildModernActionButton(
                           label: "Deposit",
                           icon: Icons.arrow_downward,
@@ -769,15 +769,16 @@ class _HomeScreenState extends State<HomeScreen>
                             Get.toNamed(AppRoutes.deposit);
                           },
                         ),
-                        _buildModernActionButton(
-                          label: "Withdraw",
-                          icon: Icons.arrow_upward,
-                          color: const Color(0xFFF44336),
-                          onTap: () {
-                            // Navigate to withdraw page
-                            Get.toNamed(AppRoutes.withdraw);
-                          },
-                        ),
+                        if (_isTrader)
+                          _buildModernActionButton(
+                            label: "Withdraw",
+                            icon: Icons.arrow_upward,
+                            color: const Color(0xFFF44336),
+                            onTap: () {
+                              // Navigate to withdraw page
+                              Get.to(() => const WithdrawScreen());
+                            },
+                          ),
                       ],
                     ),
                   ],
@@ -924,20 +925,20 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           const SizedBox(height: 6),
           _buildWalletCard(
+            icon: Icons.card_giftcard,
+            iconColor: const Color(0xFFE91E63), // Pink for gift/voucher
+            title: "Voucher Wallet",
+            amount: "\$${NumberFormatter.formatWithCommas(_voucherWallet)}",
+            amountInUSDT:
+                "\$${NumberFormatter.formatWithCommas(_voucherWallet.toInt())}",
+          ),
+          const SizedBox(height: 12),
+          _buildWalletCard(
             icon: Icons.account_balance_wallet,
             iconColor: const Color(0xFF4CAF50), // Green for cash
             title: "Cash Wallet",
             amount: "\$${NumberFormatter.formatCurrency(_cashWallet)}",
-            amountInUSDT: "USDT ${NumberFormatter.formatCurrency(_cashWallet)}",
-          ),
-          const SizedBox(height: 12),
-          _buildWalletCard(
-            icon: Icons.card_giftcard,
-            iconColor: const Color(0xFFE91E63), // Pink for gift/voucher
-            title: "Voucher Wallet",
-            amount: "${NumberFormatter.formatWithCommas(_voucherWallet)}",
-            amountInUSDT:
-                "${NumberFormatter.formatWithCommas(_voucherWallet.toInt())} Points",
+            amountInUSDT: "\$${NumberFormatter.formatCurrency(_cashWallet)}",
           ),
           const SizedBox(height: 12),
           _buildWalletCard(
@@ -946,15 +947,17 @@ class _HomeScreenState extends State<HomeScreen>
             title: "Travel Wallet",
             amount: "\$${NumberFormatter.formatCurrency(_travelWallet)}",
             amountInUSDT:
-                "USDT ${NumberFormatter.formatCurrency(_travelWallet)}",
+                "\$${NumberFormatter.formatCurrency(_travelWallet)}",
           ),
           const SizedBox(height: 12),
           _buildWalletCard(
-            icon: Icons.currency_exchange,
+            icon: Icons.auto_graph, // Better representation of XLM/Stellar
             iconColor: const Color(0xFFFF9800), // Orange for XLM
             title: "XLM Wallet",
             amount: "\$${NumberFormatter.formatCurrency(_xlmWallet)}",
-            amountInUSDT: "USDT ${NumberFormatter.formatCurrency(_xlmWallet)}",
+            amountInUSDT: "\$${NumberFormatter.formatCurrency(_xlmWallet)}",
+            useSvgLogo: true, // Flag to use SVG logo
+            svgAsset: 'assets/logo/xlm.svg', // Path to the XLM SVG logo
           ),
         ],
       ),
@@ -967,6 +970,8 @@ class _HomeScreenState extends State<HomeScreen>
     required String title,
     required String amount,
     required String amountInUSDT,
+    bool useSvgLogo = false, // Optional parameter to use SVG logo
+    String? svgAsset, // Optional SVG asset path
   }) {
     // Determine which display value to use based on wallet type
     double displayAmount = 0;
@@ -986,14 +991,17 @@ class _HomeScreenState extends State<HomeScreen>
 
     if (title == "Cash Wallet") {
       formattedAmount = "\$${NumberFormatter.formatCurrency(displayAmount)}";
-      formattedUSDT = "USDT ${NumberFormatter.formatCurrency(displayAmount)}";
+      formattedUSDT = "\$${NumberFormatter.formatCurrency(displayAmount)}";
     } else if (title == "Voucher Wallet") {
-      formattedAmount = "${NumberFormatter.formatWithCommas(displayAmount)}";
+      formattedAmount = "\$${NumberFormatter.formatWithCommas(displayAmount)}";
       formattedUSDT =
-          "${NumberFormatter.formatWithCommas(displayAmount.toInt())} Points";
-    } else if (title == "Travel Wallet" || title == "XLM Wallet") {
-      formattedAmount = "${NumberFormatter.formatCurrency(displayAmount)}";
-      formattedUSDT = "USDT ${NumberFormatter.formatCurrency(displayAmount)}";
+          "\$${NumberFormatter.formatWithCommas(displayAmount.toInt())}";
+    } else if (title == "Travel Wallet") {
+      formattedAmount = "\$${NumberFormatter.formatCurrency(displayAmount)}";
+      formattedUSDT = "\$${NumberFormatter.formatCurrency(displayAmount)}";
+    } else if (title == "XLM Wallet") {
+      formattedAmount = "\$${NumberFormatter.formatCurrency(displayAmount)}";
+      formattedUSDT = "\$${NumberFormatter.formatCurrency(displayAmount)}";
     }
     return Container(
       width: double.infinity,
@@ -1034,7 +1042,15 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ],
                 ),
-                child: Icon(icon, color: iconColor, size: 22),
+                child: useSvgLogo && svgAsset != null
+                  ? Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: SvgPicture.asset(
+                        svgAsset,
+                        color: iconColor,
+                      ),
+                    )
+                  : Icon(icon, color: iconColor, size: 22),
               )
               .animate()
               .fadeIn(duration: 400.ms)

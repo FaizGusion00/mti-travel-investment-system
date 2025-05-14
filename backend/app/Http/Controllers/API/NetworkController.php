@@ -282,4 +282,57 @@ class NetworkController extends Controller
         
         return $result;
     }
+    
+    /**
+     * Get simplified network summary with accurate counts
+     * Focused endpoint for UI that just needs the total members and direct referrals
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getNetworkSummary(Request $request)
+    {
+        $user = $request->user();
+        
+        // Get direct referrals count (level 1)
+        $directReferrals = User::where('referral_id', $user->id)->count();
+        
+        // Calculate total members across all levels
+        $totalMembers = $directReferrals; // Start with direct referrals
+        
+        // Get IDs of direct referrals for next level calculation
+        $level1UserIds = User::where('referral_id', $user->id)->pluck('id')->toArray();
+        
+        // If there are direct referrals, calculate their referrals (level 2)
+        if (!empty($level1UserIds)) {
+            $level2UserIds = User::whereIn('referral_id', $level1UserIds)->pluck('id')->toArray();
+            $level2Count = count($level2UserIds);
+            $totalMembers += $level2Count;
+            
+            // If there are level 2 referrals, calculate level 3
+            if (!empty($level2UserIds)) {
+                $level3UserIds = User::whereIn('referral_id', $level2UserIds)->pluck('id')->toArray();
+                $level3Count = count($level3UserIds);
+                $totalMembers += $level3Count;
+                
+                // If needed, you can continue to deeper levels here
+                // But for most MLM systems, 3 levels is sufficient
+            }
+        }
+        
+        // Optional: Calculate the maximum depth of the network
+        $maxDepth = ($totalMembers > $directReferrals) ? 
+                   (($totalMembers > ($directReferrals + (count($level2UserIds ?? [])))) ? 3 : 2) : 
+                   ($directReferrals > 0 ? 1 : 0);
+        
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'direct_referrals' => $directReferrals,
+                'total_members' => $totalMembers,
+                'max_depth' => $maxDepth,
+                'timestamp' => now()->toIso8601String()
+            ]
+        ]);
+    }
 }

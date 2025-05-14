@@ -10,13 +10,13 @@
     <!--[if !mso]><!-->
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <!--<![endif]-->
-    <title>Verify Your Email - Meta Travel International</title>
+    <title>Verify Your Email - MetaTravel.ai</title>
     <style type="text/css">
         /* CLIENT-SPECIFIC STYLES */
         body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
         table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
         img { -ms-interpolation-mode: bicubic; }
-        
+
         /* iOS BLUE LINKS */
         a[x-apple-data-detectors] {
             color: inherit !important;
@@ -26,7 +26,7 @@
             font-weight: inherit !important;
             line-height: inherit !important;
         }
-        
+
         /* MOBILE STYLES */
         @media screen and (max-width: 600px) {
             .mobile-padding {
@@ -66,7 +66,7 @@
                     <tr>
                         <td style="background-color:#181818;padding:30px 20px 12px 20px;">
                             <p style="font-size:18px;color:#FFD700;font-weight:600;margin:0 0 12px 0;">Hello {{ $name }},</p>
-                            <p style="color:#cccccc;font-size:16px;line-height:1.7;margin:0 0 24px 0;">Thank you for registering with <span style="color:#FFD700;font-weight:600;">Meta Travel International</span>.<br>To ensure the security of your account and complete your registration, please verify your email address using the code below:</p>
+                            <p style="color:#cccccc;font-size:16px;line-height:1.7;margin:0 0 24px 0;">Thank you for registering with <span style="color:#FFD700;font-weight:600;">MetaTravel.ai</span>.<br>To ensure the security of your account and complete your registration, please verify your email address using the code below:</p>
                             <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px 0;">
                                 <tr>
                                     <td align="center">

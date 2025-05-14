@@ -45,8 +45,8 @@ class OtpMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Verify Your Email - Meta Travel International',
-            from: new \Illuminate\Mail\Mailables\Address('verify@metatravel.ai', 'Meta Travel International'),
+            subject: 'Verify Your Email - MetaTravel.ai',
+            from: new \Illuminate\Mail\Mailables\Address('verify@metatravel.ai', 'MetaTravel.ai'),
         );
     }
 

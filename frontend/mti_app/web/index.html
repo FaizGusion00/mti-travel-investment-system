@@ -43,6 +43,111 @@
   <script>
     // Current app version
     const APP_VERSION = '0.0.3';
+    
+    // Prevent service worker issues
+    let serviceWorkerRegistration = null;
+    let serviceWorkerUpdating = false;
+    
+    // Mark if hot restart is happening
+    window.isHotRestarting = false;
+    
+    // Debug connection variables
+    let debugWebSocketCheckInterval = null;
+    let debugWebSocketRetryCount = 0;
+    let activeDebugConnections = new Set();
+    
+    // Keep track of WebSocket connections for debugging
+    function monitorDebugWebSockets() {
+      const originalWebSocket = window.WebSocket;
+      
+      // Override WebSocket constructor to track debug connections
+      window.WebSocket = function(url, protocols) {
+        const ws = new originalWebSocket(url, protocols);
+        
+        // Only monitor DWDS debug connections
+        if (url.includes('ws://localhost') || url.includes('ws://127.0.0.1')) {
+          console.log('[Debug] WebSocket connection to: ' + url);
+          
+          // Track this connection
+          activeDebugConnections.add(ws);
+          
+          // Set up event listeners
+          ws.addEventListener('open', function() {
+            console.log('[Debug] WebSocket connection opened: ' + url);
+            debugWebSocketRetryCount = 0; // Reset retry count on successful connection
+          });
+          
+          ws.addEventListener('close', function(event) {
+            console.log('[Debug] WebSocket connection closed: ' + url + ' (code: ' + event.code + ')');
+            activeDebugConnections.delete(ws);
+            
+            // If this was unexpected (not clean close), try to recover
+            if (event.code !== 1000 && event.code !== 1001) {
+              tryReconnectDebugSession();
+            }
+          });
+          
+          ws.addEventListener('error', function(error) {
+            console.error('[Debug] WebSocket error: ', error);
+            activeDebugConnections.delete(ws);
+            tryReconnectDebugSession();
+          });
+        }
+        
+        return ws;
+      };
+      
+      // Start checking for lost connections
+      startDebugConnectionCheck();
+    }
+    
+    // Start periodic check for debug connection health
+    function startDebugConnectionCheck() {
+      if (debugWebSocketCheckInterval) {
+        clearInterval(debugWebSocketCheckInterval);
+      }
+      
+      debugWebSocketCheckInterval = setInterval(function() {
+        // If no active connections and not restarting, try to reconnect debug
+        if (activeDebugConnections.size === 0 && !window.isHotRestarting) {
+          tryReconnectDebugSession();
+        }
+      }, 5000);
+    }
+    
+    // Try to reconnect debug session if connection lost
+    function tryReconnectDebugSession() {
+      if (debugWebSocketRetryCount < 3) {
+        console.log('[Debug] Attempting to reconnect debug session...');
+        debugWebSocketRetryCount++;
+        
+        // Try to create a dummy WebSocket to kickstart the debugger reconnection
+        try {
+          // Create a temporary connection to localhost to trigger detection
+          const tempWs = new WebSocket('ws://localhost:' + (50000 + Math.floor(Math.random() * 1000)));
+          tempWs.addEventListener('open', function() {
+            console.log('[Debug] Probe connection successful');
+            tempWs.close();
+          });
+          tempWs.addEventListener('error', function() {
+            // Ignore this expected error - just a probe
+            tempWs.close();
+          });
+        } catch (e) {
+          console.error('[Debug] Reconnection attempt failed: ', e);
+        }
+        
+        // Attempt to refresh debug state
+        if (typeof dart_library !== 'undefined' && dart_library._debugger) {
+          console.log('[Debug] Attempting to reactivate debug connections');
+          try {
+            dart_library._debugger.hotRestart();
+          } catch (e) {
+            console.warn('[Debug] Could not hot restart from JavaScript: ', e);
+          }
+        }
+      }
+    }
 
     // Disable cache for main.dart.js
     function addMainDartScript() {
@@ -79,9 +184,40 @@
         localStorage.setItem('mti_app_version', APP_VERSION);
       }
     }
+    
+    // Handle service worker unregistration before hot restart
+    function handleBeforeHotRestart() {
+      window.isHotRestarting = true;
+      
+      // If we detect a hot restart, unregister the service worker first
+      if ('serviceWorker' in navigator && serviceWorkerRegistration) {
+        console.log('Hot restart detected, unregistering service worker');
+        serviceWorkerRegistration.unregister().then(function() {
+          console.log('Service worker unregistered before hot restart');
+        }).catch(function(error) {
+          console.error('Error unregistering service worker:', error);
+        });
+      }
+      
+      // Close any active debug connections cleanly
+      activeDebugConnections.forEach(function(ws) {
+        try {
+          ws.close(1001, 'Page is reloading');
+        } catch (e) {
+          // Ignore errors during cleanup
+        }
+      });
+      activeDebugConnections.clear();
+    }
+    
+    // Add event listener to unregister service worker before page unload or hot restart
+    window.addEventListener('beforeunload', handleBeforeHotRestart);
 
     // Initialize cache busting
     window.addEventListener('load', function() {
+      // Monitor debug WebSockets first thing
+      monitorDebugWebSockets();
+      
       checkForAppUpdate();
 
       // Load main.dart.js with cache busting
@@ -89,35 +225,54 @@
 
       // Register custom service worker for better cache control
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('custom_service_worker.js?v=' + APP_VERSION)
-          .then(function(reg) {
-            console.log('Service worker registered with scope:', reg.scope);
-
-            // Check if there's a waiting service worker
-            if (reg.waiting) {
-              // New version is waiting to activate
-              reg.waiting.postMessage({type: 'SKIP_WAITING'});
-            }
-
-            reg.addEventListener('updatefound', function() {
-              // A new service worker is installing
-              const newWorker = reg.installing;
-
-              newWorker.addEventListener('statechange', function() {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New version is installed and ready to take over
-                  newWorker.postMessage({type: 'SKIP_WAITING'});
-                }
-              });
-            });
-          }).catch(function(error) {
-            console.error('Service worker registration failed:', error);
+        // Unregister any existing service workers first
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          if (window.isHotRestarting || registrations.length > 1) {
+            console.log('Unregistering previous service workers before registering new one');
+            return Promise.all(registrations.map(function(registration) {
+              return registration.unregister();
+            }));
+          }
+          return Promise.resolve();
+        }).then(function() {
+          // Now register our service worker
+          return navigator.serviceWorker.register('custom_service_worker.js?v=' + APP_VERSION, {
+            updateViaCache: 'none' // Prevent the browser from using cached service worker
           });
+        }).then(function(reg) {
+          serviceWorkerRegistration = reg;
+          console.log('Service worker registered with scope:', reg.scope);
+
+          // Check if there's a waiting service worker
+          if (reg.waiting) {
+            // New version is waiting to activate
+            reg.waiting.postMessage({type: 'SKIP_WAITING'});
+          }
+
+          reg.addEventListener('updatefound', function() {
+            // A new service worker is installing
+            const newWorker = reg.installing;
+            serviceWorkerUpdating = true;
+
+            newWorker.addEventListener('statechange', function() {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // New version is installed and ready to take over
+                newWorker.postMessage({type: 'SKIP_WAITING'});
+              }
+            });
+          });
+        }).catch(function(error) {
+          console.error('Service worker registration failed:', error);
+          // If registration fails, we'll run without a service worker
+          console.log('Running without service worker');
+        });
 
         // If the service worker changes, reload the page
         navigator.serviceWorker.addEventListener('controllerchange', function() {
-          console.log('Service worker controller changed, reloading...');
-          window.location.reload(true);
+          if (serviceWorkerUpdating) {
+            console.log('Service worker controller changed, reloading...');
+            window.location.reload(true);
+          }
         });
       }
     });
@@ -128,6 +283,14 @@
 <div id="loading" style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #1a1c1e;">
   <video src="assets/splash/splash.mp4" autoplay muted loop playsinline style="max-width: 320px; width: 100%; border-radius: 16px; box-shadow: 0 4px 32px #0008;"></video>
 </div>
+
+<!-- Flutter debugging helper -->
+<script>
+  // This helps DWDS find the app
+  window.flutterConfiguration = {
+    canvasKitBaseUrl: "/canvaskit/"
+  };
+</script>
 
 <!-- Bootstrap script with cache busting -->
 <script src="flutter_bootstrap.js?v=0.0.3&t=" defer id="bootstrap-script">

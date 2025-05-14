@@ -560,58 +560,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icons.phone,
               keyboardType: TextInputType.phone,
             ),
-            const SizedBox(height: 20),
+            // const SizedBox(height: 20),
             // Minimalist View Profile Button
-            GestureDetector(
-              onTapDown: (_) => setState(() => _isButtonPressed = true),
-              onTapUp: (_) => setState(() => _isButtonPressed = false),
-              onTapCancel: () => setState(() => _isButtonPressed = false),
-              onTap: () {
-                Get.toNamed(AppRoutes.profile);
-              },
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 120),
-                opacity: _isButtonPressed ? 0.7 : 1.0,
-                child: AnimatedScale(
-                  duration: const Duration(milliseconds: 120),
-                  scale: _isButtonPressed ? 0.97 : 1.0,
-                  child: Container(
-                    width: double.infinity,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppTheme.goldColor,
-                        width: 1.6,
-                      ),
-                    ),
-                    child: Center(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(
-                            Icons.person_outline,
-                            color: AppTheme.goldColor,
-                            size: 20,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'View My Profile',
-                            style: TextStyle(
-                              color: AppTheme.goldColor,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            // GestureDetector(
+            //   onTapDown: (_) => setState(() => _isButtonPressed = true),
+            //   onTapUp: (_) => setState(() => _isButtonPressed = false),
+            //   onTapCancel: () => setState(() => _isButtonPressed = false),
+            //   onTap: () {
+            //     Get.toNamed(AppRoutes.profile);
+            //   },
+            //   child: AnimatedOpacity(
+            //     duration: const Duration(milliseconds: 120),
+            //     opacity: _isButtonPressed ? 0.7 : 1.0,
+            //     child: AnimatedScale(
+            //       duration: const Duration(milliseconds: 120),
+            //       scale: _isButtonPressed ? 0.97 : 1.0,
+            //       child: Container(
+            //         width: double.infinity,
+            //         height: 44,
+            //         decoration: BoxDecoration(
+            //           color: Colors.transparent,
+            //           borderRadius: BorderRadius.circular(12),
+            //           border: Border.all(
+            //             color: AppTheme.goldColor,
+            //             width: 1.6,
+            //           ),
+            //         ),
+            //         child: Center(
+            //           child: Row(
+            //             mainAxisSize: MainAxisSize.min,
+            //             children: const [
+            //               Icon(
+            //                 Icons.person_outline,
+            //                 color: AppTheme.goldColor,
+            //                 size: 20,
+            //               ),
+            //               SizedBox(width: 8),
+            //               Text(
+            //                 'View My Profile',
+            //                 style: TextStyle(
+            //                   color: AppTheme.goldColor,
+            //                   fontSize: 15,
+            //                   fontWeight: FontWeight.w700,
+            //                   letterSpacing: 0.2,
+            //                 ),
+            //               ),
+            //             ],
+            //           ),
+            //         ),
+            //       ),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ),
@@ -638,24 +638,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
           width: 1,
         ),
       ),
-      child: TextField(
-        controller: controller,
-        style: const TextStyle(color: Colors.white),
-        keyboardType: keyboardType,
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(
-            color: AppTheme.secondaryTextColor,
-            fontSize: 13,
-          ),
-          prefixIcon: Icon(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+      child: Row(
+        children: [
+          Icon(
             icon,
             color: AppTheme.goldColor,
             size: 19,
           ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-        ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: AppTheme.secondaryTextColor,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                controller.text,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

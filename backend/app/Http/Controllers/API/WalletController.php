@@ -271,4 +271,123 @@ class WalletController extends Controller
             'data' => $users
         ]);
     }
+    
+    /**
+     * Transfer funds between user's own wallets (internal transfer)
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function transferBetweenWallets(Request $request)
+    {
+        $user = $request->user();
+        
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'source_wallet' => 'required|in:cash_wallet,travel_wallet,xlm_wallet',
+            'destination_wallet' => 'required|in:cash_wallet,travel_wallet,xlm_wallet|different:source_wallet',
+            'amount' => 'required|numeric|min:0.01',
+            'notes' => 'nullable|string|max:255'
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+        
+        $sourceWallet = $request->source_wallet;
+        $destinationWallet = $request->destination_wallet;
+        $amount = (float) $request->amount;
+        
+        // Check if user has sufficient funds in source wallet
+        if ($user->$sourceWallet < $amount) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Insufficient funds in your ' . $this->getWalletName($sourceWallet)
+            ], 400);
+        }
+        
+        // Perform the transfer
+        $user->$sourceWallet -= $amount;
+        $user->$destinationWallet += $amount;
+        
+        // Save changes
+        $user->save();
+        
+        // Log the transaction for the source wallet
+        UserLog::create([
+            'user_id' => $user->id,
+            'column_name' => $sourceWallet,
+            'old_value' => (string) ($user->$sourceWallet + $amount),
+            'new_value' => (string) $user->$sourceWallet,
+            'action' => 'internal_transfer_out',
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+            'notes' => $request->notes ?? 'Transfer to ' . $this->getWalletName($destinationWallet),
+        ]);
+        
+        // Log the transaction for the destination wallet
+        UserLog::create([
+            'user_id' => $user->id,
+            'column_name' => $destinationWallet,
+            'old_value' => (string) ($user->$destinationWallet - $amount),
+            'new_value' => (string) $user->$destinationWallet,
+            'action' => 'internal_transfer_in',
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+            'notes' => $request->notes ?? 'Transfer from ' . $this->getWalletName($sourceWallet),
+        ]);
+        
+        // Record in the transactions table
+        $transaction = Transaction::create([
+            'wallet_type' => $sourceWallet,
+            'from_account' => $user->id,
+            'to_account' => $user->id, // Same user for internal transfers
+            'amount' => $amount,
+            'status' => 'success',
+            'created_at' => now(),
+            'notes' => 'Internal transfer: ' . $this->getWalletName($sourceWallet) . ' to ' . $this->getWalletName($destinationWallet),
+            'transaction_type' => 'internal_transfer',
+        ]);
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Funds transferred successfully between your wallets',
+            'data' => [
+                'source_wallet' => [
+                    'type' => $sourceWallet,
+                    'name' => $this->getWalletName($sourceWallet),
+                    'new_balance' => $user->$sourceWallet
+                ],
+                'destination_wallet' => [
+                    'type' => $destinationWallet,
+                    'name' => $this->getWalletName($destinationWallet),
+                    'new_balance' => $user->$destinationWallet
+                ],
+                'amount' => $amount,
+                'transaction_id' => $transaction->id
+            ]
+        ]);
+    }
+    
+    /**
+     * Get the friendly name of a wallet type
+     * 
+     * @param string $walletType
+     * @return string
+     */
+    private function getWalletName($walletType)
+    {
+        $walletNames = [
+            'cash_wallet' => 'Cash Wallet',
+            'travel_wallet' => 'Travel Wallet',
+            'xlm_wallet' => 'XLM Wallet',
+            'voucher_wallet' => 'Voucher Wallet',
+        ];
+        
+        return $walletNames[$walletType] ?? $walletType;
+    }
 }

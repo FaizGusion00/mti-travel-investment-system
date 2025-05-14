@@ -88,10 +88,12 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/network/upline', [NetworkController::class, 'getUpline']);
     Route::get('/network/stats', [NetworkController::class, 'getNetworkStats']);
     Route::get('/network/commissions', [NetworkController::class, 'getCommissions']);
+    Route::get('/network/summary', [NetworkController::class, 'getNetworkSummary']);
     
     // Wallet and Trader functionality
     Route::get('/wallet', [WalletController::class, 'getWalletBalances']);
     Route::post('/wallet/transfer', [WalletController::class, 'transferFunds']);
+    Route::post('/wallet/swap', [WalletController::class, 'transferBetweenWallets']);
     Route::get('/wallet/transactions', [WalletController::class, 'getTransactionHistory']);
     Route::get('/users/find', [WalletController::class, 'findUser']);
     

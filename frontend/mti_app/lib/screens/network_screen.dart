@@ -171,7 +171,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   Map<String, dynamic> _networkStats = {};
 
   // View type for network tab (list or hierarchy)
-  bool _isHierarchyView = true; // Default to hierarchy view
+  bool _isHierarchyView = false; // Default to list view
 
   @override
   void initState() {
@@ -233,15 +233,35 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         developer.log('Failed to load network data: ${networkResponse['message']}', name: 'Network');
       }
 
-      // Get network statistics
-      final statsResponse = await ApiService.getNetworkStats();
-      if (statsResponse['status'] == 'success') {
+      // Get accurate network summary instead of the old network stats
+      final summaryResponse = await ApiService.getNetworkSummary();
+      if (summaryResponse['status'] == 'success') {
         setState(() {
-          _networkStats = statsResponse['data'] ?? {};
+          _networkStats = summaryResponse['data'] ?? {};
+          // Store the data in _networkStats to maintain compatibility with existing UI
+          if (!_networkStats.containsKey('total_downlines') && _networkStats.containsKey('total_members')) {
+            _networkStats['total_downlines'] = _networkStats['total_members'];
+          }
+          if (!_networkStats.containsKey('downline_counts') && _networkStats.containsKey('direct_referrals')) {
+            _networkStats['downline_counts'] = {
+              'level_1': _networkStats['direct_referrals'],
+            };
+          }
         });
-        developer.log('Loaded network stats successfully', name: 'Network');
+        developer.log('Loaded network summary successfully: ${summaryResponse['data']}', name: 'Network');
       } else {
-        developer.log('Failed to load network stats: ${statsResponse['message']}', name: 'Network');
+        developer.log('Failed to load network summary: ${summaryResponse['message']}', name: 'Network');
+        
+        // Fallback to old stats endpoint if summary fails
+        final statsResponse = await ApiService.getNetworkStats();
+        if (statsResponse['status'] == 'success') {
+          setState(() {
+            _networkStats = statsResponse['data'] ?? {};
+          });
+          developer.log('Loaded network stats successfully (fallback)', name: 'Network');
+        } else {
+          developer.log('Failed to load network stats: ${statsResponse['message']}', name: 'Network');
+        }
       }
     } catch (e) {
       developer.log('Error loading network data: $e', name: 'Network');
@@ -602,9 +622,73 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   }
 
   Widget _buildNetworkStats() {
-    // Extract data from network stats or provide defaults
-    final totalMembers = _networkStats.isEmpty ? "--" : (_networkStats['total_downlines'] ?? 0).toString();
-    final directReferrals = _networkStats.isEmpty ? "--" : (_networkStats['direct_downlines'] ?? 0).toString();
+    // Calculate total members from network data
+    int totalMembers = 0;
+    int directReferrals = 0;
+    
+    // First check if we have the accurate summary data from backend
+    if (_networkStats.isNotEmpty) {
+      // Check for the new accurate fields from network summary endpoint
+      if (_networkStats.containsKey('total_members')) {
+        totalMembers = _networkStats['total_members'] ?? 0;
+        developer.log('Using accurate total_members from network summary: $totalMembers', name: 'Network');
+      }
+      
+      if (_networkStats.containsKey('direct_referrals')) {
+        directReferrals = _networkStats['direct_referrals'] ?? 0;
+        developer.log('Using accurate direct_referrals from network summary: $directReferrals', name: 'Network');
+      }
+      
+      // Fallback to the old fields if the new ones aren't available
+      if (totalMembers == 0 && _networkStats.containsKey('total_downlines')) {
+        totalMembers = _networkStats['total_downlines'] ?? 0;
+        developer.log('Falling back to total_downlines: $totalMembers', name: 'Network');
+      }
+      
+      if (directReferrals == 0 && _networkStats.containsKey('downline_counts')) {
+        final downlineCounts = _networkStats['downline_counts'] as Map<String, dynamic>? ?? {};
+        if (downlineCounts.isNotEmpty && downlineCounts.containsKey('level_1')) {
+          directReferrals = downlineCounts['level_1'] ?? 0;
+          developer.log('Falling back to level_1 count for direct referrals: $directReferrals', name: 'Network');
+        }
+      }
+      
+      // Check for the old direct_downlines field as a last resort
+      if (directReferrals == 0 && _networkStats.containsKey('direct_downlines')) {
+        directReferrals = _networkStats['direct_downlines'] ?? 0;
+        developer.log('Falling back to direct_downlines: $directReferrals', name: 'Network');
+      }
+      
+      developer.log('Using backend stats - Total: $totalMembers, Direct: $directReferrals', name: 'Network');
+    }
+    
+    // If we still don't have stats, try to calculate from the network tree as a last resort
+    if ((totalMembers == 0 || directReferrals == 0) && _networkData.isNotEmpty) {
+      // Direct referrals are the immediate children (level 1)
+      final children = _networkData['children'] as List<dynamic>? ?? [];
+      
+      if (directReferrals == 0) {
+        directReferrals = children.length;
+        developer.log('Calculated direct referrals from tree: $directReferrals', name: 'Network');
+      }
+      
+      if (totalMembers == 0) {
+        // Count all direct referrals first
+        totalMembers = directReferrals;
+        
+        // Then add all their children recursively
+        for (var child in children) {
+          // Add the count of this child's children (level 2+)
+          totalMembers += _countChildrenRecursively(child);
+        }
+        
+        developer.log('Calculated total members by traversing tree: $totalMembers', name: 'Network');
+      }
+    }
+    
+    // Format the values for display
+    final totalMembersDisplay = totalMembers > 0 ? totalMembers.toString() : "--";
+    final directReferralsDisplay = directReferrals > 0 ? directReferrals.toString() : "--";
     final teamVolume = "Coming Soon";
     final totalEarnings = "Coming Soon";
 
@@ -625,7 +709,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
             Expanded(
               child: _buildStatCard(
                 "Total Members",
-                totalMembers,
+                totalMembersDisplay,
                 Icons.people_outline,
                 AppTheme.primaryColor,
               ),
@@ -634,7 +718,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
             Expanded(
               child: _buildStatCard(
                 "Direct Referrals",
-                directReferrals,
+                directReferralsDisplay,
                 Icons.person_add_outlined,
                 AppTheme.accentColor,
               ),
@@ -665,6 +749,24 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         ),
       ],
     ).animate().fadeIn(delay: 200.ms, duration: 500.ms);
+  }
+  
+  // Helper method to count all children recursively (matching backend calculation)
+  int _countChildrenRecursively(Map<String, dynamic> node) {
+    int count = 0;
+    
+    // Get children list
+    final children = node['children'] as List<dynamic>? ?? [];
+    
+    // Count immediate children
+    count += children.length;
+    
+    // Count their children recursively
+    for (var child in children) {
+      count += _countChildrenRecursively(child);
+    }
+    
+    return count;
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
@@ -757,60 +859,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                   ),
 
                   // View toggle switch - more compact
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isHierarchyView = !_isHierarchyView;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.backgroundColor.withOpacity(0.8),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppTheme.goldColor.withOpacity(0.3), width: 1),
-                      ),
-                      child: Row(
-                        children: [
-                          // List View Toggle
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: _isHierarchyView ? Colors.transparent : AppTheme.goldColor.withOpacity(0.7),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              "List",
-                              style: TextStyle(
-                                color: _isHierarchyView ? Colors.grey : Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(width: 4),
-
-                          // Hierarchy View Toggle
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: _isHierarchyView ? AppTheme.goldColor.withOpacity(0.7) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              "Tree",
-                              style: TextStyle(
-                                color: _isHierarchyView ? Colors.white : Colors.grey,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  _buildViewModeSwitch(),
                 ],
               ),
             ),
@@ -1823,6 +1872,113 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         ),
       ],
     ).animate().fadeIn(delay: 300.ms, duration: 500.ms);
+  }
+
+  // View switching control
+  Widget _buildViewModeSwitch() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text(
+            "View:",
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.7),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isHierarchyView = false;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: !_isHierarchyView
+                    ? AppTheme.primaryColor.withOpacity(0.2)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: !_isHierarchyView
+                      ? AppTheme.primaryColor
+                      : Colors.white.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.list,
+                    size: 16,
+                    color: !_isHierarchyView
+                        ? AppTheme.primaryColor
+                        : Colors.white.withOpacity(0.7),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "List",
+                    style: TextStyle(
+                      color: !_isHierarchyView
+                          ? AppTheme.primaryColor
+                          : Colors.white.withOpacity(0.7),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isHierarchyView = true;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _isHierarchyView
+                    ? AppTheme.primaryColor.withOpacity(0.2)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _isHierarchyView
+                      ? AppTheme.primaryColor
+                      : Colors.white.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.account_tree_outlined,
+                    size: 16,
+                    color: _isHierarchyView
+                        ? AppTheme.primaryColor
+                        : Colors.white.withOpacity(0.7),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "Hierarchy",
+                    style: TextStyle(
+                      color: _isHierarchyView
+                          ? AppTheme.primaryColor
+                          : Colors.white.withOpacity(0.7),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

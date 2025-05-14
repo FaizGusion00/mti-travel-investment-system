@@ -1135,6 +1135,91 @@ class ApiService {
       return {'success': false, 'message': errorMessage};
     }
   }
+  
+  // Transfer funds between user's own wallets (internal transfer)
+  static Future<Map<String, dynamic>> transferBetweenWallets({
+    required String sourceWallet,
+    required String destinationWallet,
+    required double amount,
+    String? notes,
+  }) async {
+    try {
+      _log(
+        'Transferring $amount between wallets: $sourceWallet → $destinationWallet',
+      );
+      final token = await getToken();
+      if (token == null) {
+        _log('Internal transfer failed', error: 'Not authenticated');
+        return {'success': false, 'message': 'Not authenticated'};
+      }
+
+      // Build request body for internal transfer
+      final Map<String, dynamic> requestBody = {
+        'source_wallet': sourceWallet,
+        'destination_wallet': destinationWallet,
+        'amount': amount,
+      };
+
+      if (notes != null && notes.isNotEmpty) {
+        requestBody['notes'] = notes;
+      }
+
+      _log('Internal transfer request body: $requestBody');
+
+      // Log the full URL for debugging
+      final url = '${AppConstants.baseUrl}/api/v1/wallet/swap';
+      _log('Internal transfer URL: $url');
+
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode(requestBody),
+          )
+          .timeout(Duration(seconds: Environment.requestTimeout));
+
+      _log('Internal transfer response status code: ${response.statusCode}');
+
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _log('Funds swapped successfully between wallets');
+        return {
+          'success': true,
+          'message': responseData['message'] ?? 'Internal transfer successful',
+          'data': responseData['data'],
+        };
+      } else {
+        _log(
+          'Failed to swap funds between wallets',
+          error:
+              'Status code: ${response.statusCode}, message: ${responseData['message'] ?? 'Unknown error'}',
+        );
+        return {
+          'success': false,
+          'message':
+              responseData['message'] ??
+              'Failed to swap funds. Status code: ${response.statusCode}',
+        };
+      }
+    } catch (e) {
+      String errorMessage = 'An unexpected error occurred.';
+      if (e is SocketException) {
+        errorMessage =
+            'Failed to connect to the server. Please check your internet connection.';
+      } else if (e is TimeoutException) {
+        errorMessage =
+            'Request timed out. Please check your internet connection or try again later.';
+      }
+
+      _log('Error in internal wallet transfer', error: e.toString());
+      return {'success': false, 'message': errorMessage};
+    }
+  }
 
   // Get wallet transactions
   static Future<Map<String, dynamic>> getWalletTransactions({
@@ -1334,6 +1419,46 @@ class ApiService {
     } catch (e) {
       _log('Exception getting network statistics', error: e.toString());
       return {'status': 'error', 'message': 'Failed to get network statistics: $e'};
+    }
+  }
+
+  // Get simplified network summary (just direct referrals and total members)
+  static Future<Map<String, dynamic>> getNetworkSummary() async {
+    _log('Getting simplified network summary');
+    try {
+      final token = await getToken();
+      if (token == null) {
+        _log('No token found for network summary request');
+        return {'status': 'error', 'message': 'Authentication token required'};
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/network/summary'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        _log('Successfully retrieved network summary: ${responseData['data']}');
+        return {'status': 'success', 'data': responseData['data']};
+      } else {
+        var errorMessage = 'Failed to get network summary. Status code: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage = errorData['message'] ?? errorMessage;
+        } catch (e) {
+          // Ignore JSON decode errors on error responses
+        }
+
+        _log('Failed to get network summary', error: errorMessage);
+        return {'status': 'error', 'message': errorMessage};
+      }
+    } catch (e) {
+      _log('Exception getting network summary', error: e.toString());
+      return {'status': 'error', 'message': 'Failed to get network summary: $e'};
     }
   }
 

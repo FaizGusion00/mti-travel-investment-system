@@ -19,13 +19,13 @@ class UserController extends Controller
     public function getCurrentUser(Request $request)
     {
         $user = $request->user();
-        
+
         // Calculate avatar URL from profile_image
         $avatarUrl = null;
         if ($user->profile_image) {
             $avatarUrl = url('storage/' . $user->profile_image);
         }
-        
+
         return response()->json([
             'status' => 'success',
             'data' => [
@@ -45,9 +45,9 @@ class UserController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => [
-                'app_name' => 'Meta Travel International',
+                'app_name' => 'MetaTravel.ai',
                 'version' => '1.0.0',
-                'company_name' => 'Meta Travel International',
+                'company_name' => 'MetaTravel.ai',
                 'support_email' => 'support@mti.com',
                 'website' => 'https://mti.com',
                 'terms_url' => 'https://mti.com/terms',
@@ -70,9 +70,9 @@ class UserController extends Controller
         $search = $request->query('search');
         $sortBy = $request->query('sort_by', 'created_at');
         $sortOrder = $request->query('sort_order', 'desc');
-        
+
         $query = User::query();
-        
+
         // Apply search if provided
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -82,13 +82,13 @@ class UserController extends Controller
                   ->orWhere('affiliate_code', 'like', "%{$search}%");
             });
         }
-        
+
         // Apply sorting
         $query->orderBy($sortBy, $sortOrder);
-        
+
         // Paginate results
         $users = $query->paginate($perPage);
-        
+
         return response()->json([
             'status' => 'success',
             'data' => $users
@@ -104,7 +104,7 @@ class UserController extends Controller
     public function getUserById($id)
     {
         $user = User::findOrFail($id);
-        
+
         return response()->json([
             'status' => 'success',
             'data' => [
@@ -123,7 +123,7 @@ class UserController extends Controller
     public function updateUser(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        
+
         $validatedData = $request->validate([
             'full_name' => 'sometimes|string|max:255',
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $id . ',user_id',
@@ -132,7 +132,7 @@ class UserController extends Controller
             'reference_code' => 'sometimes|string',
             'usdt_address' => 'sometimes|nullable|string|max:255',
         ]);
-        
+
         // Log changes
         foreach ($validatedData as $key => $value) {
             if ($user->$key != $value) {
@@ -144,9 +144,9 @@ class UserController extends Controller
                 ]);
             }
         }
-        
+
         $user->update($validatedData);
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'User updated successfully',
@@ -166,7 +166,7 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
         $user->delete();
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'User deleted successfully'
@@ -183,10 +183,10 @@ class UserController extends Controller
     public function getUserLogs($id, Request $request)
     {
         $perPage = $request->query('per_page', 15);
-        
+
         $user = User::findOrFail($id);
         $logs = $user->logs()->orderBy('created_at', 'desc')->paginate($perPage);
-        
+
         return response()->json([
             'status' => 'success',
             'data' => $logs
@@ -204,7 +204,7 @@ class UserController extends Controller
         $newUsersToday = User::whereDate('created_at', today())->count();
         $newUsersThisWeek = User::whereBetween('created_at', [now()->startOfWeek(), now()])->count();
         $newUsersThisMonth = User::whereMonth('created_at', now()->month)->count();
-        
+
         return response()->json([
             'status' => 'success',
             'data' => [
@@ -225,13 +225,13 @@ class UserController extends Controller
     public function getRegistrationStats(Request $request)
     {
         $days = $request->query('days', 30);
-        
+
         $registrationStats = User::select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
             ->where('created_at', '>=', now()->subDays($days))
             ->groupBy('date')
             ->orderBy('date')
             ->get();
-        
+
         return response()->json([
             'status' => 'success',
             'data' => $registrationStats
@@ -247,19 +247,19 @@ class UserController extends Controller
     public function getActivityStats(Request $request)
     {
         $days = $request->query('days', 30);
-        
+
         $activityByType = UserLog::select('column_name', DB::raw('count(*) as count'))
             ->where('created_at', '>=', now()->subDays($days))
             ->groupBy('column_name')
             ->orderBy('count', 'desc')
             ->get();
-        
+
         $activityByDate = UserLog::select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
             ->where('created_at', '>=', now()->subDays($days))
             ->groupBy('date')
             ->orderBy('date')
             ->get();
-        
+
         return response()->json([
             'status' => 'success',
             'data' => [

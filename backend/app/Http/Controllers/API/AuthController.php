@@ -31,7 +31,7 @@ class AuthController extends Controller
             app()->configure('app');
             config(['app.debug' => false]);
         }
-        
+
         $validator = Validator::make($request->all(), [
             'full_name' => 'required|string|max:255',
             'username' => 'required|string|max:255',
@@ -121,7 +121,7 @@ class AuthController extends Controller
         if (!app()->environment('local')) {
             config(['app.debug' => false]);
         }
-        
+
         $validator = Validator::make($request->all(), [
             'email' => 'required|string|email',
             'password' => 'required|string',
@@ -182,7 +182,7 @@ class AuthController extends Controller
         }
 
         Log::info("OTP resend attempt for: {$request->email}");
-        
+
         $validator = Validator::make($request->all(), [
             'email' => 'required|string|email',
         ]);
@@ -195,12 +195,12 @@ class AuthController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        
+
         $email = $request->email;
-        
+
         // First check: is there a user with this email?
         $user = User::where('email', $email)->first();
-        
+
         // If user exists, check if already verified
         if ($user) {
             Log::info("Resend OTP - User exists: {$email}");
@@ -214,7 +214,7 @@ class AuthController extends Controller
             // User exists but is not verified - generate new OTP for verification
             // (This case is unusual - would mean user was created but not verified)
             $otp = $this->generateOTP($email, $user->full_name);
-            
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'New verification code sent',
@@ -223,13 +223,13 @@ class AuthController extends Controller
                 ]
             ]);
         }
-        
+
         // Second check: If no user, find pending registration in OTP records
         $latestOtpRecord = \App\Models\Otp::where('email', $email)
             ->where('type', 'email_verification')
             ->latest()
             ->first();
-            
+
         if (!$latestOtpRecord) {
             Log::error("No OTP record found for email: {$email}");
             return response()->json([
@@ -237,23 +237,23 @@ class AuthController extends Controller
                 'message' => 'No registration found for this email. Please start registration first.'
             ], 404);
         }
-        
+
         Log::info("Found OTP record for email: {$email}");
-        
+
         // Get registration data before invalidating
         $registrationData = null;
         if ($latestOtpRecord->data) {
             $registrationData = $latestOtpRecord->data;
         }
-        
+
         // Invalidate all existing OTPs for this email
         \App\Models\Otp::where('email', $email)
             ->where('type', 'email_verification')
             ->update(['used' => true]);
-            
+
         // Generate new OTP
         $otp = str_pad((string)mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
-        
+
         // Create new OTP record with previous registration data if available
         $newOtpRecord = \App\Models\Otp::create([
             'email' => $email,
@@ -263,7 +263,7 @@ class AuthController extends Controller
             'expires_at' => now()->addMinutes(15),
             'data' => $registrationData
         ]);
-        
+
         // Extract name from registration data for email
         $name = 'User';
         if ($registrationData) {
@@ -276,10 +276,10 @@ class AuthController extends Controller
                 Log::error("Failed to decode registration data: " . $e->getMessage());
             }
         }
-        
+
         // Send email with OTP
         $this->generateOTP($email, $name, $otp);
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'New verification code sent',
@@ -410,7 +410,7 @@ class AuthController extends Controller
 
         return $refCode;
     }
-    
+
     /**
      * Generate a 6-digit OTP for the given email and send it via email
      *
@@ -423,14 +423,14 @@ class AuthController extends Controller
     {
         // Use provided OTP or generate a random 6-digit OTP
         $otp = $customOtp ?? str_pad((string)mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
-        
+
         Log::info("Generating OTP for {$email}: {$otp}");
-        
+
         // Invalidate any existing OTPs for this email
         Otp::where('email', $email)
             ->where('type', 'email_verification')
             ->update(['used' => true]);
-        
+
         // Create a new OTP record if one wasn't already created
         if (!$customOtp) {
             $otpRecord = Otp::create([
@@ -440,19 +440,19 @@ class AuthController extends Controller
                 'expires_at' => Carbon::now()->addMinutes(15), // OTP valid for 15 minutes
                 'used' => false
             ]);
-            
+
             Log::info("Created new OTP record ID: {$otpRecord->id} for {$email}");
         } else {
             Log::info("Using existing OTP record for {$email}");
         }
-        
+
         // Send OTP via email
         try {
             // Force queue to sync for immediate sending
             config(['queue.default' => 'sync']);
-            
+
             Log::info("Attempting to send OTP email to {$email}");
-            
+
             // Make sure mail settings are loaded
             config([
                 'mail.mailer' => 'smtp',
@@ -462,16 +462,16 @@ class AuthController extends Controller
                 'mail.password' => 'BE50nk0RrCGTrlzN6EThDXdE6Rdm8+n6R+rj6E1D14LV',
                 'mail.encryption' => 'tls',
                 'mail.from.address' => 'verify@metatravel.ai',
-                'mail.from.name' => 'Meta Travel International'
+                'mail.from.name' => 'MetaTravel.ai'
             ]);
-            
+
             // Send email with high priority
             Mail::to($email)->send(new \App\Mail\OtpMail($otp, $name));
-            
+
             // Always log the OTP for testing purposes
             Log::info("OTP for {$email}: {$otp}");
             Log::info("Email sent to {$email} from verify@metatravel.ai");
-            
+
             // In development mode, also store OTP in cache for backup
             if (app()->environment('local') || app()->environment('development')) {
                 try {
@@ -485,10 +485,10 @@ class AuthController extends Controller
             // Log the detailed error for debugging
             Log::error("Failed to send OTP email to {$email}: {$e->getMessage()}");
             Log::error("Error trace: {$e->getTraceAsString()}");
-            
+
             // Always log the OTP in case of email failure, so we can still test
             Log::info("OTP for {$email}: {$otp} (Email failed but OTP logged for testing)");
-            
+
             // Store in cache as backup in case email fails
             try {
                 \Illuminate\Support\Facades\Cache::store('fallback')->put("otp:{$email}", $otp, 900); // 15 minutes
@@ -497,10 +497,10 @@ class AuthController extends Controller
                 Log::warning("Failed to store OTP in cache after email failure: " . $cacheError->getMessage());
             }
         }
-        
+
         return $otp;
     }
-    
+
     /**
      * Verify OTP for email verification
      *
@@ -511,19 +511,19 @@ class AuthController extends Controller
     {
         // Clean up expired OTPs
         \App\Models\Otp::where('expires_at', '<', now())->delete();
-        
+
         // Add debugging for this request
         Log::info("OTP verification attempt:", [
             'email' => $request->email,
             'otp' => $request->otp,
             'time' => now()->toDateTimeString()
         ]);
-        
+
         $validator = Validator::make($request->all(), [
             'email' => 'required|string|email',
             'otp' => 'required|string|size:6',
         ]);
-        
+
         if ($validator->fails()) {
             Log::error("OTP validation failed:", $validator->errors()->toArray());
             return response()->json([
@@ -532,18 +532,18 @@ class AuthController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        
+
         $email = $request->email;
         $otp = $request->otp;
-        
+
         // Log current OTP records for this email (for debugging)
         $allOtpRecords = \App\Models\Otp::where('email', $email)
             ->where('type', 'email_verification')
             ->orderBy('created_at', 'desc')
             ->get();
-            
+
         Log::info("All OTP records for {$email}:", $allOtpRecords->toArray());
-        
+
         // Find the latest valid OTP for this email
         $otpRecord = \App\Models\Otp::where('email', $email)
             ->where('otp', $otp)
@@ -552,10 +552,10 @@ class AuthController extends Controller
             ->where('expires_at', '>', now())
             ->latest()
             ->first();
-            
+
         if (!$otpRecord) {
             Log::error("No valid OTP record found for {$email} with code {$otp}");
-            
+
             // Check cache as a backup in case DB failed
             $cachedOtp = null;
             try {
@@ -564,10 +564,10 @@ class AuthController extends Controller
             } catch (\Exception $cacheError) {
                 Log::warning("Failed to retrieve OTP from cache: " . $cacheError->getMessage());
             }
-            
+
             if ($cachedOtp && $cachedOtp === $otp) {
                 Log::info("OTP verified from cache for {$email}");
-                
+
                 // Check if user already exists
                 $existingUser = \App\Models\User::where('email', $email)->first();
                 if ($existingUser) {
@@ -579,19 +579,19 @@ class AuthController extends Controller
                         'user_existed' => true
                     ]);
                 }
-                
+
                 // No existing user, but we have a valid OTP in cache - check for pending registration data
                 $pendingOtpRecord = \App\Models\Otp::where('email', $email)
                     ->where('type', 'email_verification')
                     ->latest()
                     ->first();
-                    
+
                 if ($pendingOtpRecord && $pendingOtpRecord->data) {
                     // Use this record's data but mark it as used
                     Log::info("Using registration data from previous OTP record for {$email}");
                     $otpRecord = $pendingOtpRecord;
                     $otpRecord->update(['used' => true]);
-                    
+
                     // Remove the cache entry
                     try {
                         \Illuminate\Support\Facades\Cache::store('fallback')->forget("otp:{$email}");
@@ -613,7 +613,7 @@ class AuthController extends Controller
                 // Check if there's any OTP record at all for troubleshooting
                 $anyOtp = \App\Models\Otp::where('email', $email)->first();
                 $message = 'Invalid or expired OTP';
-                
+
                 if ($anyOtp) {
                     if ($anyOtp->used) {
                         $message = 'This OTP has already been used. Please request a new OTP.';
@@ -621,7 +621,7 @@ class AuthController extends Controller
                         $message = 'This OTP has expired. Please request a new OTP.';
                     }
                 }
-                
+
                 return response()->json([
                     'status' => 'error',
                     'message' => $message,
@@ -636,13 +636,13 @@ class AuthController extends Controller
                 ], 400);
             }
         }
-        
+
         Log::info("Valid OTP found for {$email}. OTP record ID: {$otpRecord->id}");
-        
+
         // IMPORTANT: BEFORE we mark OTP as used, get the data to avoid data loss
         $userData = null;
         $data = null;
-        
+
         if ($otpRecord->data) {
             // Try to parse JSON data
             try {
@@ -654,20 +654,20 @@ class AuthController extends Controller
         } else {
             Log::warning("OTP record for {$email} has no data field");
         }
-        
+
         // Now mark OTP as used
         $otpRecord->update(['used' => true]);
-        
+
         // If we don't have data but need to proceed with verification
         if (!$data || !is_array($data)) {
             Log::error("OTP data is null or invalid for email: {$email}");
-            
+
             // Check if user already exists - this might be a re-verification
             $existingUser = \App\Models\User::where('email', $email)->first();
             if ($existingUser) {
                 // Just update the email_verified_at field
                 $existingUser->update(['email_verified_at' => now()]);
-                
+
                 Log::info("User already exists, marked as verified: {$email}");
                 return response()->json([
                     'status' => 'success',
@@ -675,7 +675,7 @@ class AuthController extends Controller
                     'user_existed' => true
                 ]);
             }
-            
+
             // No data and no existing user
             return response()->json([
                 'status' => 'error',
@@ -683,17 +683,17 @@ class AuthController extends Controller
                 'error' => 'Data format error'
             ], 400);
         }
-        
+
         // Check for required fields
         $requiredFields = ['full_name', 'username', 'phonenumber', 'password'];
         $missingFields = [];
-        
+
         foreach ($requiredFields as $field) {
             if (!isset($data[$field]) || empty($data[$field])) {
                 $missingFields[] = $field;
             }
         }
-        
+
         if (!empty($missingFields)) {
             Log::error("Missing fields in OTP data: " . implode(', ', $missingFields));
             return response()->json([
@@ -702,7 +702,7 @@ class AuthController extends Controller
                 'error' => 'Missing required fields: ' . implode(', ', $missingFields)
             ], 400);
         }
-        
+
         // Use defaults for optional fields if not present
         $userData = [
             'full_name' => $data['full_name'],
@@ -717,13 +717,13 @@ class AuthController extends Controller
             'affiliate_code' => $data['affiliate_code'] ?? $this->generateUniqueRefCode(),
             'email_verified_at' => now()
         ];
-        
+
         try {
             $user = \App\Models\User::create($userData);
-            
+
             // Remove OTP record
             $otpRecord->delete();
-            
+
             // Log the registration
             \App\Models\UserLog::create([
                 'user_id' => $user->id,
@@ -731,7 +731,7 @@ class AuthController extends Controller
                 'old_value' => null,
                 'new_value' => 'User registered and verified'
             ]);
-            
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Email verified and account created.'
@@ -755,7 +755,7 @@ class AuthController extends Controller
     public function acceptBackupData(Request $request)
     {
         Log::info("Received backup registration data for: {$request->email}");
-        
+
         $validator = Validator::make($request->all(), [
             'email' => 'required|string|email',
             'full_name' => 'required|string|max:255',
@@ -764,7 +764,7 @@ class AuthController extends Controller
             'date_of_birth' => 'required|date',
             'otp' => 'required|string|size:6',
         ]);
-        
+
         if ($validator->fails()) {
             Log::error("Backup data validation failed:", $validator->errors()->toArray());
             return response()->json([
@@ -773,10 +773,10 @@ class AuthController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        
+
         $email = $request->email;
         $otp = $request->otp;
-        
+
         // Verify the OTP from cache first
         $cachedOtp = null;
         try {
@@ -784,17 +784,17 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             Log::error("Cache error in backup verification: " . $e->getMessage());
         }
-        
+
         if ($cachedOtp !== $otp) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Invalid or expired OTP'
             ], 400);
         }
-        
+
         // Generate a unique affiliate code
         $affiliateCode = $this->generateUniqueRefCode();
-        
+
         // Create user from backup data
         try {
             $user = \App\Models\User::create([
@@ -805,12 +805,12 @@ class AuthController extends Controller
                 'address' => $request->address ?? '',
                 'date_of_birth' => $request->date_of_birth,
                 'referral_id' => $request->reference_code ?? null,
-                'profile_image' => 'profile_images/default.png', 
+                'profile_image' => 'profile_images/default.png',
                 'password' => Hash::make($request->password ?? Str::random(16)), // Use provided or generate random password
                 'affiliate_code' => $affiliateCode,
                 'email_verified_at' => now()
             ]);
-            
+
             // Log the registration
             \App\Models\UserLog::create([
                 'user_id' => $user->id,
@@ -818,14 +818,14 @@ class AuthController extends Controller
                 'old_value' => null,
                 'new_value' => 'User registered with backup data'
             ]);
-            
+
             // Clear the cache
             try {
                 \Illuminate\Support\Facades\Cache::store('fallback')->forget("otp:{$email}");
             } catch (\Exception $e) {
                 Log::error("Failed to clear cache after backup registration: " . $e->getMessage());
             }
-            
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Email verified and account created from backup data.'
