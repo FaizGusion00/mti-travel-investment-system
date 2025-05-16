@@ -69,9 +69,7 @@ const Header = () => {
               </div>
               <div className="hidden sm:block">
                 <h1 className="text-xl md:text-2xl font-bold flex items-center">
-                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-600">META</span>
-                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-amber-500 ml-1">TRAVEL</span>
-                  <span className="text-white ml-1">INTL</span>
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-amber-500 ml-1">META TRAVEL INTERNATIONAL</span>
                 </h1>
               </div>
             </Link>
@@ -99,7 +97,7 @@ const Header = () => {
               transition={{ delay: 0.3, duration: 0.5 }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="ml-4"
+              className="ml-4 flex gap-2"
             >
               <Link 
                 href="/register" 
@@ -108,6 +106,14 @@ const Header = () => {
                 <span className="absolute inset-0 w-full h-full bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600"></span>
                 <span className="absolute bottom-0 right-0 block w-64 h-64 mb-32 mr-4 transition duration-500 origin-bottom-left transform rotate-45 translate-x-24 bg-blue-500 rounded-full opacity-30 group-hover:rotate-90 ease"></span>
                 <span className="relative text-white font-semibold">Register</span>
+              </Link>
+              <Link 
+                href="https://app.metatravel.ai" 
+                className="relative group inline-flex items-center justify-center px-6 py-2 overflow-hidden font-medium rounded-md"
+              >
+                <span className="absolute inset-0 w-full h-full bg-gradient-to-br from-yellow-400 to-amber-500"></span>
+                <span className="absolute bottom-0 right-0 block w-64 h-64 mb-32 mr-4 transition duration-500 origin-bottom-left transform rotate-45 translate-x-24 bg-blue-500 rounded-full opacity-30 group-hover:rotate-90 ease"></span>
+                <span className="relative text-white font-semibold">Login</span>
               </Link>
             </motion.div>
           </nav>
@@ -165,6 +171,16 @@ const Header = () => {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <span className="mr-2">Create Account</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </Link>
+                <Link 
+                  href="https://app.metatravel.ai" 
+                  className="flex items-center justify-center w-full px-8 py-4 text-lg font-bold text-white rounded-lg bg-gradient-to-r from-blue-600 to-indigo-700 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-1"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <span className="mr-2">Login</span>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>

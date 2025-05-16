@@ -35,20 +35,19 @@ const Footer = () => {
               transition={{ duration: 0.7 }}
             >
               <h3 className="text-2xl font-bold mb-2">
-                <span className="text-[var(--accent-blue)] text-glow">META</span>
-                <span className="text-[var(--accent-gold)]"> TRAVEL</span>
+                <span className="text-[var(--accent-blue)]">META TRAVEL</span>
               </h3>
-              <h4 className="text-white font-bold">INTERNATIONAL</h4>
+              <h4 className="text-[var(--accent-gold)] font-bold">INTERNATIONAL</h4>
             </motion.div>
             
             <motion.p
-              className="text-gray-400 mb-6"
+              className="text-gray-400 mb-6 text-justify"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.7, delay: 0.1 }}
             >
-              A revolutionary MLM platform with travel rewards, referral bonuses, and XLM staking in a premium cosmic ecosystem.
+              Meta Travel International, headquartered in Marina Bay, Singapore, is an innovative global travel platform that simplifies holiday planning with seamless digital access, while providing users with the opportunity to generate income and enjoy complimentary travel experiences worldwide.
             </motion.p>
             
             <motion.div
@@ -84,6 +83,8 @@ const Footer = () => {
               <FooterLink href="#features">Features</FooterLink>
               <FooterLink href="#benefits">Benefits</FooterLink>
               <FooterLink href="#download">Download</FooterLink>
+              <FooterChildLink href="https://sgp1.vultrobjects.com/mti-assets/docs/MTI_EN.pdf">Plan (EN)</FooterChildLink>
+              <FooterChildLink href="https://sgp1.vultrobjects.com/mti-assets/docs/MTI_BM.pdf">Plan (MY)</FooterChildLink>
               <FooterLink href="#">Privacy Policy</FooterLink>
               <FooterLink href="#">Terms of Service</FooterLink>
             </ul>
@@ -103,19 +104,13 @@ const Footer = () => {
                   <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                   <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                 </svg>
-                <span>info@metatravelinternational.com</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[var(--accent-gold)] mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                </svg>
-                <span>+60 346-789 2540</span>
+                <span>hello@metatravel.ai</span>
               </li>
               <li className="flex items-start gap-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[var(--accent-gold)] mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                 </svg>
-                <span>Shah Alam, Selangor</span>
+                <span>Level 39, Marina Bay Financial Centre Tower 2, 10 Marina Boulevard, 018983 Singapore</span>
               </li>
             </ul>
           </motion.div>
@@ -158,6 +153,22 @@ const FooterLink = ({ href, children }: { href: string, children: React.ReactNod
       <a 
         href={href} 
         className="text-gray-400 hover:text-[var(--accent-gold)] transition-colors flex items-center gap-2"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[var(--accent-gold)]" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+        </svg>
+        {children}
+      </a>
+    </li>
+  );
+};
+
+const FooterChildLink = ({ href, children }: { href: string, children: React.ReactNode }) => {
+  return (
+    <li>
+      <a 
+        href={href} 
+        className="text-gray-400 hover:text-[var(--accent-gold)] transition-colors flex items-center gap-2 pl-4"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[var(--accent-gold)]" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />

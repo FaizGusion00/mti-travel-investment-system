@@ -2,7 +2,23 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import type { HTMLMotionProps } from 'framer-motion';
 import { cn } from '../utils/cn';
+import Image from 'next/image';
+
+// Update Swiper imports for v11.x
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, EffectFade } from 'swiper/modules';
+
+// Import Swiper styles
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/navigation';
+import 'swiper/css/effect-fade';
+
+// Define component types
+type MotionButtonProps = HTMLMotionProps<"button">;
+type MotionDivProps = HTMLMotionProps<"div">;
 
 // Fixed star positions to avoid hydration errors
 const starPositions = [
@@ -37,18 +53,20 @@ const shootingStars = [
 
 const HeroSection = () => {
   return (
-    <section className="relative w-full min-h-screen flex flex-col md:flex-row items-center justify-center px-4 sm:px-8 py-24 pt-32">
+    <section className="py-16 sm:py-20 md:py-24 lg:py-32 px-4 sm:px-6 md:px-8 relative overflow-hidden mx-auto">
       {/* Animated stars background */}
       <div className="absolute inset-0 overflow-hidden">
         {starPositions.map((position, i) => (
           <motion.div
             key={i}
-            className="absolute bg-white rounded-full"
             style={{
               top: position.top,
               left: position.left,
               width: position.size,
               height: position.size,
+              position: 'absolute',
+              borderRadius: '9999px',
+              backgroundColor: 'white',
             }}
             animate={{
               opacity: [0.1, 0.8, 0.1],
@@ -67,10 +85,13 @@ const HeroSection = () => {
         {shootingStars.map((star, i) => (
           <motion.div
             key={`shooting-${i}`}
-            className="absolute w-0.5 h-0.5 bg-white"
             style={{
               top: star.top,
               left: star.left,
+              position: 'absolute',
+              width: '0.125rem',
+              height: '0.125rem',
+              backgroundColor: 'white',
             }}
             initial={{ 
               opacity: 0,
@@ -96,147 +117,256 @@ const HeroSection = () => {
       </div>
 
       {/* Content */}
-      <div className="z-10 w-full md:w-1/2 space-y-8 text-center md:text-left">
+      <div className="w-full max-w-6xl mx-auto relative space-y-8 md:space-y-12 text-center">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1 }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
         >
+          <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 relative overflow-hidden mb-4 sm:mb-6">
+              <Image 
+                src="/logo.png" 
+                alt="MTI Logo" 
+                width={400} 
+                height={400}
+                className="mx-auto object-contain"
+              />
+          </div>
           <motion.div
-            className="inline-block mb-2 px-4 py-1 rounded-full bg-[rgba(30,144,255,0.1)] border border-[var(--accent-blue)] text-sm text-[var(--accent-blue)]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.7 }}
+            style={{ 
+              display: 'inline-block',
+              marginBottom: '1rem',
+              padding: '0.5rem 1.5rem',
+              borderRadius: '9999px',
+              background: 'rgba(30,144,255,0.1)',
+              backdropFilter: 'blur(4px)',
+              border: '1px solid rgba(30,144,255, 0.4)',
+              fontSize: '0.9rem',
+              letterSpacing: '0.5px',
+              color: 'rgb(30,144,255)',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+            }}
           >
-            Welcome to the Future of Travel & Finance
+            Let's Travel & Earn Income
           </motion.div>
           
           <motion.h1 
-            className="text-5xl md:text-7xl font-bold leading-tight"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
+            style={{
+              fontSize: 'clamp(2.5rem, 8vw, 3.5rem)',
+              lineHeight: '1.1',
+              fontWeight: '800',
+              letterSpacing: '-0.02em',
+              marginBottom: '1.5rem',
+            }}
           >
-            <span className="text-[var(--accent-blue)] text-glow block">META TRAVEL</span>
-            <span className="text-white block">INTERNATIONAL</span>
+            <span style={{ 
+              color: 'var(--accent-blue)', 
+              display: 'block', 
+              textShadow: '0 0 15px rgba(30,144,255,0.7)',
+              background: 'linear-gradient(135deg, #4dabf7 0%, #1e90ff 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}>META TRAVEL</span>
+            <span style={{ 
+              color: 'var(--accent-gold)', 
+              display: 'block', 
+              fontSize: 'clamp(2rem, 7vw, 3rem)',
+              background: 'linear-gradient(135deg, #ffd700 0%, #e6b800 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}>INTERNATIONAL</span>
           </motion.h1>
         </motion.div>
         
         <motion.p 
-          className="text-xl md:text-2xl text-gray-300 max-w-xl"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2 }}
+          style={{
+            fontSize: 'clamp(1rem, 2vw, 1.25rem)',
+            lineHeight: '1.7',
+            color: 'rgba(255, 255, 255, 0.9)',
+            fontWeight: '300',
+            maxWidth: '40rem',
+            margin: '0 auto 1.5rem',
+            textAlign: 'center',
+            padding: '0 0.5rem',
+          }}
         >
-          Explore a revolutionary MLM platform with travel rewards, referral bonuses, and XLM staking in a premium cosmic ecosystem.
+          Enjoy the chance to explore destinations around the world at no cost through our exclusive travel programs.
         </motion.p>
         
         <motion.div
-          className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.4 }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            justifyContent: 'center',
+          }}
         >
-          <motion.a
-            href="#download"
-            className={cn(
-              "px-8 py-4 rounded-full font-bold text-black",
-              "gold-gradient hover:shadow-lg hover:shadow-[var(--accent-gold)]/20",
-              "transition-all duration-300"
-            )}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Download App
-          </motion.a>
-          
-          <motion.a
-            href="#benefits"
-            className={cn(
-              "px-8 py-4 rounded-full font-bold",
-              "border-2 border-[var(--accent-gold)] text-white",
-              "hover:bg-[var(--accent-gold)]/10 transition-all duration-300"
-            )}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Learn More
-          </motion.a>
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center px-4 sm:px-0">
+            <button
+              className="group relative py-3 px-6 sm:px-10 sm:py-4 rounded-full font-bold text-black transition-all duration-300 overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, #ffd700 0%, #e6b800 100%)',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 30px rgba(230, 184, 0, 0.3), 0 2px 16px rgba(230, 184, 0, 0.2)',
+                transform: 'translateZ(0)',
+                fontSize: 'clamp(0.875rem, 1vw, 1rem)',
+                fontWeight: '600',
+                letterSpacing: '0.5px',
+                minWidth: 'min(80%, 180px)',
+              }}
+              onClick={() => {
+                window.location.href = "#download";
+              }}
+            >
+              <span className="relative z-10">Download App</span>
+              <span className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+            </button>
+            
+            <button
+              className="group relative py-3 px-6 sm:px-10 sm:py-4 rounded-full font-bold text-white transition-all duration-300 overflow-hidden"
+              style={{
+                background: 'transparent',
+                border: '2px solid var(--accent-gold)',
+                cursor: 'pointer',
+                boxShadow: '0 4px 20px rgba(230, 184, 0, 0.1)',
+                fontSize: 'clamp(0.875rem, 1vw, 1rem)',
+                fontWeight: '600',
+                letterSpacing: '0.5px',
+                minWidth: 'min(80%, 180px)',
+              }}
+              onClick={() => {
+                window.location.href = "https://app.metatravel.ai";
+              }}
+            >
+              <span className="relative z-10">Login</span>
+              <span className="absolute inset-0 bg-[var(--accent-gold)]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+            </button>
+          </div>
         </motion.div>
       </div>
       
-      {/* Placeholder for mobile app mockup */}
-      <motion.div 
-        className="z-10 w-full md:w-1/2 mt-16 md:mt-0 flex justify-center"
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.7, delay: 0.6 }}
-      >
-        <div className="relative w-72 h-[550px] md:w-80 md:h-[600px] animate-float">
-          {/* Phone frame */}
-          <div className="absolute inset-0 rounded-[40px] border-8 border-[#333] bg-black overflow-hidden shadow-2xl">
-            {/* Screen content */}
-            <div className="absolute inset-0 overflow-hidden">
-              {/* App UI simulation */}
-              <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a2a] to-black">
-                {/* Status bar */}
-                <div className="h-6 bg-black/40 flex justify-between items-center px-4">
-                  <div className="text-white text-xs">9:41</div>
-                  <div className="flex space-x-1">
-                    <div className="w-4 h-2 bg-white rounded-sm"></div>
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
+      {/* Mobile app mockup */}
+      <div className="z-10 w-full max-w-6xl mx-auto mt-12 sm:mt-16 md:mt-24 flex justify-center items-center relative">
+        <div className="w-full md:w-4/5 lg:w-3/4 max-w-[500px] relative mx-auto">
+          <Swiper
+            spaceBetween={0}
+            centeredSlides={true}
+            effect="fade"
+            autoplay={{
+              delay: 3000,
+              disableOnInteraction: false,
+            }}
+            modules={[Autoplay, EffectFade]}
+            style={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              margin: '0 auto',
+            }}
+          >
+            <SwiperSlide>
+              <motion.div 
+                style={{ 
+                  width: '100%',
+                  maxWidth: '400px',
+                  position: 'relative',
+                  margin: '0 auto'
+                }}
+                animate={{ 
+                  y: [0, -10, 0],
+                }}
+                transition={{
+                  duration: 6,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <div className="phone-frame relative">
+                  <Image
+                    src="/hero/mti_promo_1.png" 
+                    alt="MTI Package 1" 
+                    width={500}
+                    height={900}
+                    className="w-full h-auto"
+                    style={{ 
+                      border: '10px solid #111',
+                      borderRadius: '38px',
+                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+                      filter: 'contrast(1.05) brightness(1.05)',
+                    }}
+                    priority
+                    quality={100}
+                  />
+                  {/* Phone details */}
+                  <div className="absolute top-[10px] left-1/2 transform -translate-x-1/2 w-1/3 h-[16px] sm:h-[22px] bg-black rounded-b-[12px] sm:rounded-b-[16px] z-10 flex justify-center items-center">
+                    <div className="w-[40%] h-2 sm:h-3 bg-black rounded-full relative">
+                      <div className="absolute left-[16%] top-1/2 transform -translate-y-1/2 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#333]"></div>
+                    </div>
                   </div>
                 </div>
-                
-                {/* App content */}
-                <div className="p-4">
-                  <div className="flex justify-center mb-6">
-                    <div className="text-[var(--accent-blue)] text-glow text-xl font-bold">META TRAVEL</div>
-                  </div>
-                  
-                  <div className="bg-white/5 rounded-xl p-4 mb-4">
-                    <div className="text-white text-sm font-bold mb-2">Welcome Back!</div>
-                    <div className="h-2 w-3/4 bg-[var(--accent-gold)]/30 rounded-full mb-1"></div>
-                    <div className="h-2 w-1/2 bg-[var(--accent-gold)]/30 rounded-full"></div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-white/5 rounded-xl p-3 h-24">
-                      <div className="text-[var(--accent-gold)] text-xs mb-2">Wallet</div>
-                      <div className="text-white text-lg font-bold">2,580 USDT</div>
-                      <div className="text-green-400 text-xs">+12.5%</div>
-                    </div>
-                    <div className="bg-white/5 rounded-xl p-3 h-24">
-                      <div className="text-[var(--accent-gold)] text-xs mb-2">XLM</div>
-                      <div className="text-white text-lg font-bold">358.42</div>
-                      <div className="text-green-400 text-xs">+5.2%</div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-[var(--accent-blue)]/10 border border-[var(--accent-blue)]/30 rounded-xl p-4">
-                    <div className="text-white text-sm font-bold mb-2">Network Growth</div>
-                    <div className="flex justify-between items-end h-16 mb-1">
-                      <div className="w-2 h-4 bg-[var(--accent-blue)]/50 rounded-t-sm"></div>
-                      <div className="w-2 h-8 bg-[var(--accent-blue)]/50 rounded-t-sm"></div>
-                      <div className="w-2 h-6 bg-[var(--accent-blue)]/50 rounded-t-sm"></div>
-                      <div className="w-2 h-10 bg-[var(--accent-blue)]/50 rounded-t-sm"></div>
-                      <div className="w-2 h-12 bg-[var(--accent-blue)]/50 rounded-t-sm"></div>
-                      <div className="w-2 h-16 bg-[var(--accent-blue)] rounded-t-sm"></div>
+              </motion.div>
+            </SwiperSlide>
+            <SwiperSlide>
+              <motion.div 
+                style={{ 
+                  width: '100%',
+                  maxWidth: '400px',
+                  position: 'relative',
+                  margin: '0 auto'
+                }}
+                animate={{ 
+                  y: [0, -10, 0],
+                }}
+                transition={{
+                  duration: 6,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <div className="phone-frame relative">
+                  <Image
+                    src="/hero/mti_promo_2.png" 
+                    alt="MTI Package 2" 
+                    width={500}
+                    height={900}
+                    className="w-full h-auto"
+                    style={{ 
+                      border: '10px solid #111',
+                      borderRadius: '38px',
+                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+                      filter: 'contrast(1.05) brightness(1.05)',
+                    }}
+                    priority
+                    quality={100}
+                  />
+                  {/* Phone details */}
+                  <div className="absolute top-[10px] left-1/2 transform -translate-x-1/2 w-1/3 h-[16px] sm:h-[22px] bg-black rounded-b-[12px] sm:rounded-b-[16px] z-10 flex justify-center items-center">
+                    <div className="w-[40%] h-2 sm:h-3 bg-black rounded-full relative">
+                      <div className="absolute left-[16%] top-1/2 transform -translate-y-1/2 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#333]"></div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-            
-            {/* Notch */}
-            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-1/3 h-6 bg-black rounded-b-xl"></div>
-          </div>
-          
-          {/* Glow effect */}
-          <div className="absolute -inset-4 bg-gradient-to-b from-[var(--accent-blue)] to-transparent opacity-20 rounded-[60px] blur-xl -z-10"></div>
+              </motion.div>
+            </SwiperSlide>
+          </Swiper>
         </div>
-      </motion.div>
+      </div>
+      
     </section>
   );
 };

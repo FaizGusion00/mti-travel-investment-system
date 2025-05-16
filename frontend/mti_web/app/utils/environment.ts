@@ -7,7 +7,7 @@ class Environment {
    * - true: Use localhost:8000 for development
    * - false: Use panel.metatravel.ai (via proxy) for development
    */
-  static useLocalServer: boolean = false;
+  static useLocalServer: boolean = true;
 
   /**
    * Toggle to use production Turnstile keys vs test keys
