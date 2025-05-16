@@ -1301,7 +1301,7 @@ class ApiService {
       }
 
       final response = await http.get(
-        Uri.parse('$baseUrl/network?levels=$levels'),
+        Uri.parse('$baseUrl/network?levels=$levels&include_more=true'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -1312,23 +1312,50 @@ class ApiService {
         final responseData = json.decode(response.body);
         _log('Successfully retrieved network data');
         
-        // Process the network data into a more usable format
-        final userData = responseData['data']['user'];
-        final downlines = responseData['data']['downlines'] ?? [];
-        
-        // Create root node structure for the current user
-        final Map<String, dynamic> networkTree = {
-          'id': userData['affiliate_code'] ?? '',
-          'name': userData['full_name'] ?? 'You',
-          'level': 'Level 0',
-          'downlines': downlines.length,
-          'isActive': true,
-          'status': 'Active',
-          'joinDate': _formatDate(userData['created_at']),
-          'children': _processDownlines(downlines, 1),
-        };
-        
-        return {'status': 'success', 'data': networkTree};
+        // Check if the API is already returning the new format with user node
+        if (responseData['data'] != null && responseData['data']['user'] != null) {
+          final rootNode = responseData['data']['user'];
+          
+          // Add direct counts from API for accuracy
+          final int directReferrals = responseData['data']['direct_referrals'] ?? 0;
+          final int totalMembers = responseData['data']['total_members'] ?? 0;
+          
+          // Ensure the node has required fields for the UI
+          if (!rootNode.containsKey('name')) {
+            rootNode['name'] = rootNode['full_name'] ?? 'You';
+          }
+          
+          // Set current user flag
+          rootNode['isCurrentUser'] = true;
+          
+          // Return the processed data
+          return {
+            'status': 'success', 
+            'data': rootNode,
+            'total_members': totalMembers,
+            'direct_referrals': directReferrals
+          };
+        } 
+        // Legacy format handling (backward compatibility)
+        else {
+          final userData = responseData['data']['user'];
+          final downlines = responseData['data']['downlines'] ?? [];
+          
+          // Create root node structure for the current user
+          final Map<String, dynamic> networkTree = {
+            'id': userData['affiliate_code'] ?? '',
+            'name': userData['full_name'] ?? 'You',
+            'level': 0, // Level 0 is current user/trader
+            'downlines': downlines.length,
+            'isActive': true,
+            'isCurrentUser': true,
+            'status': 'Active',
+            'joinDate': _formatDate(userData['created_at']),
+            'children': _processDownlines(downlines, 1),
+          };
+          
+          return {'status': 'success', 'data': networkTree};
+        }
       } else {
         var errorMessage = 'Failed to get network data. Status code: ${response.statusCode}';
         try {
@@ -1351,19 +1378,31 @@ class ApiService {
   static List<Map<String, dynamic>> _processDownlines(List<dynamic> downlines, int level) {
     List<Map<String, dynamic>> result = [];
     
+    int position = 0;
     for (var downline in downlines) {
       final children = downline['children'] ?? [];
+      final bool hasMoreChildren = downline['has_more_children'] == true;
+      final int moreChildrenCount = downline['more_children_count'] ?? 0;
       
-      result.add({
-        'id': downline['affiliate_code'] ?? '',
-        'name': downline['full_name'] ?? '',
-        'level': 'Level $level',
+      Map<String, dynamic> node = {
+        'id': downline['id'] ?? downline['affiliate_code'] ?? '',
+        'name': downline['name'] ?? downline['full_name'] ?? '',
+        'level': level,
+        'position': downline['position'] ?? position++,
         'downlines': children.length,
-        'isActive': true, // Default to active, can be updated if status is available
-        'status': 'Active', // Default status
-        'joinDate': _formatDate(downline['created_at']),
+        'isActive': downline['isActive'] ?? true,
+        'status': downline['status'] ?? 'Active',
+        'joinDate': downline['joinDate'] ?? _formatDate(downline['created_at']),
         'children': _processDownlines(children, level + 1),
-      });
+      };
+      
+      // Add view more indicator if needed
+      if (hasMoreChildren) {
+        node['has_more_children'] = true;
+        node['more_children_count'] = moreChildrenCount;
+      }
+      
+      result.add(node);
     }
     
     return result;
@@ -1630,5 +1669,372 @@ class ApiService {
     final env = Environment.isProductionUrl ? 'PRODUCTION' : 'DEVELOPMENT';
     _log('Switched to $env environment');
     logApiConfiguration();
+  }
+
+  // Update email (with OTP verification process)
+  static Future<Map<String, dynamic>> updateEmail(Map<String, dynamic> data) async {
+    _log('Requesting email update for: ${data['email']}');
+    
+    try {
+      final token = await getToken();
+      if (token == null) {
+        _log('No authentication token found');
+        return {'status': 'error', 'message': 'Authentication token required'};
+      }
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/profile/update-email'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode(data),
+      );
+      
+      _log('Email update response status code: ${response.statusCode}');
+      _log('Email update response body: ${response.body}');
+      
+      final responseData = json.decode(response.body);
+      
+      if (response.statusCode == 200) {
+        _log('Email update request successful');
+        return {
+          'status': 'success', 
+          'message': responseData['message'] ?? 'Email verification sent',
+          'data': responseData['data']
+        };
+      } else {
+        final errorMessage = responseData['message'] ?? 'Failed to update email';
+        _log('Failed to request email update', error: errorMessage);
+        return {'status': 'error', 'message': errorMessage};
+      }
+    } catch (e) {
+      _log('Exception during email update request', error: e.toString());
+      return {'status': 'error', 'message': 'Failed to update email: $e'};
+    }
+  }
+
+  // Verify email update with OTP
+  static Future<Map<String, dynamic>> verifyEmailUpdate(Map<String, dynamic> data) async {
+    _log('Verifying email update with OTP');
+    
+    try {
+      final token = await getToken();
+      if (token == null) {
+        _log('No authentication token found');
+        return {'status': 'error', 'message': 'Authentication token required'};
+      }
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/profile/verify-email-update'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode(data),
+      );
+      
+      _log('Email verification response status code: ${response.statusCode}');
+      _log('Email verification response body: ${response.body}');
+      
+      final responseData = json.decode(response.body);
+      
+      if (response.statusCode == 200) {
+        _log('Email verification successful');
+        return {
+          'status': 'success', 
+          'message': responseData['message'] ?? 'Email updated successfully',
+          'data': responseData['data']
+        };
+      } else {
+        final errorMessage = responseData['message'] ?? 'Failed to verify email update';
+        _log('Failed to verify email update', error: errorMessage);
+        return {'status': 'error', 'message': errorMessage};
+      }
+    } catch (e) {
+      _log('Exception during email verification', error: e.toString());
+      return {'status': 'error', 'message': 'Failed to verify email update: $e'};
+    }
+  }
+
+  // Get specific network node with deeper levels
+  static Future<Map<String, dynamic>> getNetworkNode(String affiliateCode, {int levels = 5}) async {
+    _log('Getting network node details for $affiliateCode with $levels levels');
+    try {
+      final token = await getToken();
+      if (token == null) {
+        _log('No token found for network node request');
+        return {'status': 'error', 'message': 'Authentication token required'};
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/network/node/$affiliateCode?levels=$levels&include_more=true'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        _log('Successfully retrieved network node data');
+        
+        final nodeData = responseData['data']['node'];
+        
+        // Ensure the node has required fields for the UI
+        if (!nodeData.containsKey('name')) {
+          nodeData['name'] = nodeData['full_name'] ?? 'User';
+        }
+        
+        // Add proper level handling for MLM - node's level is 0 in its own sub-network
+        if (!nodeData.containsKey('level')) {
+          nodeData['level'] = 0;
+        }
+        
+        // Process children to ensure proper level assignment
+        if (nodeData.containsKey('children') && nodeData['children'] is List) {
+          final List<dynamic> rawChildren = nodeData['children'];
+          nodeData['children'] = _processDownlines(rawChildren, 1);
+        }
+        
+        return {
+          'status': 'success', 
+          'data': nodeData,
+          'total_members': responseData['data']['total_members'] ?? 0,
+          'direct_referrals': responseData['data']['direct_referrals'] ?? 0
+        };
+      } else {
+        var errorMessage = 'Failed to get network node data. Status code: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage = errorData['message'] ?? errorMessage;
+        } catch (e) {
+          // Ignore JSON decode errors on error responses
+        }
+
+        _log('Failed to get network node data', error: errorMessage);
+        return {'status': 'error', 'message': errorMessage};
+      }
+    } catch (e) {
+      _log('Exception getting network node data', error: e.toString());
+      return {'status': 'error', 'message': 'Failed to get network node data: $e'};
+    }
+  }
+
+  // Get network activity
+  static Future<Map<String, dynamic>> getNetworkActivity() async {
+    _log('Getting network activity');
+    
+    try {
+      final String apiUrl = '${AppConstants.apiV1BaseUrl}/network/activity';
+      _log('Using centralized API URL config for network activity: $apiUrl');
+      
+      final token = await getToken();
+      if (token == null) {
+        _log('No token available for network activity request');
+        return {
+          'status': 'error',
+          'message': 'Authentication token not available',
+        };
+      }
+      
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(Duration(seconds: Environment.requestTimeout));
+      
+      _log('Network activity response status code: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        _log('Network activity retrieved successfully');
+        return result;
+      } else {
+        _log('Failed to get network activity: ${response.body}');
+        return {
+          'status': 'error',
+          'message': 'Failed to get network activity',
+          'data': json.decode(response.body),
+        };
+      }
+    } catch (e) {
+      _log('Error getting network activity: $e');
+      return {
+        'status': 'error',
+        'message': 'Error: $e',
+      };
+    }
+  }
+  
+  // Get team achievements
+  static Future<Map<String, dynamic>> getTeamAchievements() async {
+    _log('Getting team achievements');
+    
+    try {
+      final String apiUrl = '${AppConstants.apiV1BaseUrl}/network/achievements';
+      _log('Using centralized API URL config for team achievements: $apiUrl');
+      
+      final token = await getToken();
+      if (token == null) {
+        _log('No token available for team achievements request');
+        return {
+          'status': 'error',
+          'message': 'Authentication token not available',
+        };
+      }
+      
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(Duration(seconds: Environment.requestTimeout));
+      
+      _log('Team achievements response status code: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        _log('Team achievements retrieved successfully');
+        return result;
+      } else {
+        _log('Failed to get team achievements: ${response.body}');
+        return {
+          'status': 'error',
+          'message': 'Failed to get team achievements',
+          'data': json.decode(response.body),
+        };
+      }
+    } catch (e) {
+      _log('Error getting team achievements: $e');
+      return {
+        'status': 'error',
+        'message': 'Error: $e',
+      };
+    }
+  }
+  
+  // Log activity
+  static Future<Map<String, dynamic>> logActivity({
+    required String activityType,
+    required String description,
+    int? relatedUserId,
+    Map<String, dynamic>? metadata,
+  }) async {
+    _log('Logging activity: $activityType');
+    
+    try {
+      final String apiUrl = '${AppConstants.apiV1BaseUrl}/activity/log';
+      _log('Using centralized API URL config for activity logging: $apiUrl');
+      
+      final token = await getToken();
+      if (token == null) {
+        _log('No token available for activity logging request');
+        return {
+          'status': 'error',
+          'message': 'Authentication token not available',
+        };
+      }
+      
+      final Map<String, dynamic> requestBody = {
+        'activity_type': activityType,
+        'description': description,
+      };
+      
+      if (relatedUserId != null) {
+        requestBody['related_user_id'] = relatedUserId;
+      }
+      
+      if (metadata != null) {
+        requestBody['metadata'] = metadata;
+      }
+      
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(requestBody),
+      ).timeout(Duration(seconds: Environment.requestTimeout));
+      
+      _log('Activity logging response status code: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        _log('Activity logged successfully');
+        return result;
+      } else {
+        _log('Failed to log activity: ${response.body}');
+        return {
+          'status': 'error',
+          'message': 'Failed to log activity',
+          'data': json.decode(response.body),
+        };
+      }
+    } catch (e) {
+      _log('Error logging activity: $e');
+      return {
+        'status': 'error',
+        'message': 'Error: $e',
+      };
+    }
+  }
+
+  // Get user profile
+  static Future<Map<String, dynamic>> getUserProfile() async {
+    _log('Getting user profile');
+    
+    try {
+      final String apiUrl = '${AppConstants.apiV1BaseUrl}/user';
+      _log('Using centralized API URL config for user profile: $apiUrl');
+      
+      final token = await getToken();
+      if (token == null) {
+        _log('No token available for user profile request');
+        return {
+          'status': 'error',
+          'message': 'Authentication token not available',
+        };
+      }
+      
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(Duration(seconds: Environment.requestTimeout));
+      
+      _log('User profile response status code: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        _log('User profile retrieved successfully');
+        return result;
+      } else {
+        _log('Failed to get user profile: ${response.body}');
+        return {
+          'status': 'error',
+          'message': 'Failed to get user profile',
+          'data': json.decode(response.body),
+        };
+      }
+    } catch (e) {
+      _log('Error getting user profile: $e');
+      return {
+        'status': 'error',
+        'message': 'Error: $e',
+      };
+    }
   }
 }

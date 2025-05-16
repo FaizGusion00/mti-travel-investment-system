@@ -24,7 +24,7 @@ class _SplashScreenState extends State<SplashScreen> {
   bool _isCheckingAuth = false;
 
   // Version information
-  String _version = 'v0.0.3';
+  String _version = 'v0.0.4';
 
   // Auth service
   final AuthService _authService = AuthService();

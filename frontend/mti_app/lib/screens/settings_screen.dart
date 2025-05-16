@@ -23,7 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDarkMode = true;
   String _selectedCurrency = 'USD';
   String _selectedLanguage = 'English';
-  String _appVersion = 'v0.0.2';
+  String _appVersion = 'v0.0.4';
   bool _isLoading = false;
   String? _profileImageUrl;
   bool _isButtonPressed = false;
@@ -52,7 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       // Use default version if package info fails
       setState(() {
-        _appVersion = 'v0.0.2';
+        _appVersion = 'v0.0.4';
       });
     }
   }

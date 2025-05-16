@@ -52,6 +52,8 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // If suffix is a Row or more than one widget, use suffix instead of suffixIcon
+    final bool useSuffix = suffix != null && (suffix is! IconButton);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -87,7 +89,8 @@ class CustomTextField extends StatelessWidget {
             hintText: hint,
             errorText: errorText,
             prefixIcon: prefix,
-            suffixIcon: suffix,
+            suffixIcon: !useSuffix ? suffix : null,
+            suffix: useSuffix ? suffix : null,
             contentPadding: contentPadding ?? const EdgeInsets.all(16),
             filled: true,
             fillColor: AppTheme.secondaryBackgroundColor,

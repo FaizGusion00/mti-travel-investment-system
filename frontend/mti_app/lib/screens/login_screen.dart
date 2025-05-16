@@ -728,7 +728,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12.0),
                         child: Text(
-                          "v0.0.3",
+                          "v0.0.4",
                           style: TextStyle(
                             color: AppTheme.tertiaryTextColor.withOpacity(0.6),
                             fontSize: 12,

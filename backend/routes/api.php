@@ -11,6 +11,7 @@ use App\Http\Controllers\API\SimpleTestController;
 use App\Http\Controllers\API\TokenGeneratorController;
 use App\Http\Controllers\API\WalletController;
 use App\Http\Controllers\API\NotificationController;
+use App\Http\Controllers\API\ActivityController;
 
 /*
 |--------------------------------------------------------------------------
@@ -89,6 +90,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/network/stats', [NetworkController::class, 'getNetworkStats']);
     Route::get('/network/commissions', [NetworkController::class, 'getCommissions']);
     Route::get('/network/summary', [NetworkController::class, 'getNetworkSummary']);
+    Route::get('/network/node/{affiliate_code}', [NetworkController::class, 'getNetworkNode']);
     
     // Wallet and Trader functionality
     Route::get('/wallet', [WalletController::class, 'getWalletBalances']);
@@ -111,4 +113,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/stats/registrations', [UserController::class, 'getRegistrationStats']);
         Route::get('/stats/activity', [UserController::class, 'getActivityStats']);
     });
+
+    // Network Activity and Team Achievement routes
+    Route::get('/network/activity', [ActivityController::class, 'getNetworkActivity']);
+    Route::get('/network/achievements', [ActivityController::class, 'getTeamAchievements']);
+    Route::post('/activity/log', [ActivityController::class, 'logActivity']);
 });

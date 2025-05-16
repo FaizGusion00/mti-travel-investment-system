@@ -33,11 +33,13 @@ export default function Register() {
     const affiliateCode = searchParams.get('affiliate_code');
     if (affiliateCode) {
       console.log('Affiliate code found in URL:', affiliateCode);
+      // Display the affiliate code in the input field when coming from link
       setFormData(prev => ({ ...prev, referral_id: affiliateCode }));
     } else {
-      // Set default reference code to ADMIN01 if no code is provided
-      console.log('No affiliate code found, using default: ADMIN01');
-      setFormData(prev => ({ ...prev, referral_id: 'ADMIN01' }));
+      // Leave reference code field blank by default for display purposes
+      // Will silently use ADMIN01 when submitting if empty
+      console.log('No affiliate code found, field will be blank but use ADMIN01 as default');
+      setFormData(prev => ({ ...prev, referral_id: '' }));
     }
   }, [searchParams]);
   
@@ -73,7 +75,9 @@ export default function Register() {
         break;
       case 'phonenumber':
         const phoneRegex = /^\+?[0-9]{8,15}$/;
-        if (!phoneRegex.test(value.replace(/[\s-]/g, ''))) {
+        // Get only the digits for validation
+        const digitsOnly = value.replace(/[\s-]/g, '');
+        if (!phoneRegex.test(digitsOnly)) {
           error = 'Please enter a valid phone number';
         }
         break;
@@ -127,12 +131,23 @@ export default function Register() {
     });
   };
 
-  // Format phone number with spaces
+  // Format phone number in Malaysian style: 019-459 6236
   const formatPhoneNumber = (phone: string) => {
     // Remove all non-digits
     const digits = phone.replace(/\D/g, '');
-    // Insert a space after every 3 digits
-    return digits.replace(/(.{3})/g, '$1 ').trim();
+    
+    if (digits.length <= 3) {
+      return digits;
+    }
+    
+    // Format first part with hyphen (e.g., 019-) and rest with space after 3 digits
+    const firstPart = digits.substring(0, 3) + '-';
+    const remainingDigits = digits.substring(3);
+    
+    // Insert a space after every 3 digits in the remaining part
+    const formattedRemaining = remainingDigits.replace(/(.{3})/g, '$1 ').trim();
+    
+    return firstPart + formattedRemaining;
   };
 
   // Handle form input changes with validation
@@ -204,8 +219,8 @@ export default function Register() {
 
   // Steps configuration
   const formSteps = [
-    { name: 'Personal Details', fields: ['full_name', 'username', 'email', 'phonenumber'] },
-    { name: 'Additional Info', fields: ['address', 'date_of_birth', 'referral_id'] },
+    { name: 'Personal Details', fields: ['full_name', 'username', 'email', 'phonenumber', 'referral_id'] },
+    { name: 'Additional Info', fields: ['address', 'date_of_birth'] },
     { name: 'Security', fields: ['password', 'password_confirmation'] },
     { name: 'Verification', fields: ['profile_image', 'captcha'] }
   ];
@@ -312,7 +327,12 @@ export default function Register() {
       
       // Add all text fields
       Object.entries(formData).forEach(([key, value]) => {
-        formDataObj.append(key, value);
+        // If referral_id is empty, silently use ADMIN01 as default
+        if (key === 'referral_id' && !value) {
+          formDataObj.append(key, 'ADMIN01');
+        } else {
+          formDataObj.append(key, value);
+        }
       });
       
       // Add captcha token
@@ -647,6 +667,21 @@ export default function Register() {
                   <p className="mt-1 text-xs text-red-400">{fieldsWithErrors.phonenumber}</p>
                 )}
               </div>
+
+              <div>
+                <label htmlFor="referral_id" className="block text-sm font-medium text-gray-200">
+                  Reference Code
+                </label>
+                <input
+                  id="referral_id"
+                  name="referral_id"
+                  type="text"
+                  value={formData.referral_id}
+                  onChange={handleChange}
+                  className="mt-1 block w-full px-3 py-2 bg-gray-900/70 border border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                  placeholder="Enter reference code (if any)"
+                />
+              </div>
             </div>
 
             {/* Step 2: Additional Info */}
@@ -688,21 +723,6 @@ export default function Register() {
                 {fieldsWithErrors.date_of_birth && (
                   <p className="mt-1 text-xs text-red-400">{fieldsWithErrors.date_of_birth}</p>
                 )}
-              </div>
-
-              <div>
-                <label htmlFor="referral_id" className="block text-sm font-medium text-gray-200">
-                  Reference Code <span className="text-xs text-gray-400">(Auto-filled from link)</span>
-                </label>
-                <input
-                  id="referral_id"
-                  name="referral_id"
-                  type="text"
-                  value={formData.referral_id}
-                  onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 bg-gray-900/70 border border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                  placeholder="Enter reference code (if any)"
-                />
               </div>
             </div>
 

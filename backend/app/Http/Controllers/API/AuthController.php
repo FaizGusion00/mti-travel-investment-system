@@ -68,8 +68,8 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Generate a unique 6-character referral code
-        $refCode = $this->generateUniqueRefCode();
+        // Use username as affiliate_code instead of generating a random code
+        $refCode = $request->username;
 
         // Find referrer's affiliate code if provided
         $referralId = null;
@@ -729,7 +729,7 @@ class AuthController extends Controller
             'referral_id' => $data['referral_id'] ?? null,
             'profile_image' => $data['profile_image'] ?? 'profile_images/default.png',
             'password' => $data['password'],
-            'affiliate_code' => $data['affiliate_code'] ?? $this->generateUniqueRefCode(),
+            'affiliate_code' => $data['username'], // Use username as affiliate_code
             'email_verified_at' => now()
         ];
 
@@ -807,8 +807,8 @@ class AuthController extends Controller
             ], 400);
         }
 
-        // Generate a unique affiliate code
-        $affiliateCode = $this->generateUniqueRefCode();
+        // Use username as affiliate code
+        $affiliateCode = $request->username;
 
         // Create user from backup data
         try {

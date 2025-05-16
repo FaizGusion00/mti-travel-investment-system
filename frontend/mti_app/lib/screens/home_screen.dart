@@ -1100,15 +1100,27 @@ class _HomeScreenState extends State<HomeScreen>
       formattedAmount = "\$${NumberFormatter.formatCurrency(displayAmount)}";
       formattedUSDT = "\$${NumberFormatter.formatCurrency(displayAmount)}";
     } else if (title == "XLM Wallet") {
-      formattedAmount = "\$${NumberFormatter.formatCurrency(displayAmount)}";
-      formattedUSDT = "\$${NumberFormatter.formatCurrency(displayAmount)}";
+      // Convert USDT to XLM (1 USDT = 3.36 XLM)
+      final xlmValue = displayAmount * 3.36;
+      formattedAmount = "${NumberFormatter.formatCurrency(xlmValue)} ✱"; // Using star symbol for XLM
+      formattedUSDT = "\$${NumberFormatter.formatCurrency(displayAmount)}"; // USDT value
     }
+    // Check if this is XLM wallet for special animations
+    final bool isXlmWallet = title == "XLM Wallet";
+    
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       margin: const EdgeInsets.symmetric(vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.black.withOpacity(0.7),
+            Colors.black.withOpacity(0.5),
+          ],
+        ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: AppTheme.goldColor.withOpacity(0.18),
@@ -1116,7 +1128,7 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.goldColor.withOpacity(0.08),
+            color: iconColor.withOpacity(0.15),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1124,43 +1136,60 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       child: Row(
         children: [
+          // Icon with enhanced animation
           Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.18),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: AppTheme.goldColor.withOpacity(0.5),
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.goldColor.withOpacity(0.10),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: useSvgLogo && svgAsset != null
-                  ? Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: SvgPicture.asset(
-                        svgAsset,
-                        color: iconColor,
-                      ),
-                    )
-                  : Icon(icon, color: iconColor, size: 22),
-              )
-              .animate()
-              .fadeIn(duration: 400.ms)
-              .scale(
-                begin: Offset(0.95, 0.95),
-                end: Offset(1.0, 1.0),
-                duration: 400.ms,
-                curve: Curves.easeOutCubic,
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  iconColor.withOpacity(0.2),
+                  Colors.black.withOpacity(0.3),
+                ],
               ),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: iconColor.withOpacity(0.5),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: iconColor.withOpacity(0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: useSvgLogo && svgAsset != null
+              ? Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: SvgPicture.asset(
+                    svgAsset,
+                    color: iconColor,
+                  ),
+                )
+              : Icon(icon, color: iconColor, size: 22),
+          )
+          .animate()
+          .fadeIn(duration: 400.ms)
+          .scale(
+            begin: const Offset(0.95, 0.95),
+            end: const Offset(1.0, 1.0),
+            duration: 400.ms,
+            curve: Curves.easeOutCubic,
+          )
+          .then(delay: isXlmWallet ? const Duration(milliseconds: 200) : Duration.zero)
+          .shimmer(
+            duration: 2000.ms,
+            color: isXlmWallet ? Colors.white : Colors.transparent,
+            curve: Curves.easeInOutCubic,
+          ),
+          
           const SizedBox(width: 18),
+          
+          // Wallet information
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1172,8 +1201,12 @@ class _HomeScreenState extends State<HomeScreen>
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
-                ),
+                ).animate()
+                 .fadeIn(duration: 500.ms)
+                 .slide(begin: const Offset(-0.1, 0), end: const Offset(0, 0)),
+                 
                 const SizedBox(height: 2),
+                
                 Text(
                   formattedUSDT,
                   style: TextStyle(
@@ -1181,25 +1214,44 @@ class _HomeScreenState extends State<HomeScreen>
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
-                ),
+                ).animate()
+                 .fadeIn(duration: 500.ms, delay: 100.ms)
+                 .slide(begin: const Offset(-0.1, 0), end: const Offset(0, 0)),
               ],
             ),
           ),
+          
+          // Amount display with enhanced animation
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 formattedAmount,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(
+                      color: iconColor.withOpacity(0.3),
+                      blurRadius: 5,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
                 ),
-              ).animate().fadeIn(duration: 400.ms, delay: 120.ms),
+              ).animate()
+               .fadeIn(duration: 600.ms, delay: 200.ms)
+               .scale(
+                 begin: const Offset(0.9, 0.9),
+                 end: const Offset(1.0, 1.0),
+                 curve: Curves.easeOutBack,
+               ),
             ],
           ),
         ],
       ),
-    );
+    ).animate()
+     .fadeIn(duration: 500.ms)
+     .slideY(begin: 0.05, end: 0, curve: Curves.easeOutQuad);
   }
 }

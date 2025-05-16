@@ -4,9 +4,12 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:share_plus/share_plus.dart';
 import '../config/theme.dart';
 import '../widgets/custom_button.dart';
-import 'dart:math';
+import 'dart:math' as math;
 import '../services/api_service.dart';
 import 'dart:developer' as developer;
+import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:ui' as ui;
 
 // Custom layout delegate for positioning root and level 1 nodes
 class NetworkLayoutDelegate extends MultiChildLayoutDelegate {
@@ -24,7 +27,7 @@ class NetworkLayoutDelegate extends MultiChildLayoutDelegate {
     // Calculate positions for level 1 nodes
     final levelHeight = 120.0; // Distance from root to level 1
     final level1Width = size.width * 0.8;
-    final spacing = level1Width / max(level1Nodes.length, 1);
+    final spacing = level1Width / math.max(level1Nodes.length, 1);
 
     // Position each level 1 node
     for (int i = 0; i < level1Nodes.length; i++) {
@@ -76,7 +79,7 @@ class Level2LayoutDelegate extends MultiChildLayoutDelegate {
     final parentBottomY = 0.0; // Parent is at the top of this container
 
     // Calculate positions for each level 2 node
-    final nodeSpacing = size.width / max(level2Nodes.length, 1);
+    final nodeSpacing = size.width / math.max(level2Nodes.length, 1);
     final nodeY = 70.0; // Distance from parent to level 2
 
     for (int i = 0; i < level2Nodes.length; i++) {
@@ -153,6 +156,100 @@ class LinePainterData {
   LinePainterData({required this.start, required this.end});
 }
 
+// Custom painter for angled connector lines
+class AngleLinePainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final bool isLeftAlign;
+
+  AngleLinePainter({
+    required this.color,
+    required this.strokeWidth,
+    this.isLeftAlign = true,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final path = Path();
+    // Start from the center top
+    path.moveTo(size.width / 2, 0);
+
+    // Create angled path based on alignment (left or right)
+    if (isLeftAlign) {
+      // Angled to the left
+      path.lineTo(size.width * 0.3, size.height * 0.5);
+      path.lineTo(size.width * 0.5, size.height);
+    } else {
+      // Angled to the right
+      path.lineTo(size.width * 0.7, size.height * 0.5);
+      path.lineTo(size.width * 0.5, size.height);
+    }
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(AngleLinePainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.isLeftAlign != isLeftAlign;
+  }
+}
+
+// Direct connecting line painter - draws a line from parent to child with an angle
+class DirectConnectingLinePainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final Offset start;
+  final Offset end;
+
+  DirectConnectingLinePainter({
+    required this.color,
+    required this.strokeWidth,
+    required this.start,
+    required this.end,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    // Create a path with a gentle curve for a more organic feel
+    final path = Path();
+    path.moveTo(start.dx, start.dy);
+    
+    // Control points for the curve
+    final controlPoint1 = Offset(start.dx, start.dy + (end.dy - start.dy) * 0.4);
+    final controlPoint2 = Offset(end.dx, start.dy + (end.dy - start.dy) * 0.6);
+    
+    path.cubicTo(
+      controlPoint1.dx, controlPoint1.dy,
+      controlPoint2.dx, controlPoint2.dy,
+      end.dx, end.dy
+    );
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(DirectConnectingLinePainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.start != start ||
+        oldDelegate.end != end;
+  }
+}
+
 class NetworkScreen extends StatefulWidget {
   const NetworkScreen({Key? key}) : super(key: key);
 
@@ -160,13 +257,226 @@ class NetworkScreen extends StatefulWidget {
   State<NetworkScreen> createState() => _NetworkScreenState();
 }
 
-class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProviderStateMixin {
+// Star class for the starry night background
+class Star {
+  double x;
+  double y;
+  double size;
+  double brightness;
+  double blinkSpeed;
+  
+  Star({
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.brightness,
+    required this.blinkSpeed,
+  });
+}
+
+// Meteorite class for animations
+class Meteorite {
+  double startX;
+  double startY;
+  double endX;
+  double endY;
+  double progress;
+  double speed;
+  double size;
+  double tailLength;
+  bool isActive;
+  
+  Meteorite({
+    required this.startX,
+    required this.startY,
+    required this.endX,
+    required this.endY,
+    this.progress = 0.0,
+    required this.speed,
+    required this.size,
+    required this.tailLength,
+    this.isActive = false,
+  });
+  
+  void update(double deltaTime) {
+    if (isActive) {
+      progress += speed * deltaTime;
+      if (progress >= 1.0) {
+        progress = 0.0;
+        isActive = false;
+      }
+    }
+  }
+  
+  void activate() {
+    isActive = true;
+    progress = 0.0;
+  }
+}
+
+// Custom painter for the starry night background
+class StarryNightPainter extends CustomPainter {
+  final List<Star> stars;
+  final List<Meteorite> meteorites;
+  final double animationValue;
+  final bool isLowPerformanceMode;
+  
+  StarryNightPainter({
+    required this.stars,
+    required this.meteorites,
+    required this.animationValue,
+    this.isLowPerformanceMode = false,
+  });
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Create a starry night background gradient
+    final backgroundPaint = Paint()
+      ..shader = ui.Gradient.radial(
+        Offset(size.width * 0.5, size.height * 0.5),
+        size.width,
+        [
+          Color(0xFF000510), // Very dark blue center
+          Color(0xFF00081a), // Dark blue edges
+        ],
+      );
+    
+    // Paint for stars with more vivid appearance
+    final starPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    
+    // Draw stars with enhanced twinkling effect
+    for (var star in stars) {
+      // More complex twinkle with combined sine waves for natural effect
+      final twinkle = (math.sin(animationValue * star.blinkSpeed) + 
+                      math.sin(animationValue * star.blinkSpeed * 1.3 + 0.5)) / 3 + 0.7;
+                      
+      // Occasional color variation for some stars
+      final colorVariation = (star.x + star.y) % 1.0 > 0.7;
+      final starColor = colorVariation 
+          ? Color.lerp(Colors.white, Colors.lightBlueAccent, 0.3)! 
+          : Colors.white;
+          
+      final adjustedBrightness = isLowPerformanceMode ? 0.8 : star.brightness * twinkle;
+      
+      starPaint.color = starColor.withOpacity(adjustedBrightness);
+      
+      // Draw a glow effect for larger stars
+      if (star.size > 2.0) {
+        // Outer glow
+        canvas.drawCircle(
+          Offset(star.x * size.width, star.y * size.height),
+          star.size * 2.0 * twinkle,
+          Paint()
+            ..color = starColor.withOpacity(0.05)
+            ..style = PaintingStyle.fill,
+        );
+        
+        // Middle glow
+        canvas.drawCircle(
+          Offset(star.x * size.width, star.y * size.height),
+          star.size * 1.5 * twinkle,
+          Paint()
+            ..color = starColor.withOpacity(0.1)
+            ..style = PaintingStyle.fill,
+        );
+      }
+      
+      // Main star
+      canvas.drawCircle(
+        Offset(star.x * size.width, star.y * size.height),
+        star.size * (isLowPerformanceMode ? 1.0 : (0.8 + twinkle * 0.4)),
+        starPaint,
+      );
+    }
+    
+    // Only draw meteorites in normal performance mode
+    if (!isLowPerformanceMode) {
+      // Draw active meteorites
+      for (var meteorite in meteorites) {
+        if (meteorite.isActive) {
+          final currentX = meteorite.startX + (meteorite.endX - meteorite.startX) * meteorite.progress;
+          final currentY = meteorite.startY + (meteorite.endY - meteorite.startY) * meteorite.progress;
+          
+          // Create a brighter gradient for the tail
+          final gradient = ui.Gradient.linear(
+            Offset(currentX * size.width, currentY * size.height),
+            Offset(
+              (currentX - (meteorite.endX - meteorite.startX) * meteorite.tailLength * meteorite.progress) * size.width,
+              (currentY - (meteorite.endY - meteorite.startY) * meteorite.tailLength * meteorite.progress) * size.height,
+            ),
+            [
+              Colors.white,
+              Colors.white.withOpacity(0.7),
+              Colors.white.withOpacity(0.0),
+            ],
+            [0.0, 0.1, 1.0],
+          );
+          
+          // Draw a wider glow around the meteorite trail
+          final glowPaint = Paint()
+            ..shader = gradient
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = meteorite.size * 6.0
+            ..strokeCap = StrokeCap.round;
+          
+          final path = Path();
+          path.moveTo(currentX * size.width, currentY * size.height);
+          path.lineTo(
+            (currentX - (meteorite.endX - meteorite.startX) * meteorite.tailLength * meteorite.progress) * size.width,
+            (currentY - (meteorite.endY - meteorite.startY) * meteorite.tailLength * meteorite.progress) * size.height,
+          );
+          
+          // Draw the glow effect first
+          canvas.drawPath(path, glowPaint..color = Colors.white.withOpacity(0.1));
+          
+          // Draw the main trail
+          final meteoritePaint = Paint()
+            ..shader = gradient
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = meteorite.size * 2.5
+            ..strokeCap = StrokeCap.round;
+            
+          canvas.drawPath(path, meteoritePaint);
+          
+          // Draw meteorite head (brighter point)
+          canvas.drawCircle(
+            Offset(currentX * size.width, currentY * size.height),
+            meteorite.size * 1.5,
+            Paint()
+              ..color = Colors.white
+              ..style = PaintingStyle.fill,
+          );
+        }
+      }
+    }
+  }
+  
+  @override
+  bool shouldRepaint(StarryNightPainter oldDelegate) {
+    // Only repaint if animation value changed significantly to save performance
+    return (animationValue - oldDelegate.animationValue).abs() > 0.01;
+  }
+}
+
+class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProviderStateMixin, TickerProviderStateMixin {
   late TabController _tabController;
   String _referralCode = "";
   bool _isLoading = true;
   bool _isNetworkDataLoading = true;
+  
+  // Animation controllers for starry background
+  late AnimationController _starsAnimationController;
+  late AnimationController _meteorAnimationController;
+  Timer? _meteorTimer;
+  
+  // Stars and meteorites for background
+  List<Star> _stars = [];
+  List<Meteorite> _meteorites = [];
+  bool _isLowPerformanceMode = false;
+  DateTime _lastFrameTime = DateTime.now();
 
-  // Network data from API
   Map<String, dynamic> _networkData = {};
   Map<String, dynamic> _networkStats = {};
 
@@ -178,11 +488,142 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
 
+    // Initialize stars animation controller
+    _starsAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+    
+    // Initialize meteor animation controller
+    _meteorAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..addListener(_updateMeteors);
+    
+    // Generate stars (using relative coordinates for responsive sizing)
+    _generateStarsAndMeteors();
+    
+    // Start periodic meteor shower (one meteor every 2-5 seconds)
+    _startMeteorShowers();
+    
+    // Check if we should use low performance mode
+    _checkPerformanceMode();
+
     // Load user's affiliate code
     _loadAffiliateCode();
 
     // Load network data
     _loadNetworkData();
+  }
+  
+  // Generate stars and meteors for the background
+  void _generateStarsAndMeteors() {
+    // Generate 80-120 stars with random properties for more density
+    final random = math.Random();
+    final starCount = random.nextInt(41) + 80; // 80-120 stars
+    
+    _stars = List.generate(starCount, (_) {
+      // Create stars with more variety in size and brightness
+      return Star(
+        x: random.nextDouble(), // Relative x position (0-1)
+        y: random.nextDouble(), // Relative y position (0-1)
+        size: random.nextDouble() * 2.0 + 0.5, // Size between 0.5-2.5
+        brightness: random.nextDouble() * 0.7 + 0.3, // Brightness between 0.3-1.0
+        blinkSpeed: random.nextDouble() * 5.0 + 0.5, // Blink speed between 0.5-5.5 (more variety)
+      );
+    });
+    
+    // Add some special brighter stars
+    for (int i = 0; i < 15; i++) {
+      _stars.add(Star(
+        x: random.nextDouble(),
+        y: random.nextDouble(),
+        size: random.nextDouble() * 1.0 + 2.0, // Larger size: 2.0-3.0
+        brightness: random.nextDouble() * 0.2 + 0.8, // Very bright: 0.8-1.0
+        blinkSpeed: random.nextDouble() * 2.0 + 0.5, // Slower blink for big stars
+      ));
+    }
+    
+    // Generate 15 potential meteorites (more for frequent shooting stars)
+    _meteorites = List.generate(15, (_) {
+      // Meteorites from various directions, mainly top to bottom
+      final startX = random.nextDouble(); // Can start from anywhere horizontally
+      final startY = random.nextDouble() * 0.3; // Start Y between 0-0.3 (top area)
+      
+      // More varied trajectories
+      final endX = startX + (random.nextDouble() * 1.0 - 0.5); // Random direction
+      final endY = startY + (random.nextDouble() * 0.5 + 0.3); // Always move downward
+      
+      return Meteorite(
+        startX: startX,
+        startY: startY,
+        endX: endX,
+        endY: endY,
+        speed: random.nextDouble() * 1.2 + 0.4, // Speed between 0.4-1.6 (faster)
+        size: random.nextDouble() * 1.5 + 1.0, // Size between 1.0-2.5 (larger)
+        tailLength: random.nextDouble() * 0.3 + 0.2, // Tail length between 0.2-0.5 (longer)
+      );
+    });
+  }
+  
+  // Start periodic meteor showers
+  void _startMeteorShowers() {
+    // Don't start meteor showers in low performance mode
+    if (_isLowPerformanceMode) return;
+    
+    // More frequent checks for meteor showers
+    _meteorTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      _meteorAnimationController.value = 0;
+      _meteorAnimationController.forward();
+      
+      // Higher chance to activate a meteor
+      if (math.Random().nextDouble() < 0.15) { // 15% chance every 100ms
+        _activateRandomMeteor();
+      }
+    });
+  }
+  
+  // Activate a random meteor
+  void _activateRandomMeteor() {
+    final random = math.Random();
+    final inactiveMeteorites = _meteorites.where((m) => !m.isActive).toList();
+    
+    if (inactiveMeteorites.isNotEmpty) {
+      final meteor = inactiveMeteorites[random.nextInt(inactiveMeteorites.length)];
+      meteor.activate();
+      
+      // Sometimes activate multiple meteorites for meteor shower effect
+      if (random.nextDouble() < 0.3 && inactiveMeteorites.length > 1) {
+        final delay = random.nextInt(300) + 100; // 100-400ms delay
+        Future.delayed(Duration(milliseconds: delay), () {
+          final remainingInactive = _meteorites.where((m) => !m.isActive).toList();
+          if (remainingInactive.isNotEmpty) {
+            final secondMeteor = remainingInactive[random.nextInt(remainingInactive.length)];
+            secondMeteor.activate();
+          }
+        });
+      }
+    }
+  }
+  
+  // Update meteorites on each animation frame
+  void _updateMeteors() {
+    if (_isLowPerformanceMode) return;
+    
+    final now = DateTime.now();
+    final deltaTime = now.difference(_lastFrameTime).inMilliseconds / 1000.0;
+    _lastFrameTime = now;
+    
+    for (var meteor in _meteorites) {
+      meteor.update(deltaTime);
+    }
+  }
+  
+  // Check if we should use low performance mode
+  void _checkPerformanceMode() {
+
+    _isLowPerformanceMode = false;
+
   }
 
   // Load user's affiliate code from profile
@@ -226,7 +667,17 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       final networkResponse = await ApiService.getNetwork(levels: 5);
       if (networkResponse['status'] == 'success') {
         setState(() {
+          // Directly use the root node data from the updated API
           _networkData = networkResponse['data'] ?? {};
+          
+          // Get the total members and direct referrals from API's accurate calculation
+          if (networkResponse.containsKey('total_members')) {
+            _networkStats['total_members'] = networkResponse['total_members'];
+          }
+          
+          if (networkResponse.containsKey('direct_referrals')) {
+            _networkStats['direct_referrals'] = networkResponse['direct_referrals'];
+          }
         });
         developer.log('Loaded network data successfully', name: 'Network');
       } else {
@@ -238,10 +689,12 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       if (summaryResponse['status'] == 'success') {
         setState(() {
           _networkStats = summaryResponse['data'] ?? {};
+          
           // Store the data in _networkStats to maintain compatibility with existing UI
           if (!_networkStats.containsKey('total_downlines') && _networkStats.containsKey('total_members')) {
             _networkStats['total_downlines'] = _networkStats['total_members'];
           }
+          
           if (!_networkStats.containsKey('downline_counts') && _networkStats.containsKey('direct_referrals')) {
             _networkStats['downline_counts'] = {
               'level_1': _networkStats['direct_referrals'],
@@ -275,6 +728,9 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   @override
   void dispose() {
     _tabController.dispose();
+    _starsAnimationController.dispose();
+    _meteorAnimationController.dispose();
+    _meteorTimer?.cancel();
     super.dispose();
   }
 
@@ -293,7 +749,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     try {
       // Construct the link with the web registration page and affiliate_code parameter
       final String referralLink = 'https://register.metatravel.ai/register?affiliate_code=${_referralCode}';
-      final String shareMessage = 'Join MTI Travel Investment using my referral code: $_referralCode\n\nSign up here: $referralLink';
+      final String shareMessage = 'Join MTI Travel International Community using my referral code: $_referralCode\n\nSign up here: $referralLink';
 
       // First copy to clipboard as a backup
       await Clipboard.setData(ClipboardData(text: shareMessage));
@@ -435,17 +891,35 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   }
 
   Widget _buildTeamTab() {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(), // Smooth scrolling for Android
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildReferralCard(),
-            const SizedBox(height: 24),
-            _buildNetworkStats(),
-          ],
+    return RefreshIndicator(
+      onRefresh: () async {
+        await _loadAffiliateCode();
+        await _loadNetworkData();
+      },
+      color: AppTheme.goldColor,
+      backgroundColor: AppTheme.backgroundColor,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Welcome message with animated gradient
+              _buildWelcomeSection(),
+              const SizedBox(height: 24),
+              
+              // Enhanced referral card
+              _buildEnhancedReferralCard(),
+              const SizedBox(height: 30),
+              
+              // Network stats with improved design
+              _buildEnhancedNetworkStats(),
+              
+              // Add extra space at bottom for better scrolling
+              const SizedBox(height: 50),
+            ],
+          ),
         ),
       ),
     );
@@ -502,17 +976,264 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     */
   }
 
-  Widget _buildReferralCard() {
+  Widget _buildWelcomeSection() {
+    final now = DateTime.now();
+    String greeting;
+    
+    if (now.hour < 12) {
+      greeting = "Good Morning";
+    } else if (now.hour < 17) {
+      greeting = "Good Afternoon";
+    } else {
+      greeting = "Good Evening";
+    }
+    
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
+            AppTheme.secondaryBackgroundColor,
+            Colors.black.withOpacity(0.7),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: FutureBuilder<Map<String, dynamic>>(
+        future: ApiService.getUserProfile(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: AppTheme.goldColor.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.goldColor,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+                      Text(
+                        greeting,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 20,
+                        width: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
+          
+          if (snapshot.hasError || !snapshot.hasData || snapshot.data?['status'] != 'success') {
+            return Row(
+            children: [
+              Container(
+                  width: 60,
+                  height: 60,
+                decoration: BoxDecoration(
+                    color: AppTheme.goldColor.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.goldColor, width: 2),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.person,
+                      color: AppTheme.goldColor,
+                      size: 30,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        greeting,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        "User",
+                        style: TextStyle(
+                  color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        "Level 0",
+                        style: TextStyle(
+                          color: AppTheme.goldColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
+          
+          // Extract user data from the API response
+          final userData = snapshot.data?['data']?['user'];
+          final String? avatarUrl = snapshot.data?['data']?['avatar_url'];
+          final String userName = userData?['full_name'] ?? 'User';
+          final String level = userData?['level'] != null ? 'Level ${userData?['level']}' : 'Level 0';
+          
+          return Row(
+            children: [
+              // User avatar
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: AppTheme.goldColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppTheme.goldColor, width: 2),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(30),
+                  child: avatarUrl != null && avatarUrl.isNotEmpty 
+                    ? Image.network(
+                        avatarUrl,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              color: AppTheme.goldColor,
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                  : null,
+                              strokeWidth: 2,
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Icon(
+                              Icons.person,
+                              color: AppTheme.goldColor,
+                              size: 30,
+                            ),
+                          );
+                        },
+                      )
+                    : Center(
+                        child: Icon(
+                          Icons.person,
+                          color: AppTheme.goldColor,
+                          size: 30,
+                        ),
+                      ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Greeting and stats
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      greeting,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      userName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.people_outline,
+                          color: AppTheme.goldColor.withOpacity(0.7),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          level,
+                          style: TextStyle(
+                            color: AppTheme.goldColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    ).animate().fadeIn(duration: 600.ms).slideY(
+      begin: 0.2,
+      end: 0,
+      duration: 600.ms,
+      curve: Curves.easeOutQuad,
+    );
+  }
+  
+  // Enhanced referral card with better UI
+  Widget _buildEnhancedReferralCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
             AppTheme.goldColor,
-            AppTheme.goldColor.withOpacity(0.8),
+            Color(0xFFD4AF37),
+            Color(0xFFAA8C30),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
@@ -524,26 +1245,33 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
           ),
         ],
       ),
+      child: Padding(
+        padding: const EdgeInsets.all(3.0), // Border width
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.black.withOpacity(0.8),
+                Colors.black.withOpacity(0.6),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(17),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.people,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
+                  // Title and subtitle
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
               const Text(
-                "Invite Friends & Earn",
+                        "Grow Your Network",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -551,176 +1279,250 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                   letterSpacing: 0.5,
                 ),
               ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Invite friends & earn rewards",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.7),
+                          fontSize: 13,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          const Text(
-            "Share your referral code now!",
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 20),
+                  
+                  // Animated icon
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.goldColor.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.people,
+                      color: AppTheme.goldColor,
+                      size: 24,
+                    ),
+                  ).animate(
+                    onPlay: (controller) => controller.repeat(), // Repeating animation
+                  ).shimmer(
+                    duration: 2.seconds,
+                    color: Colors.white.withOpacity(0.5),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 25),
+              
+              // Referral code section
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+                  color: Colors.black.withOpacity(0.4),
               borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.goldColor.withOpacity(0.3)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                        Text(
+                          "Your Referral Code",
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
                 Text(
                   _referralCode,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                            fontSize: 18,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.5,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.copy,
-                    color: Colors.white,
+                      ],
                   ),
-                  onPressed: () async {
-                    // Copy to clipboard using Flutter's Clipboard
-                    await Clipboard.setData(ClipboardData(text: _referralCode));
 
-                    // Show success message
+                    // Copy button with animation
+                    InkWell(
+                      onTap: () async {
+                        await Clipboard.setData(ClipboardData(text: _referralCode));
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Referral code copied to clipboard'),
-                        backgroundColor: AppTheme.infoColor,
+                            backgroundColor: AppTheme.successColor,
                         duration: Duration(seconds: 2),
                       ),
                     );
                   },
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppTheme.goldColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.copy,
+                          color: AppTheme.goldColor,
+                          size: 20,
+                        ),
+                      ).animate(
+                        onPlay: (controller) => controller.repeat(reverse: true),
+                      ).scaleXY(
+                        begin: 1.0,
+                        end: 1.1,
+                        duration: 1.5.seconds,
+                        curve: Curves.easeInOut,
+                      ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          CustomButton(
-            text: "Share Referral Link",
-            onPressed: _shareReferralCode,
-            type: ButtonType.secondary,
-            icon: Icons.share,
+              const SizedBox(height: 24),
+              
+              // Enhanced Share button with luxury design
+              GestureDetector(
+                onTap: _shareReferralCode,
+                child: Container(
             width: double.infinity,
-            isLoading: false,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppTheme.goldColor.withOpacity(0.6),
+                        AppTheme.goldColor,
+                        AppTheme.goldColor.withOpacity(0.8),
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.goldColor.withOpacity(0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 500.ms).slideY(
-      begin: 0.1,
+                  child: Padding(
+                    padding: const EdgeInsets.all(1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withOpacity(0.3),
+                            Colors.black.withOpacity(0.6),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(27),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.share_outlined,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            "Share My Referral Link",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ).animate()
+                .fadeIn(duration: 600.ms, delay: 300.ms)
+                .moveY(begin: 20, end: 0, duration: 600.ms, curve: Curves.easeOutQuad, delay: 300.ms)
+                .shimmer(duration: 1800.ms, delay: 1000.ms, color: Colors.white.withOpacity(0.4)),
+        ],
+      ),
+        ),
+      ),
+    ).animate().fadeIn(duration: 800.ms, delay: 200.ms).slideY(
+      begin: 0.3,
       end: 0,
-      duration: 500.ms,
+      duration: 800.ms,
+      delay: 200.ms,
       curve: Curves.easeOutQuad,
     );
   }
 
-  Widget _buildNetworkStats() {
+  // Enhanced network stats with better visualization
+  Widget _buildEnhancedNetworkStats() {
     // Calculate total members from network data
-    int totalMembers = 0;
-    int directReferrals = 0;
-    
-    // First check if we have the accurate summary data from backend
-    if (_networkStats.isNotEmpty) {
-      // Check for the new accurate fields from network summary endpoint
-      if (_networkStats.containsKey('total_members')) {
-        totalMembers = _networkStats['total_members'] ?? 0;
-        developer.log('Using accurate total_members from network summary: $totalMembers', name: 'Network');
-      }
-      
-      if (_networkStats.containsKey('direct_referrals')) {
-        directReferrals = _networkStats['direct_referrals'] ?? 0;
-        developer.log('Using accurate direct_referrals from network summary: $directReferrals', name: 'Network');
-      }
-      
-      // Fallback to the old fields if the new ones aren't available
-      if (totalMembers == 0 && _networkStats.containsKey('total_downlines')) {
-        totalMembers = _networkStats['total_downlines'] ?? 0;
-        developer.log('Falling back to total_downlines: $totalMembers', name: 'Network');
-      }
-      
-      if (directReferrals == 0 && _networkStats.containsKey('downline_counts')) {
-        final downlineCounts = _networkStats['downline_counts'] as Map<String, dynamic>? ?? {};
-        if (downlineCounts.isNotEmpty && downlineCounts.containsKey('level_1')) {
-          directReferrals = downlineCounts['level_1'] ?? 0;
-          developer.log('Falling back to level_1 count for direct referrals: $directReferrals', name: 'Network');
-        }
-      }
-      
-      // Check for the old direct_downlines field as a last resort
-      if (directReferrals == 0 && _networkStats.containsKey('direct_downlines')) {
-        directReferrals = _networkStats['direct_downlines'] ?? 0;
-        developer.log('Falling back to direct_downlines: $directReferrals', name: 'Network');
-      }
-      
-      developer.log('Using backend stats - Total: $totalMembers, Direct: $directReferrals', name: 'Network');
-    }
-    
-    // If we still don't have stats, try to calculate from the network tree as a last resort
-    if ((totalMembers == 0 || directReferrals == 0) && _networkData.isNotEmpty) {
-      // Direct referrals are the immediate children (level 1)
-      final children = _networkData['children'] as List<dynamic>? ?? [];
-      
-      if (directReferrals == 0) {
-        directReferrals = children.length;
-        developer.log('Calculated direct referrals from tree: $directReferrals', name: 'Network');
-      }
-      
-      if (totalMembers == 0) {
-        // Count all direct referrals first
-        totalMembers = directReferrals;
-        
-        // Then add all their children recursively
-        for (var child in children) {
-          // Add the count of this child's children (level 2+)
-          totalMembers += _countChildrenRecursively(child);
-        }
-        
-        developer.log('Calculated total members by traversing tree: $totalMembers', name: 'Network');
-      }
-    }
+    int totalMembers = _networkStats['total_members'] ?? 0;
+    int directReferrals = _networkStats['direct_referrals'] ?? 0;
     
     // Format the values for display
     final totalMembersDisplay = totalMembers > 0 ? totalMembers.toString() : "--";
     final directReferralsDisplay = directReferrals > 0 ? directReferrals.toString() : "--";
-    final teamVolume = "Coming Soon";
-    final totalEarnings = "Coming Soon";
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Network Overview",
+        // Section header
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Network Overview",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Icon(
+              Icons.analytics_outlined,
+              color: AppTheme.goldColor,
+              size: 20,
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          "Summary of your team's performance",
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+            color: Colors.white.withOpacity(0.6),
+            fontSize: 13,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
+        
+        // Main stats cards
         Row(
           children: [
             Expanded(
-              child: _buildStatCard(
+              child: _buildGradientStatCard(
                 "Total Members",
                 totalMembersDisplay,
-                Icons.people_outline,
-                AppTheme.primaryColor,
+                Icons.groups_outlined,
+                [Color(0xFF2C82C9), Color(0xFF0A617D)],
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: _buildStatCard(
+              child: _buildGradientStatCard(
                 "Direct Referrals",
                 directReferralsDisplay,
                 Icons.person_add_outlined,
-                AppTheme.accentColor,
+                [Color(0xFF9B59B6), Color(0xFF8E44AD)],
               ),
             ),
           ],
@@ -729,52 +1531,53 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         Row(
           children: [
             Expanded(
-              child: _buildStatCard(
-                "Team Volume",
-                teamVolume,
-                Icons.bar_chart_outlined,
-                AppTheme.tertiaryColor,
+              child: _buildGradientStatCard(
+                "Team Growth",
+                "+12%",
+                Icons.trending_up_outlined,
+                [Color(0xFF2ECC71), Color(0xFF27AE60)],
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: _buildStatCard(
-                "Total Earnings",
-                totalEarnings,
+              child: _buildGradientStatCard(
+                "Commission Rate",
+                "Coming Soon",
                 Icons.account_balance_wallet_outlined,
-                AppTheme.infoColor,
+                [Color(0xFFE67E22), Color(0xFFD35400)],
               ),
             ),
           ],
         ),
       ],
-    ).animate().fadeIn(delay: 200.ms, duration: 500.ms);
+    ).animate().fadeIn(delay: 400.ms, duration: 800.ms);
   }
   
-  // Helper method to count all children recursively (matching backend calculation)
-  int _countChildrenRecursively(Map<String, dynamic> node) {
-    int count = 0;
-    
-    // Get children list
-    final children = node['children'] as List<dynamic>? ?? [];
-    
-    // Count immediate children
-    count += children.length;
-    
-    // Count their children recursively
-    for (var child in children) {
-      count += _countChildrenRecursively(child);
-    }
-    
-    return count;
-  }
-
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  // Gradient stat card with better design
+  Widget _buildGradientStatCard(String title, String value, IconData icon, List<Color> colors) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.secondaryBackgroundColor,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: colors,
+        ),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: colors[0].withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(1.5), // Border width
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.backgroundColor.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(14.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -783,15 +1586,15 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
             children: [
               Icon(
                 icon,
-                color: color,
+                    color: colors[0],
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
                 title,
-                style: const TextStyle(
-                  color: AppTheme.secondaryTextColor,
-                  fontSize: 12,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 13,
                 ),
               ),
             ],
@@ -799,89 +1602,126 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
+                style: TextStyle(
               color: Colors.white,
-              fontSize: 18,
+                  fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
         ],
       ),
-    );
+        ),
+      ),
+    ).animate().shimmer(delay: 400.ms, duration: 1.5.seconds);
   }
-
-  Widget _buildNetworkTab() {
+  
+    Widget _buildNetworkTab() {
     // Show loading indicator while network data is loading
     if (_isNetworkDataLoading) {
-      return Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(color: AppTheme.goldColor),
-              const SizedBox(height: 16),
-              Text(
-                "Loading your network...",
-                style: TextStyle(
-                  color: AppTheme.goldColor.withOpacity(0.8),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(color: AppTheme.goldColor),
+            const SizedBox(height: 16),
+            Text(
+              "Loading your network...",
+              style: TextStyle(
+                color: AppTheme.goldColor.withOpacity(0.8),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // View toggle header
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Title with icon
-                  const Text(
-                    "Network Structure",
-                    style: TextStyle(
-                      color: AppTheme.goldColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+    return RefreshIndicator(
+      onRefresh: () async {
+        await _loadAffiliateCode();
+        await _loadNetworkData();
+      },
+      color: AppTheme.goldColor,
+      backgroundColor: AppTheme.backgroundColor,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height - 200,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Network structure header
+                Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Title with icon
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.goldColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.account_tree_outlined,
+                              color: AppTheme.goldColor,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            "Network Structure",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-
-                  // View toggle switch - more compact
-                  _buildViewModeSwitch(),
-                ],
-              ),
-            ),
-
-            // Network visualization - optimized for better scrolling
-            SizedBox(
-              height: MediaQuery.of(context).size.height - 200, // Give more vertical space
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.goldColor.withOpacity(0.15), width: 1),
-                  ),
-                  child: _isHierarchyView
-                      ? _buildNetworkTree(_getNetworkData())
-                      : _buildNetworkList(_getNetworkData()),
                 ),
-              ),
+
+                // Network visualization - fixed height to ensure proper layout
+                SizedBox(
+                  width: double.infinity,
+                  height: MediaQuery.of(context).size.height - 300, // Fixed height
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppTheme.goldColor.withOpacity(0.15),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: _buildNetworkList(_getNetworkData()),
+                  ),
+                ).animate().fadeIn(duration: 600.ms).slideY(
+                  begin: 0.1,
+                  end: 0,
+                  duration: 600.ms,
+                  curve: Curves.easeOutQuad,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -891,7 +1731,9 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     // Use real network data if available
     if (_networkData.isNotEmpty) {
       developer.log('Using network data from API', name: 'Network');
-      return _networkData;
+      
+      // Ensure we're returning data with consistent types
+      return _safeNetworkData(_networkData);
     }
 
     // If no data, return minimal structure
@@ -905,1078 +1747,679 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     };
   }
 
-  Widget _buildNetworkList(Map<String, dynamic> networkData) {
-    // Extract all downlines and flatten into a single list
-    List<Map<String, dynamic>> allMembers = [];
-
-    // Add the root user (current user)
-    allMembers.add({
-      'id': networkData['id'] ?? '',
-      'name': networkData['name'] ?? 'You',
-      'level': 'Level 0',
-      'joinDate': 'You',
-      'status': 'Active',
-      'isActive': true,
-    });
-
-    // Process all children (level 1)
-    final children = networkData['children'] as List<dynamic>? ?? [];
-    for (var child in children) {
-      allMembers.add({
-        'id': child['id'] ?? '',
-        'name': child['name'] ?? '',
-        'level': 'Level 1',
-        'joinDate': child['joinDate'] ?? '',
-        'status': child['status'] ?? 'Inactive',
-        'isActive': child['isActive'] ?? false,
-      });
-
-      // Process all grandchildren (level 2)
-      final grandchildren = child['children'] as List<dynamic>? ?? [];
-      for (var grandchild in grandchildren) {
-        allMembers.add({
-          'id': grandchild['id'] ?? '',
-          'name': grandchild['name'] ?? '',
-          'level': 'Level 2',
-          'joinDate': grandchild['joinDate'] ?? '',
-          'status': grandchild['status'] ?? 'Inactive',
-          'isActive': grandchild['isActive'] ?? false,
-        });
+  // Helper method to ensure consistent data types in network data
+  Map<String, dynamic> _safeNetworkData(Map<String, dynamic> data) {
+    // Create a safe copy of the data
+    final safeData = Map<String, dynamic>.from(data);
+    
+    // Ensure all child nodes have consistent data types
+    if (safeData.containsKey('children') && safeData['children'] is List) {
+      safeData['children'] = _processSafeChildren(safeData['children'] as List);
+    } else {
+      safeData['children'] = [];
+    }
+    
+    return safeData;
+  }
+  
+  // Process children recursively to ensure consistent types
+  List<Map<String, dynamic>> _processSafeChildren(List children) {
+    return children.map<Map<String, dynamic>>((child) {
+      if (child is! Map<String, dynamic>) {
+        return {'id': 'invalid', 'name': 'Invalid Data', 'children': []};
       }
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: allMembers.length,
-      itemBuilder: (context, index) {
-        final member = allMembers[index];
-        final bool isRoot = index == 0;
-        final bool isActive = member['isActive'] ?? false;
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          decoration: BoxDecoration(
-            color: AppTheme.secondaryBackgroundColor.withOpacity(0.7),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isRoot ? AppTheme.goldColor : Colors.transparent,
-              width: isRoot ? 1 : 0,
-            ),
-          ),
-          child: ListTile(
-            dense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            leading: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: isActive ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.person,
-                  color: isActive ? Colors.green : Colors.grey,
-                  size: 18,
-                ),
-              ),
-            ),
-            title: Text(
-              member['name'] ?? '',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: isRoot ? FontWeight.bold : FontWeight.normal,
-                fontSize: 14,
-              ),
-            ),
-            subtitle: Text(
-              "${member['level']} · ID: ${member['id']}",
-              style: const TextStyle(
-                color: AppTheme.secondaryTextColor,
-                fontSize: 12,
-              ),
-            ),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: isActive ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                isActive ? 'Active' : 'Inactive',
-                style: TextStyle(
-                  color: isActive ? Colors.green : Colors.grey,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+      
+      final safeChild = Map<String, dynamic>.from(child);
+      
+      // Process nested children
+      if (safeChild.containsKey('children') && safeChild['children'] is List) {
+        safeChild['children'] = _processSafeChildren(safeChild['children'] as List);
+      } else {
+        safeChild['children'] = [];
+      }
+      
+      return safeChild;
+    }).toList();
   }
 
-  Widget _buildNetworkTree(Map<String, dynamic> rootNode) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Network Legend
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildColoredLegendItem(Colors.red, "You"),
-                  const SizedBox(width: 16),
-                  _buildColoredLegendItem(Colors.blue, "Level 1"),
-                  const SizedBox(width: 16),
-                  _buildColoredLegendItem(Colors.green, "Level 2"),
-                  const SizedBox(width: 16),
-                  _buildColoredLegendItem(Colors.grey, "Level 3"),
-                ],
-              ),
-            ),
-
-            // Network Tree
-            Container(
-              // Ensure enough height for scrolling
-              constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height * 0.7,
-              ),
-              child: _buildCleanNetworkStructure(rootNode),
-            ),
-
-            // Add extra padding at the bottom for better scrolling
-            const SizedBox(height: 100),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCleanNetworkStructure(Map<String, dynamic> rootNode) {
-    // If no children, show only the root node
-    if (rootNode['children'] == null || (rootNode['children'] as List).isEmpty) {
-      return Column(
-        children: [
-          _buildColoredNetworkNode(rootNode, isRoot: true, level: 0),
-          const SizedBox(height: 40),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.withOpacity(0.3)),
-            ),
-            child: const Text(
-              "No downlines in your network yet",
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-              ),
-            ),
-          ),
-          // Add more padding for scrollable area even with no network
-          const SizedBox(height: 200),
-        ],
-      );
-    }
-
-    // Get children nodes
-    final List<dynamic> children = rootNode['children'] as List;
-
-    return SizedBox(
-      width: double.infinity,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Root node (You) - Level 0
-          _buildColoredNetworkNode(rootNode, isRoot: true, level: 0),
-
-          // Render each branch with a connecting line
-          for (int i = 0; i < children.length; i++)
-            _buildNetworkBranch(children[i], i, children.length),
-
-          // Add extra space after the network for scrolling
-          const SizedBox(height: 150),
-        ],
-      ),
-    );
-  }
-
-  // Build a branch with connecting line
-  Widget _buildNetworkBranch(Map<String, dynamic> node, int index, int totalNodes) {
-    // Check if there are sub-children
-    final List<dynamic> subChildren = node['children'] as List? ?? [];
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+  Widget _buildNetworkList(Map<String, dynamic> networkData) {
+    // Build a hierarchical view similar to the image
+    return Stack(
       children: [
-        // Connecting line from parent
-        Container(
-          width: 2,
-          height: 120, // Increased height for better spacing
-          color: AppTheme.goldColor,
+        // Starry night background (fixed with Positioned.fill)
+        Positioned.fill(
+          child: AnimatedBuilder(
+            animation: _starsAnimationController,
+            builder: (context, child) {
+              return RepaintBoundary(
+                child: CustomPaint(
+                  painter: StarryNightPainter(
+                    stars: _stars,
+                    meteorites: _meteorites,
+                    animationValue: _starsAnimationController.value,
+                    isLowPerformanceMode: _isLowPerformanceMode,
+                  ),
+                  size: Size.infinite, // Use Size.infinite instead
+                ),
+              );
+            },
+          ),
         ),
-
-        // Level 1 node
-        _buildColoredNetworkNode(node, isRoot: false, level: 1),
-
-        // If this node has children, show them
-        if (subChildren.isNotEmpty) ...[
-          // Line connecting to sub-children
-          Container(
-            width: 2,
-            height: 100, // Increased height for better spacing
-            color: AppTheme.goldColor,
-          ),
-
-          // First sub-child
-          _buildColoredNetworkNode(
-            subChildren.first,
-            isRoot: false,
-            level: 2,
-            isSmall: subChildren.length > 2,
-          ),
-
-          // Additional sub-children if more than one
-          if (subChildren.length > 1)
-            Padding(
-              padding: const EdgeInsets.only(top: 20), // More padding for better view
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (int i = 1; i < min(4, subChildren.length); i++)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: _buildColoredNetworkNode(
-                        subChildren[i],
-                        isRoot: false,
-                        level: 2,
-                        isSmall: true,
-                      ),
-                    ),
-                ],
+        
+        // Container with network structure
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.25), // More transparent to see stars
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppTheme.goldColor.withOpacity(0.15),
+                width: 1,
               ),
             ),
-        ] else
-        // If no children, add some spacing
-          const SizedBox(height: 50),
-      ],
-    );
-  }
-
-  Widget _buildColoredNetworkNode(Map<String, dynamic> node, {required bool isRoot, required int level, bool isSmall = false}) {
-    final double cardSize = isRoot ? 70 : (isSmall ? 50 : 60);
-    final bool isActive = node.containsKey('isActive') ? node['isActive'] : true;
-    final String initials = (node['name'] ?? '').split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase();
-    final int downlines = node['downlines'] ?? 0;
-
-    // Color coding based on level
-    Color nodeColor;
-    switch (level) {
-      case 0:
-        nodeColor = Colors.red; // Root (You)
-        break;
-      case 1:
-        nodeColor = Colors.blue; // First level (B, C)
-        break;
-      case 2:
-        nodeColor = Colors.green; // Second level (D, E, F, G)
-        break;
-      default:
-        nodeColor = Colors.grey; // Any deeper levels
-    }
-
-    // Letter label based on position
-    String? letterLabel;
-    if (isRoot) {
-      letterLabel = "A";
-    } else if (level == 1) {
-      // B and C for first level
-      letterLabel = String.fromCharCode('B'.codeUnitAt(0) + (node['position'] as num? ?? 0).toInt());
-    } else if (level == 2) {
-      // D, E, F, G for second level
-      letterLabel = String.fromCharCode('D'.codeUnitAt(0) + (node['position'] as num? ?? 0).toInt());
-    }
-
-    return GestureDetector(
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: Colors.transparent,
-          builder: (_) => _buildNodeDetailModal(node, isRoot, isActive, level: level),
-        );
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Node avatar with color coding
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: cardSize,
-                height: cardSize,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(cardSize/2),
-                  color: nodeColor.withOpacity(0.7),
-                  border: Border.all(
-                    color: nodeColor,
-                    width: isRoot ? 2 : 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: nodeColor.withOpacity(0.3),
-                      blurRadius: 6,
-                      spreadRadius: 1,
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildNetworkNode(
+                      networkData['id'],
+                      networkData['name'] ?? 'You',
+                      0,
+                      true, // isTrader
+                      true, // isActive
+                      true, // isRoot
+                      networkData['children'] is List ? networkData['children'] : [],
                     ),
                   ],
                 ),
-                child: Center(
-                  child: Text(
-                    initials,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: isRoot ? 22 : (isSmall ? 14 : 18),
-                    ),
-                  ),
-                ),
               ),
-
-              // Letter label at top left
-              if (letterLabel != null)
-                Positioned(
-                  top: -5,
-                  left: -5,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: nodeColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 1),
-                    ),
-                    child: Text(
-                      letterLabel,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: isRoot ? 12 : 10,
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Status indicator at bottom right
-              if (!isRoot)
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    width: isSmall ? 10 : 14,
-                    height: isSmall ? 10 : 14,
-                    decoration: BoxDecoration(
-                      color: isActive ? Colors.green : Colors.red,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 1),
-                    ),
-                  ),
-                ),
-            ],
+            ),
           ),
-
-          // Name and downline count
-          Container(
-            margin: const EdgeInsets.only(top: 6),
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-            constraints: BoxConstraints(
-              maxWidth: isSmall ? 90 : 100,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: nodeColor.withOpacity(0.4),
-                width: 0.5,
-              ),
-            ),
-            child: Column(
+        ),
+      ],
+    );
+  }
+  
+  // State to track which nodes are expanded (showing add user button)
+  final Map<String, bool> _expandedNodes = {};
+  
+  // Helper method to build a network node
+  Widget _buildNetworkNode(dynamic rawId, dynamic rawName, int level, bool isTrader, bool isActive, bool isRoot, List<dynamic> children) {
+    // Ensure id and name are strings
+    final String id = rawId is int ? rawId.toString() : (rawId as String? ?? 'N/A');
+    final String name = rawName is int ? rawName.toString() : (rawName as String? ?? 'Unknown');
+    
+    // Check if this node is expanded
+    final bool isExpanded = _expandedNodes[id] == true;
+    
+    // Colors and styling based on status and level
+    final Color textColor = isActive ? Colors.white : Colors.grey.shade500;
+    
+    // Calculate left margin based on level for indentation
+    // Level 0 starts from left, each subsequent level is indented more
+    final double leftMargin = level * 30.0;
+    
+    // Enhanced styling with gradients for better visual hierarchy
+    final BoxDecoration nodeDecoration;
+    final EdgeInsets nodeMargin;
+    
+    if (isRoot) {
+      // Root node (trader) gets a luxury gold gradient
+      nodeDecoration = BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFFFFD700), // Gold
+            Color(0xFFDAAA00), // Darker gold
+            Color(0xFFFFC800), // Medium gold
+            Color(0xFFB38700), // Rich gold
+          ],
+          stops: const [0.0, 0.35, 0.65, 1.0],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.withOpacity(0.6),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+          BoxShadow(
+            color: Colors.amber.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 0.5,
+        ),
+      );
+      nodeMargin = EdgeInsets.only(bottom: 25, left: leftMargin);
+    } else {
+      // Regular nodes get appropriate colors based on status
+      final Color bgColor = isTrader ? Colors.amber.shade700 : 
+                           (isActive ? Colors.grey.shade800 : Colors.grey.shade900);
+      
+      nodeDecoration = BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: isActive ? Colors.grey.shade700 : Colors.grey.shade800,
+          width: 1,
+        ),
+      );
+      nodeMargin = EdgeInsets.only(top: 16, bottom: 6, left: leftMargin);
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Node itself
+        GestureDetector(
+          onTap: () {
+            // When a node is clicked, toggle expanded state to show/hide add user button
+            setState(() {
+              // Toggle this node's expanded state
+              _expandedNodes[id] = !isExpanded;
+              
+              // If opening this node, close all others for cleaner UI
+              if (!isExpanded) {
+                for (var key in _expandedNodes.keys.toList()) {
+                  if (key != id) {
+                    _expandedNodes[key] = false;
+                  }
+                }
+              }
+            });
+            
+            developer.log('Node clicked: $name with affiliate code: $id', name: 'Network');
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+            margin: nodeMargin,
+            decoration: nodeDecoration,
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  node['name'],
+                  name,
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: isRoot ? 12 : (isSmall ? 9 : 10),
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (downlines > 0)
-                  Text(
-                    "$downlines",
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: isRoot ? 10 : (isSmall ? 8 : 9),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Modal for node details with color coding
-  Widget _buildNodeDetailModal(Map<String, dynamic> node, bool isRoot, bool isActive, {int level = 0}) {
-    final String initials = (node['name'] ?? '').split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase();
-
-    // Color coding based on level
-    Color nodeColor;
-    switch (level) {
-      case 0:
-        nodeColor = Colors.red;
-        break;
-      case 1:
-        nodeColor = Colors.blue;
-        break;
-      case 2:
-        nodeColor = Colors.green;
-        break;
-      default:
-        nodeColor = Colors.grey;
-    }
-
-    // Letter label based on position
-    String? letterLabel;
-    if (isRoot) {
-      letterLabel = "A";
-    } else if (level == 1) {
-      letterLabel = String.fromCharCode('B'.codeUnitAt(0) + (node['position'] as num? ?? 0).toInt());
-    } else if (level == 2) {
-      letterLabel = String.fromCharCode('D'.codeUnitAt(0) + (node['position'] as num? ?? 0).toInt());
-    }
-
-    String levelName;
-    switch (level) {
-      case 0:
-        levelName = "You";
-        break;
-      case 1:
-        levelName = "Frontline";
-        break;
-      case 2:
-        levelName = "Level 2";
-        break;
-      default:
-        levelName = "Level ${level + 1}";
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.95),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border.all(color: nodeColor.withOpacity(0.2), width: 1),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // User info header
-          Row(
-            children: [
-              // Avatar with coloring
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: nodeColor.withOpacity(0.7),
-                  border: Border.all(
-                    color: nodeColor,
-                    width: 2,
+                    color: textColor,
+                    fontWeight: isRoot ? FontWeight.bold : FontWeight.w500,
+                    fontSize: isRoot ? 18 : 15,
+                    letterSpacing: isRoot ? 0.5 : 0.2,
                   ),
                 ),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Center(
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 22,
-                        ),
-                      ),
+                const SizedBox(width: 8),
+                // Number with star based on level or trader status
+                if (isTrader) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    if (letterLabel != null)
-                      Positioned(
-                        top: -5,
-                        left: -5,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: nodeColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 1),
-                          ),
-                          child: Text(
-                            letterLabel,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-
-              // Name and status
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      node['name'],
-                      style: TextStyle(
-                        color: nodeColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.people,
-                          size: 16,
-                          color: nodeColor.withOpacity(0.7),
-                        ),
-                        const SizedBox(width: 6),
                         Text(
-                          levelName,
+                          "5",
                           style: TextStyle(
-                            color: nodeColor.withOpacity(0.8),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                            fontSize: isRoot ? 12 : 10,
+                            fontWeight: FontWeight.bold,
                           ),
+                        ),
+                        const SizedBox(width: 2),
+                        Icon(
+                          Icons.star, 
+                          color: Colors.white, 
+                          size: isRoot ? 12 : 10,
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          const Divider(color: Colors.grey, height: 32, thickness: 0.5),
-
-          // Stats section
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildUserStatItem("Status", isActive ? "Active" : "Inactive", isActive ? Colors.green : Colors.red),
-              _buildUserStatItem("Downlines", "${node['downlines'] ?? 0}", nodeColor),
-              if (node['joinDate'] != null)
-                _buildUserStatItem("Joined", node['joinDate'], null),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // ID section
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.withOpacity(0.3)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  "ID: ",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
                   ),
-                ),
-                Text(
-                  node['id'] ?? '',
-                  style: TextStyle(
-                    color: nodeColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Helper widget for user stats with color
-  Widget _buildUserStatItem(String label, String value, Color? valueColor) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 12,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            color: valueColor ?? Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Simple vertical connector - make it more visible
-  Widget _buildVerticalConnector(double height) {
-    return Container(
-      width: 2,
-      height: height,
-      color: AppTheme.goldColor.withOpacity(0.6),
-    );
-  }
-
-  // Colored legend item
-  Widget _buildColoredLegendItem(Color color, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 0.5),
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCustomTab(String text, IconData icon) {
-    return Tab(
-      height: 40,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 18),
-            const SizedBox(width: 8),
-            Text(text),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEarningsOverview() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Earnings Overview",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Total Earnings",
-                    style: TextStyle(
-                      color: AppTheme.secondaryTextColor,
-                      fontSize: 14,
+                ] else if (level == 1) ...[
+                  // 1 with star for level 1
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "1",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        const Icon(
+                          Icons.star, 
+                          color: Colors.white, 
+                          size: 10,
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 8),
+                ]
+              ],
+            ),
+          ).animate()
+           .fadeIn(duration: 400.ms, delay: Duration(milliseconds: level * 100))
+           .slide(begin: Offset(0, 0.1), end: Offset.zero, duration: 400.ms, delay: Duration(milliseconds: level * 100)),
+        ),
+        
+        // Add new user button - only appears when a node is clicked/expanded
+        if (isExpanded) ...[
+          GestureDetector(
+            onTap: () {
+              // Show confirmation modal before launching registration
+              _showRegistrationConfirmation(id, name);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              margin: EdgeInsets.only(top: 8, bottom: 16, left: leftMargin),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade900,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                  color: AppTheme.goldColor.withOpacity(0.4),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.goldColor.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.add_circle_outline,
+                    color: AppTheme.goldColor,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
                   Text(
-                    "2,458 USDT",
+                    'Add new user',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppTheme.successColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.arrow_upward,
-                      color: AppTheme.successColor,
-                      size: 16,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      "+12.5%",
-                      style: TextStyle(
-                        color: AppTheme.successColor,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
+          ).animate()
+            .fadeIn(duration: 300.ms)
+            .scale(begin: Offset(0.95, 0.95), end: Offset(1, 1), duration: 300.ms, curve: Curves.easeOutBack),
+        ],
+        
+                  // Recursively show children nodes
+        if (children.isNotEmpty) ...[
+          const SizedBox(height: 4), // Reduced spacing
+          // Visual connector line
+          Padding(
+            padding: EdgeInsets.only(left: leftMargin),
+            child: Container(
+              width: 2,
+              height: 12, // Shorter connector line
+              color: AppTheme.goldColor.withOpacity(0.5), // More visible
+            ),
           ),
-          const SizedBox(height: 24),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _EarningCategory(
-                title: "Direct",
-                amount: "1,245 USDT",
-                percentage: 50,
-                color: AppTheme.primaryColor,
-              ),
-              _EarningCategory(
-                title: "Level 1",
-                amount: "738 USDT",
-                percentage: 30,
-                color: AppTheme.accentColor,
-              ),
-              _EarningCategory(
-                title: "Level 2",
-                amount: "475 USDT",
-                percentage: 20,
-                color: AppTheme.tertiaryColor,
-              ),
-            ],
+          const SizedBox(height: 2), // Reduced spacing
+          // Children nodes with proper spacing
+          Padding(
+            padding: const EdgeInsets.only(top: 4), // Reduced spacing
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children.asMap().entries.map((entry) {
+                final index = entry.key;
+                final child = entry.value;
+                
+                // Add compact spacing between nodes
+                return Padding(
+                  padding: EdgeInsets.only(
+                    bottom: index < children.length - 1 ? 5 : 0 // Reduced bottom spacing
+                  ),
+                  child: _buildNetworkNode(
+                    child['id'], // Pass raw ID value for handling in the function
+                    child['name'], // Pass raw name value for handling in the function
+                    level + 1,
+                    child['is_trader'] == 1 || child['is_trader'] == true,
+                    child['status'] == 'approved',
+                    false, // not root
+                    child['children'] is List ? child['children'] : [],
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ],
-      ),
-    ).animate().fadeIn(duration: 500.ms).slideY(
-      begin: 0.1,
-      end: 0,
-      duration: 500.ms,
-      curve: Curves.easeOutQuad,
+      ],
     );
   }
-
-  Widget _buildEarningsHistory() {
-    final List<Map<String, dynamic>> earnings = [
-      {
-        'name': 'Jane Smith',
-        'amount': '+125 USDT',
-        'date': 'Apr 22, 2025',
-        'type': 'Direct Referral',
-        'icon': Icons.person_add_outlined,
-        'color': AppTheme.primaryColor,
-      },
-      {
-        'name': 'Mike Johnson',
-        'amount': '+45 USDT',
-        'date': 'Apr 20, 2025',
-        'type': 'Level 1 Reward',
-        'icon': Icons.people_outline,
-        'color': AppTheme.accentColor,
-      },
-      {
-        'name': 'Sarah Williams',
-        'amount': '+18 USDT',
-        'date': 'Apr 18, 2025',
-        'type': 'Level 2 Reward',
-        'icon': Icons.groups_outlined,
-        'color': AppTheme.tertiaryColor,
-      },
-      {
-        'name': 'Robert Brown',
-        'amount': '+95 USDT',
-        'date': 'Apr 15, 2025',
-        'type': 'Direct Referral',
-        'icon': Icons.person_add_outlined,
-        'color': AppTheme.primaryColor,
-      },
-      {
-        'name': 'Emily Davis',
-        'amount': '+32 USDT',
-        'date': 'Apr 12, 2025',
-        'type': 'Level 1 Reward',
-        'icon': Icons.people_outline,
-        'color': AppTheme.accentColor,
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  
+  // Show confirmation modal before launching registration
+  void _showRegistrationConfirmation(String affiliateCode, String userName) {
+    // Log the actual affiliate code being used
+    developer.log('Showing confirmation for affiliate code: $affiliateCode', name: 'Network');
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+          color: AppTheme.secondaryBackgroundColor,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+                border: Border.all(
+            color: AppTheme.goldColor.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              "Earnings History",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
+            // Header line
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            
+            // Icon
+            Container(
+              width: 60,
+              height: 60,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: AppTheme.goldColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.person_add_alt_1,
+                color: AppTheme.goldColor,
+                size: 30,
+              ),
+            ),
+            
+            // Title
+            Text(
+              "Register New User",
+              style: const TextStyle(
+                            color: Colors.white,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            TextButton(
-              onPressed: () {},
-              child: const Text(
-                "View All",
-                style: TextStyle(
-                  color: AppTheme.primaryColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+            const SizedBox(height: 16),
+            
+            // Description
+            Text(
+              "You are about to register a new user under $userName with the following referral code:",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: 14,
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: earnings.length,
-          itemBuilder: (context, index) {
-            final earning = earnings[index];
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
+            const SizedBox(height: 24),
+            
+            // Affiliate code display
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               decoration: BoxDecoration(
-                color: AppTheme.secondaryBackgroundColor,
-                borderRadius: BorderRadius.circular(16),
+                color: Colors.black.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppTheme.goldColor.withOpacity(0.3),
+                  width: 1,
+                ),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: earning['color'].withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      earning['icon'],
-                      color: earning['color'],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          earning['name'],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          earning['type'],
-                          style: const TextStyle(
-                            color: AppTheme.tertiaryTextColor,
+                  Text(
+                    "Referral Code",
+              style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
                             fontSize: 12,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        earning['amount'],
+                        affiliateCode,
                         style: const TextStyle(
-                          color: Colors.green,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
                         ),
+                        textAlign: TextAlign.left,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        earning['date'],
-                        style: const TextStyle(
-                          color: AppTheme.tertiaryTextColor,
-                          fontSize: 12,
+                      GestureDetector(
+                        onTap: () async {
+                          await Clipboard.setData(ClipboardData(text: affiliateCode));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Referral code copied to clipboard"),
+                              backgroundColor: AppTheme.successColor,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                            color: AppTheme.goldColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+                          child: const Icon(
+                            Icons.copy,
+                            color: AppTheme.goldColor,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ],
               ),
-            );
-          },
+            ),
+            const SizedBox(height: 24),
+            
+            // Action buttons
+            Row(
+              children: [
+                // Cancel button
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.grey.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Center(
+              child: Text(
+                          "Cancel",
+                style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                
+                // Proceed button
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _launchRegistrationWithAffiliateCode(affiliateCode);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppTheme.goldColor.withOpacity(0.8),
+                            AppTheme.goldColor,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.goldColor.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Text(
+                          "Proceed",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-      ],
-    ).animate().fadeIn(delay: 300.ms, duration: 500.ms);
+      ),
+    ).then((_) {
+      developer.log('Modal closed', name: 'Network');
+    });
+  }
+  
+  // Launch registration page with affiliate code
+  void _launchRegistrationWithAffiliateCode(String affiliateCode) async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20, 
+                height: 20, 
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Text('Opening registration page...'),
+            ],
+          ),
+          duration: const Duration(seconds: 2),
+          backgroundColor: AppTheme.secondaryBackgroundColor,
+        ),
+      );
+      
+      // Construct the registration URL with the affiliate code
+      final urlString = 'https://register.metatravel.ai/register?affiliate_code=$affiliateCode';
+      
+      developer.log(
+        'Launching registration with affiliate code: $affiliateCode',
+        name: 'Network',
+      );
+      developer.log('URL: $urlString', name: 'Network');
+      
+      // Launch the URL using url_launcher
+      if (!await launch(
+        urlString,
+        forceSafariVC: false,
+        forceWebView: false,
+      )) {
+        throw Exception('Could not launch $urlString');
+      }
+    } catch (e) {
+      developer.log('Error launching registration URL: $e', name: 'Network');
+      
+      // Show error message to user
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open registration page. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
-  // View switching control
-  Widget _buildViewModeSwitch() {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 16),
+  // Build custom tab item with icon and text
+  Widget _buildCustomTab(String text, IconData icon) {
+    return Tab(
+      height: 40,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            "View:",
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 14,
-            ),
-          ),
+            Icon(icon, size: 18),
           const SizedBox(width: 8),
-          InkWell(
-            onTap: () {
-              setState(() {
-                _isHierarchyView = false;
-              });
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: !_isHierarchyView
-                    ? AppTheme.primaryColor.withOpacity(0.2)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: !_isHierarchyView
-                      ? AppTheme.primaryColor
-                      : Colors.white.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.list,
-                    size: 16,
-                    color: !_isHierarchyView
-                        ? AppTheme.primaryColor
-                        : Colors.white.withOpacity(0.7),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    "List",
-                    style: TextStyle(
-                      color: !_isHierarchyView
-                          ? AppTheme.primaryColor
-                          : Colors.white.withOpacity(0.7),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          InkWell(
-            onTap: () {
-              setState(() {
-                _isHierarchyView = true;
-              });
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: _isHierarchyView
-                    ? AppTheme.primaryColor.withOpacity(0.2)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _isHierarchyView
-                      ? AppTheme.primaryColor
-                      : Colors.white.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.account_tree_outlined,
-                    size: 16,
-                    color: _isHierarchyView
-                        ? AppTheme.primaryColor
-                        : Colors.white.withOpacity(0.7),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    "Hierarchy",
-                    style: TextStyle(
-                      color: _isHierarchyView
-                          ? AppTheme.primaryColor
-                          : Colors.white.withOpacity(0.7),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+            Text(text),
+          ],
+        ),
       ),
     );
   }
@@ -2053,4 +2496,129 @@ class _EarningCategory extends StatelessWidget {
       ],
     );
   }
+}
+
+// Back to top button widget that appears after scrolling
+class BackToTopButton extends StatefulWidget {
+  @override
+  _BackToTopButtonState createState() => _BackToTopButtonState();
+}
+
+class _BackToTopButtonState extends State<BackToTopButton> {
+  bool _visible = false;
+  late ScrollController _scrollController;
+  Timer? _scrollTimer;
+  
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    
+    // Listen to the nearest scrollable ancestor
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final scrollable = Scrollable.of(context);
+      if (scrollable != null) {
+        scrollable.position.addListener(_onScroll);
+      }
+    });
+  }
+  
+  void _onScroll() {
+    // Start or reset the timer when scrolling occurs
+    _scrollTimer?.cancel();
+    _scrollTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted) {
+        setState(() {
+          _visible = true;
+        });
+      }
+    });
+    
+    // Hide button when actively scrolling
+    if (_visible) {
+      setState(() {
+        _visible = false;
+      });
+    }
+  }
+  
+  @override
+  void dispose() {
+    _scrollTimer?.cancel();
+    super.dispose();
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: _visible ? 1.0 : 0.0,
+      duration: const Duration(milliseconds: 500),
+      child: _visible 
+        ? Animate(
+            effects: [
+              FadeEffect(duration: 400.ms),
+              ScaleEffect(begin: const Offset(0.7, 0.7), end: const Offset(1.0, 1.0), duration: 400.ms, curve: Curves.elasticOut),
+            ],
+            child: FloatingActionButton(
+              mini: true,
+              backgroundColor: AppTheme.goldColor.withOpacity(0.8),
+              child: const Icon(Icons.arrow_upward, color: Colors.white),
+              onPressed: () {
+                // Find the nearest scrollable and scroll to top
+                final scrollable = Scrollable.of(context);
+                if (scrollable != null) {
+                  scrollable.position.animateTo(
+                    0,
+                    duration: const Duration(milliseconds: 800),
+                    curve: Curves.easeInOutCubic,
+                  );
+                }
+                
+                // Hide the button after clicking
+                setState(() {
+                  _visible = false;
+                });
+              },
+            ),
+          )
+        : const SizedBox.shrink(),
+    );
+  }
+}
+
+// Helper to check if there are any children at a given level
+bool _hasNextLevel(List<dynamic> rootLevelNodes, int targetLevel) {
+  if (targetLevel <= 1) {
+    return rootLevelNodes.isNotEmpty;
+  }
+  
+  // For level 2, we check if any level 1 nodes have children
+  if (targetLevel == 2) {
+    return rootLevelNodes.any((node) => 
+      (node['children'] as List?)?.isNotEmpty == true);
+  }
+  
+  // For deeper levels (3+), we need to traverse the tree
+  List<dynamic> currentLevelNodes = rootLevelNodes;
+  int currentLevel = 1;
+  
+  while (currentLevel < targetLevel - 1 && currentLevelNodes.isNotEmpty) {
+    List<dynamic> nextLevelNodes = [];
+    
+    // Collect all children from current level
+    for (var node in currentLevelNodes) {
+      final children = node['children'] as List? ?? [];
+      if (children.isNotEmpty) {
+        nextLevelNodes.addAll(children);
+      }
+    }
+    
+    // Move to next level
+    currentLevelNodes = nextLevelNodes;
+    currentLevel++;
+  }
+  
+  // Check if we have any nodes at the current level that have children
+  return currentLevelNodes.any((node) => 
+    (node['children'] as List?)?.isNotEmpty == true);
 }
