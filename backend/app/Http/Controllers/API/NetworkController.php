@@ -281,7 +281,7 @@ class NetworkController extends Controller
                     'affiliate_code' => $downline->affiliate_code,
                     'referral_id' => $downline->referral_id,
                     'created_at' => $downline->created_at,
-                    'joinDate' => $downline->created_at->format('M d, Y'),
+                    'joinDate' => $downline->created_at ? $downline->created_at->format('M d, Y') : null,
                     'level' => $currentLevel,
                     'position' => $position++,
                     'isActive' => true, // Show all nodes regardless of status
@@ -391,7 +391,7 @@ class NetworkController extends Controller
                 'level' => -($level + 1), // Use negative levels for upline (-1, -2, etc.)
                 'isActive' => $upline->status !== 'Inactive',
                 'status' => $upline->status ?? 'Active',
-                'joinDate' => $upline->created_at->format('M d, Y'),
+                'joinDate' => $upline->created_at ? $upline->created_at->format('M d, Y') : null,
             ];
             
             $currentReferralId = $upline->referral_id;
@@ -603,7 +603,7 @@ class NetworkController extends Controller
             'affiliate_code' => $node->affiliate_code,
             'referral_id' => $node->referral_id,
             'created_at' => $node->created_at,
-            'joinDate' => $node->created_at->format('M d, Y'),
+            'joinDate' => $node->created_at ? $node->created_at->format('M d, Y') : null,
             'level' => 0, // This is level 0 relative to itself
             'position' => 0,
             'isActive' => $node->status !== 'Inactive',

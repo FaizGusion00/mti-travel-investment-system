@@ -230,15 +230,15 @@ class DirectConnectingLinePainter extends CustomPainter {
     // Create a path with a gentle curve for a more organic feel
     final path = Path();
     path.moveTo(start.dx, start.dy);
-    
+
     // Control points for the curve
     final controlPoint1 = Offset(start.dx, start.dy + (end.dy - start.dy) * 0.4);
     final controlPoint2 = Offset(end.dx, start.dy + (end.dy - start.dy) * 0.6);
-    
+
     path.cubicTo(
-      controlPoint1.dx, controlPoint1.dy,
-      controlPoint2.dx, controlPoint2.dy,
-      end.dx, end.dy
+        controlPoint1.dx, controlPoint1.dy,
+        controlPoint2.dx, controlPoint2.dy,
+        end.dx, end.dy
     );
 
     canvas.drawPath(path, paint);
@@ -267,7 +267,7 @@ class Star {
   double size;
   double brightness;
   double blinkSpeed;
-  
+
   Star({
     required this.x,
     required this.y,
@@ -288,7 +288,7 @@ class Meteorite {
   double size;
   double tailLength;
   bool isActive;
-  
+
   Meteorite({
     required this.startX,
     required this.startY,
@@ -300,7 +300,7 @@ class Meteorite {
     required this.tailLength,
     this.isActive = false,
   });
-  
+
   void update(double deltaTime) {
     if (isActive) {
       progress += speed * deltaTime;
@@ -310,7 +310,7 @@ class Meteorite {
       }
     }
   }
-  
+
   void activate() {
     isActive = true;
     progress = 0.0;
@@ -323,211 +323,139 @@ class StarryNightPainter extends CustomPainter {
   final List<Meteorite> meteorites;
   final double animationValue;
   final bool isLowPerformanceMode;
-  
+
   StarryNightPainter({
     required this.stars,
     required this.meteorites,
     required this.animationValue,
     this.isLowPerformanceMode = false,
   });
-  
+
   @override
   void paint(Canvas canvas, Size size) {
-    // Skip painting if size is zero to prevent exceptions
-    if (size.width <= 0 || size.height <= 0) {
-      return;
-    }
-    
-    try {
-      // Create a starry night background gradient
-      final backgroundPaint = Paint()
-        ..shader = ui.Gradient.radial(
-          Offset(size.width * 0.5, size.height * 0.5),
-          size.width > 0 ? size.width : 1.0, // Ensure non-zero radius
-          [
-            Color(0xFF000510), // Very dark blue center
-            Color(0xFF00081a), // Dark blue edges
-          ],
-        );
-      
-      // Fill the background
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        backgroundPaint,
+    // Create a starry night background gradient
+    final backgroundPaint = Paint()
+      ..shader = ui.Gradient.radial(
+        Offset(size.width * 0.5, size.height * 0.5),
+        size.width,
+        [
+          Color(0xFF000510), // Very dark blue center
+          Color(0xFF00081a), // Dark blue edges
+        ],
       );
-    
-      // Paint for stars with more vivid appearance
-      final starPaint = Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.fill;
-      
-      // Draw stars with enhanced twinkling effect
-      for (var star in stars) {
-        // Make sure star position is within the canvas
-        if (star.x < 0 || star.x > 1 || star.y < 0 || star.y > 1) {
-          continue; // Skip stars outside the valid range
-        }
-        
-        // More complex twinkle with combined sine waves for natural effect
-        final twinkle = (math.sin(animationValue * star.blinkSpeed) + 
-                       math.sin(animationValue * star.blinkSpeed * 1.3 + 0.5)) / 3 + 0.7;
-                      
-        // Occasional color variation for some stars
-        final colorVariation = (star.x + star.y) % 1.0 > 0.7;
-        final starColor = colorVariation 
-            ? Color.lerp(Colors.white, Colors.lightBlueAccent, 0.3)! 
-            : Colors.white;
-            
-        final adjustedBrightness = isLowPerformanceMode ? 0.8 : star.brightness * twinkle;
-        
-        starPaint.color = starColor.withOpacity(adjustedBrightness);
-        
-        // Get star position in actual canvas coordinates
-        final starX = star.x * size.width;
-        final starY = star.y * size.height;
-        
-        // Skip if star is outside the canvas bounds
-        if (starX.isNaN || starY.isNaN || starX < 0 || starY < 0 || 
-            starX > size.width || starY > size.height) {
-          continue;
-        }
-        
-        // Draw a glow effect for larger stars
-        if (star.size > 2.0) {
-          // Skip glow in low performance mode
-          if (!isLowPerformanceMode) {
-            // Outer glow - with safety checks
-            try {
-              canvas.drawCircle(
-                Offset(starX, starY),
-                star.size * 2.0 * twinkle,
-                Paint()
-                  ..color = starColor.withOpacity(0.05)
-                  ..style = PaintingStyle.fill,
-              );
-            } catch (e) {
-              // Ignore drawing errors
-            }
-            
-            // Middle glow - with safety checks
-            try {
-              canvas.drawCircle(
-                Offset(starX, starY),
-                star.size * 1.5 * twinkle,
-                Paint()
-                  ..color = starColor.withOpacity(0.1)
-                  ..style = PaintingStyle.fill,
-              );
-            } catch (e) {
-              // Ignore drawing errors
-            }
-          }
-        }
-        
-        // Main star - with safety checks
-        try {
-          canvas.drawCircle(
-            Offset(starX, starY),
-            star.size * (isLowPerformanceMode ? 1.0 : (0.8 + twinkle * 0.4)),
-            starPaint,
+
+    // Paint for stars with more vivid appearance
+    final starPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    // Draw stars with enhanced twinkling effect
+    for (var star in stars) {
+      // More complex twinkle with combined sine waves for natural effect
+      final twinkle = (math.sin(animationValue * star.blinkSpeed) +
+          math.sin(animationValue * star.blinkSpeed * 1.3 + 0.5)) / 3 + 0.7;
+
+      // Occasional color variation for some stars
+      final colorVariation = (star.x + star.y) % 1.0 > 0.7;
+      final starColor = colorVariation
+          ? Color.lerp(Colors.white, Colors.lightBlueAccent, 0.3)!
+          : Colors.white;
+
+      final adjustedBrightness = isLowPerformanceMode ? 0.8 : star.brightness * twinkle;
+
+      starPaint.color = starColor.withOpacity(adjustedBrightness);
+
+      // Draw a glow effect for larger stars
+      if (star.size > 2.0) {
+        // Outer glow
+        canvas.drawCircle(
+          Offset(star.x * size.width, star.y * size.height),
+          star.size * 2.0 * twinkle,
+          Paint()
+            ..color = starColor.withOpacity(0.05)
+            ..style = PaintingStyle.fill,
+        );
+
+        // Middle glow
+        canvas.drawCircle(
+          Offset(star.x * size.width, star.y * size.height),
+          star.size * 1.5 * twinkle,
+          Paint()
+            ..color = starColor.withOpacity(0.1)
+            ..style = PaintingStyle.fill,
+        );
+      }
+
+      // Main star
+      canvas.drawCircle(
+        Offset(star.x * size.width, star.y * size.height),
+        star.size * (isLowPerformanceMode ? 1.0 : (0.8 + twinkle * 0.4)),
+        starPaint,
+      );
+    }
+
+    // Only draw meteorites in normal performance mode
+    if (!isLowPerformanceMode) {
+      // Draw active meteorites
+      for (var meteorite in meteorites) {
+        if (meteorite.isActive) {
+          final currentX = meteorite.startX + (meteorite.endX - meteorite.startX) * meteorite.progress;
+          final currentY = meteorite.startY + (meteorite.endY - meteorite.startY) * meteorite.progress;
+
+          // Create a brighter gradient for the tail
+          final gradient = ui.Gradient.linear(
+            Offset(currentX * size.width, currentY * size.height),
+            Offset(
+              (currentX - (meteorite.endX - meteorite.startX) * meteorite.tailLength * meteorite.progress) * size.width,
+              (currentY - (meteorite.endY - meteorite.startY) * meteorite.tailLength * meteorite.progress) * size.height,
+            ),
+            [
+              Colors.white,
+              Colors.white.withOpacity(0.7),
+              Colors.white.withOpacity(0.0),
+            ],
+            [0.0, 0.1, 1.0],
           );
-        } catch (e) {
-          // Ignore drawing errors
+
+          // Draw a wider glow around the meteorite trail
+          final glowPaint = Paint()
+            ..shader = gradient
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = meteorite.size * 6.0
+            ..strokeCap = StrokeCap.round;
+
+          final path = Path();
+          path.moveTo(currentX * size.width, currentY * size.height);
+          path.lineTo(
+            (currentX - (meteorite.endX - meteorite.startX) * meteorite.tailLength * meteorite.progress) * size.width,
+            (currentY - (meteorite.endY - meteorite.startY) * meteorite.tailLength * meteorite.progress) * size.height,
+          );
+
+          // Draw the glow effect first
+          canvas.drawPath(path, glowPaint..color = Colors.white.withOpacity(0.1));
+
+          // Draw the main trail
+          final meteoritePaint = Paint()
+            ..shader = gradient
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = meteorite.size * 2.5
+            ..strokeCap = StrokeCap.round;
+
+          canvas.drawPath(path, meteoritePaint);
+
+          // Draw meteorite head (brighter point)
+          canvas.drawCircle(
+            Offset(currentX * size.width, currentY * size.height),
+            meteorite.size * 1.5,
+            Paint()
+              ..color = Colors.white
+              ..style = PaintingStyle.fill,
+          );
         }
-      }
-      
-      // Only draw meteorites in normal performance mode
-      if (!isLowPerformanceMode) {
-        // Draw active meteorites
-        for (var meteorite in meteorites) {
-          if (meteorite.isActive) {
-            try {
-              final currentX = meteorite.startX + (meteorite.endX - meteorite.startX) * meteorite.progress;
-              final currentY = meteorite.startY + (meteorite.endY - meteorite.startY) * meteorite.progress;
-              
-              // Skip if meteorite is outside canvas bounds
-              if (currentX < 0 || currentX > 1 || currentY < 0 || currentY > 1) {
-                continue;
-              }
-              
-              // Calculate position in canvas coordinates
-              final posX = currentX * size.width;
-              final posY = currentY * size.height;
-              
-              // Skip if calculated position is invalid
-              if (posX.isNaN || posY.isNaN || posX < 0 || posY < 0 || 
-                  posX > size.width || posY > size.height) {
-                continue;
-              }
-              
-              // Calculate tail end position
-              final tailEndX = (currentX - (meteorite.endX - meteorite.startX) * 
-                  meteorite.tailLength * meteorite.progress) * size.width;
-              final tailEndY = (currentY - (meteorite.endY - meteorite.startY) * 
-                  meteorite.tailLength * meteorite.progress) * size.height;
-                  
-              // Skip if tail end position is invalid
-              if (tailEndX.isNaN || tailEndY.isNaN) {
-                continue;
-              }
-              
-              // Create a brighter gradient for the tail
-              final gradient = ui.Gradient.linear(
-                Offset(posX, posY),
-                Offset(tailEndX, tailEndY),
-                [
-                  Colors.white,
-                  Colors.white.withOpacity(0.7),
-                  Colors.white.withOpacity(0.0),
-                ],
-                [0.0, 0.1, 1.0],
-              );
-              
-              // Draw a wider glow around the meteorite trail
-              final glowPaint = Paint()
-                ..shader = gradient
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = meteorite.size * 6.0
-                ..strokeCap = StrokeCap.round;
-              
-              final path = Path();
-              path.moveTo(posX, posY);
-              path.lineTo(tailEndX, tailEndY);
-              
-              // Draw the glow effect first
-              canvas.drawPath(path, glowPaint..color = Colors.white.withOpacity(0.1));
-              
-              // Draw the main trail
-              final meteoritePaint = Paint()
-                ..shader = gradient
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = meteorite.size * 2.5
-                ..strokeCap = StrokeCap.round;
-                
-              canvas.drawPath(path, meteoritePaint);
-              
-              // Draw meteorite head (brighter point)
-              canvas.drawCircle(
-                Offset(posX, posY),
-                meteorite.size * 1.5,
-                Paint()
-                  ..color = Colors.white
-                  ..style = PaintingStyle.fill,
-              );
-            } catch (e) {
-              // Ignore meteor drawing errors
-            }
-          }
-        }
-      }
-    } catch (e) {
-      // Log any unexpected painting errors
-      if (kDebugMode) {
-        print('StarryNightPainter error: $e');
       }
     }
   }
-  
+
   @override
   bool shouldRepaint(StarryNightPainter oldDelegate) {
     // Only repaint if animation value changed significantly to save performance
@@ -540,12 +468,12 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   String _referralCode = "";
   bool _isLoading = true;
   bool _isNetworkDataLoading = true;
-  
+
   // Animation controllers for starry background
   late AnimationController _starsAnimationController;
   late AnimationController _meteorAnimationController;
   Timer? _meteorTimer;
-  
+
   // Stars and meteorites for background
   List<Star> _stars = [];
   List<Meteorite> _meteorites = [];
@@ -568,19 +496,19 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       vsync: this,
       duration: const Duration(seconds: 10),
     )..repeat();
-    
+
     // Initialize meteor animation controller
     _meteorAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
     )..addListener(_updateMeteors);
-    
+
     // Generate stars (using relative coordinates for responsive sizing)
     _generateStarsAndMeteors();
-    
+
     // Start periodic meteor shower (one meteor every 2-5 seconds)
     _startMeteorShowers();
-    
+
     // Check if we should use low performance mode
     _checkPerformanceMode();
 
@@ -590,13 +518,13 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     // Load network data
     _loadNetworkData();
   }
-  
+
   // Generate stars and meteors for the background
   void _generateStarsAndMeteors() {
     // Generate 80-120 stars with random properties for more density
     final random = math.Random();
     final starCount = random.nextInt(41) + 80; // 80-120 stars
-    
+
     _stars = List.generate(starCount, (_) {
       // Create stars with more variety in size and brightness
       return Star(
@@ -607,7 +535,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         blinkSpeed: random.nextDouble() * 5.0 + 0.5, // Blink speed between 0.5-5.5 (more variety)
       );
     });
-    
+
     // Add some special brighter stars
     for (int i = 0; i < 15; i++) {
       _stars.add(Star(
@@ -618,17 +546,17 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         blinkSpeed: random.nextDouble() * 2.0 + 0.5, // Slower blink for big stars
       ));
     }
-    
+
     // Generate 15 potential meteorites (more for frequent shooting stars)
     _meteorites = List.generate(15, (_) {
       // Meteorites from various directions, mainly top to bottom
       final startX = random.nextDouble(); // Can start from anywhere horizontally
       final startY = random.nextDouble() * 0.3; // Start Y between 0-0.3 (top area)
-      
+
       // More varied trajectories
       final endX = startX + (random.nextDouble() * 1.0 - 0.5); // Random direction
       final endY = startY + (random.nextDouble() * 0.5 + 0.3); // Always move downward
-      
+
       return Meteorite(
         startX: startX,
         startY: startY,
@@ -640,33 +568,33 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       );
     });
   }
-  
+
   // Start periodic meteor showers
   void _startMeteorShowers() {
     // Don't start meteor showers in low performance mode
     if (_isLowPerformanceMode) return;
-    
+
     // More frequent checks for meteor showers
     _meteorTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       _meteorAnimationController.value = 0;
       _meteorAnimationController.forward();
-      
+
       // Higher chance to activate a meteor
       if (math.Random().nextDouble() < 0.15) { // 15% chance every 100ms
         _activateRandomMeteor();
       }
     });
   }
-  
+
   // Activate a random meteor
   void _activateRandomMeteor() {
     final random = math.Random();
     final inactiveMeteorites = _meteorites.where((m) => !m.isActive).toList();
-    
+
     if (inactiveMeteorites.isNotEmpty) {
       final meteor = inactiveMeteorites[random.nextInt(inactiveMeteorites.length)];
       meteor.activate();
-      
+
       // Sometimes activate multiple meteorites for meteor shower effect
       if (random.nextDouble() < 0.3 && inactiveMeteorites.length > 1) {
         final delay = random.nextInt(300) + 100; // 100-400ms delay
@@ -680,20 +608,20 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       }
     }
   }
-  
+
   // Update meteorites on each animation frame
   void _updateMeteors() {
     if (_isLowPerformanceMode) return;
-    
+
     final now = DateTime.now();
     final deltaTime = now.difference(_lastFrameTime).inMilliseconds / 1000.0;
     _lastFrameTime = now;
-    
+
     for (var meteor in _meteorites) {
       meteor.update(deltaTime);
     }
   }
-  
+
   // Check if we should use low performance mode
   void _checkPerformanceMode() {
 
@@ -764,135 +692,46 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       _isNetworkDataLoading = true;
     });
 
-    // Keep track of retry attempts
-    int retryCount = 0;
-    const maxRetries = 2;
-    
-    // Function to add environment info to logs
-    void logEnvironmentInfo() {
-      try {
-        final isProd = AppConstants.isProductionMode;
-        final baseUrl = AppConstants.baseUrl;
-        final apiV1Url = AppConstants.apiV1BaseUrl;
-        
-        developer.log('Environment: ${isProd ? "PRODUCTION" : "DEVELOPMENT"}', name: 'Network');
-        developer.log('Base URL: $baseUrl', name: 'Network');
-        developer.log('API V1 URL: $apiV1Url', name: 'Network');
-      } catch (e) {
-        developer.log('Error logging environment info: $e', name: 'Network');
-      }
-    }
-    
-    // Log environment info at the start
-    logEnvironmentInfo();
-
-    // Function to load network data with retry logic
-    Future<bool> tryLoadNetwork() async {
-      try {
-        // Get network data (hierarchical structure)
-        developer.log('Requesting network data via API (attempt ${retryCount + 1}/${maxRetries + 1})', name: 'Network');
-        final networkResponse = await ApiService.getNetwork(levels: 5);
-        
-        // Debug log the raw response
-        try {
-          // Log a truncated version of the response
-          final respString = networkResponse.toString();
-          developer.log('Network API raw response: ${respString.substring(0, math.min(respString.length, 1000))}...', name: 'Network');
-          
-          // Check for status code in case of error
-          if (networkResponse['status'] == 'error') {
-            developer.log('Network API error: ${networkResponse['message']}', name: 'Network');
-            if (networkResponse.containsKey('status_code')) {
-              developer.log('Status code: ${networkResponse['status_code']}', name: 'Network');
-            }
-            if (networkResponse.containsKey('raw_response')) {
-              developer.log('Raw response: ${networkResponse['raw_response']}', name: 'Network');
-            }
-            
-            // If we get a server error (500) and not on last retry, retry
-            if (networkResponse['status_code'] == 500 && retryCount < maxRetries) {
-              retryCount++;
-              developer.log('Server error 500 detected, will retry...', name: 'Network');
-              // Wait a bit before retrying
-              await Future.delayed(Duration(seconds: 1));
-              return false; // Trigger retry
-            }
-          }
-        } catch (e) {
-          developer.log('Error logging network response: $e', name: 'Network');
-        }
-        
-        if (networkResponse['status'] == 'success') {
-          setState(() {
-            // Directly use the root node data from the updated API
-            _networkData = networkResponse['data'] ?? {};
-            
-            // Debug log to inspect network data structure
-            try {
-              final dataString = _networkData.toString();
-              developer.log('Network data structure: ${dataString.substring(0, math.min(dataString.length, 1000))}...', name: 'Network');
-            } catch (e) {
-              developer.log('Error logging network data structure: $e', name: 'Network');
-            }
-            
-            // Get the total members and direct referrals from API's accurate calculation
-            if (networkResponse.containsKey('total_members')) {
-              _networkStats['total_members'] = networkResponse['total_members'];
-            }
-            
-            if (networkResponse.containsKey('direct_referrals')) {
-              _networkStats['direct_referrals'] = networkResponse['direct_referrals'];
-            }
-          });
-          developer.log('Loaded network data successfully', name: 'Network');
-          return true; // Successfully loaded network data
-        } else {
-          developer.log('Failed to load network data: ${networkResponse['message']}', name: 'Network');
-          
-          // Retry on failure if not on last retry
-          if (retryCount < maxRetries) {
-            retryCount++;
-            developer.log('Will retry network data loading...', name: 'Network');
-            // Wait a bit before retrying
-            await Future.delayed(Duration(seconds: 1));
-            return false; // Trigger retry
-          }
-          return true; // Stop retrying but continue with summary/stats
-        }
-      } catch (e) {
-        developer.log('Error loading network data: $e', name: 'Network');
-        
-        // Retry on exception if not on last retry
-        if (retryCount < maxRetries) {
-          retryCount++;
-          developer.log('Will retry after error...', name: 'Network');
-          // Wait a bit before retrying
-          await Future.delayed(Duration(seconds: 1));
-          return false; // Trigger retry
-        }
-        return true; // Stop retrying but continue with summary/stats
-      }
-    }
-
-    // Try to load network data with retries
-    bool continueToSummary = false;
-    while (!continueToSummary && retryCount <= maxRetries) {
-      continueToSummary = await tryLoadNetwork();
-    }
-
     try {
+      // Get network data (hierarchical structure)
+      final networkResponse = await ApiService.getNetwork(levels: 5);
+
+      // Debug log the raw response
+      developer.log('Network API raw response: ${networkResponse.toString().substring(0, math.min(networkResponse.toString().length, 1000))}...', name: 'Network');
+
+      if (networkResponse['status'] == 'success') {
+        setState(() {
+          // Directly use the root node data from the updated API
+          _networkData = networkResponse['data'] ?? {};
+
+          // Debug log to inspect network data structure
+          developer.log('Network data structure: ${_networkData.toString().substring(0, math.min(_networkData.toString().length, 1000))}...', name: 'Network');
+
+          // Get the total members and direct referrals from API's accurate calculation
+          if (networkResponse.containsKey('total_members')) {
+            _networkStats['total_members'] = networkResponse['total_members'];
+          }
+
+          if (networkResponse.containsKey('direct_referrals')) {
+            _networkStats['direct_referrals'] = networkResponse['direct_referrals'];
+          }
+        });
+        developer.log('Loaded network data successfully', name: 'Network');
+      } else {
+        developer.log('Failed to load network data: ${networkResponse['message']}', name: 'Network');
+      }
+
       // Get accurate network summary instead of the old network stats
-      developer.log('Requesting network summary via API', name: 'Network');
       final summaryResponse = await ApiService.getNetworkSummary();
       if (summaryResponse['status'] == 'success') {
         setState(() {
           _networkStats = summaryResponse['data'] ?? {};
-          
+
           // Store the data in _networkStats to maintain compatibility with existing UI
           if (!_networkStats.containsKey('total_downlines') && _networkStats.containsKey('total_members')) {
             _networkStats['total_downlines'] = _networkStats['total_members'];
           }
-          
+
           if (!_networkStats.containsKey('downline_counts') && _networkStats.containsKey('direct_referrals')) {
             _networkStats['downline_counts'] = {
               'level_1': _networkStats['direct_referrals'],
@@ -902,9 +741,8 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         developer.log('Loaded network summary successfully: ${summaryResponse['data']}', name: 'Network');
       } else {
         developer.log('Failed to load network summary: ${summaryResponse['message']}', name: 'Network');
-        
+
         // Fallback to old stats endpoint if summary fails
-        developer.log('Attempting fallback to network stats API', name: 'Network');
         final statsResponse = await ApiService.getNetworkStats();
         if (statsResponse['status'] == 'success') {
           setState(() {
@@ -913,37 +751,14 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
           developer.log('Loaded network stats successfully (fallback)', name: 'Network');
         } else {
           developer.log('Failed to load network stats: ${statsResponse['message']}', name: 'Network');
-          
-          // If all APIs fail, initialize with empty data to avoid UI errors
-          setState(() {
-            _networkStats = {
-              'total_members': 0,
-              'direct_referrals': 0,
-              'total_downlines': 0,
-              'downline_counts': {'level_1': 0}
-            };
-          });
         }
       }
     } catch (e) {
-      developer.log('Error loading network summary/stats: $e', name: 'Network');
-      // Initialize with empty data on error
-      setState(() {
-        _networkData = _networkData ?? {}; // Keep existing network data if any
-        _networkStats = {
-          'total_members': 0,
-          'direct_referrals': 0,
-          'total_downlines': 0,
-          'downline_counts': {'level_1': 0}
-        };
-      });
+      developer.log('Error loading network data: $e', name: 'Network');
     } finally {
       setState(() {
         _isNetworkDataLoading = false;
       });
-      
-      // Log final environment info again to aid debugging
-      logEnvironmentInfo();
     }
   }
 
@@ -1130,14 +945,14 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
               // Welcome message with animated gradient
               _buildWelcomeSection(),
               const SizedBox(height: 24),
-              
+
               // Enhanced referral card
               _buildEnhancedReferralCard(),
               const SizedBox(height: 30),
-              
+
               // Network stats with improved design
               _buildEnhancedNetworkStats(),
-              
+
               // Add extra space at bottom for better scrolling
               const SizedBox(height: 50),
             ],
@@ -1201,7 +1016,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   Widget _buildWelcomeSection() {
     final now = DateTime.now();
     String greeting;
-    
+
     if (now.hour < 12) {
       greeting = "Good Morning";
     } else if (now.hour < 17) {
@@ -1209,7 +1024,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     } else {
       greeting = "Good Evening";
     }
-    
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1252,9 +1067,9 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
                         greeting,
                         style: TextStyle(
@@ -1277,14 +1092,14 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
               ],
             );
           }
-          
+
           if (snapshot.hasError || !snapshot.hasData || snapshot.data?['status'] != 'success') {
             return Row(
-            children: [
-              Container(
+              children: [
+                Container(
                   width: 60,
                   height: 60,
-                decoration: BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppTheme.goldColor.withOpacity(0.2),
                     shape: BoxShape.circle,
                     border: Border.all(color: AppTheme.goldColor, width: 2),
@@ -1313,7 +1128,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                       const Text(
                         "User",
                         style: TextStyle(
-                  color: Colors.white,
+                          color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1333,13 +1148,13 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
               ],
             );
           }
-          
+
           // Extract user data from the API response
           final userData = snapshot.data?['data']?['user'];
           final String? avatarUrl = snapshot.data?['data']?['avatar_url'];
           final String userName = userData?['full_name'] ?? 'User';
           final String level = userData?['level'] != null ? 'Level ${userData?['level']}' : 'Level 0';
-          
+
           return Row(
             children: [
               // User avatar
@@ -1353,39 +1168,39 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(30),
-                  child: avatarUrl != null && avatarUrl.isNotEmpty 
-                    ? Image.network(
-                        getFormattedImageUrl(avatarUrl),
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              color: AppTheme.goldColor,
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                  : null,
-                              strokeWidth: 2,
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Center(
-                            child: Icon(
-                              Icons.person,
-                              color: AppTheme.goldColor,
-                              size: 30,
-                            ),
-                          );
-                        },
-                      )
-                    : Center(
+                  child: avatarUrl != null && avatarUrl.isNotEmpty
+                      ? Image.network(
+                    getFormattedImageUrl(avatarUrl),
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          color: AppTheme.goldColor,
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                              : null,
+                          strokeWidth: 2,
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Center(
                         child: Icon(
                           Icons.person,
                           color: AppTheme.goldColor,
                           size: 30,
                         ),
-                      ),
+                      );
+                    },
+                  )
+                      : Center(
+                    child: Icon(
+                      Icons.person,
+                      color: AppTheme.goldColor,
+                      size: 30,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -1443,7 +1258,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       curve: Curves.easeOutQuad,
     );
   }
-  
+
   // Enhanced referral card with better UI
   Widget _buildEnhancedReferralCard() {
     return Container(
@@ -1481,37 +1296,37 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
               ],
             ),
             borderRadius: BorderRadius.circular(17),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                   // Title and subtitle
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-              const Text(
+                      const Text(
                         "Grow Your Network",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
-              ),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         "Invite friends & earn rewards",
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.7),
                           fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-                  
+                        ),
+                      ),
+                    ],
+                  ),
+
                   // Animated icon
                   Container(
                     padding: const EdgeInsets.all(10),
@@ -1533,21 +1348,21 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                 ],
               ),
               const SizedBox(height: 25),
-              
+
               // Referral code section
-          Container(
+              Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
+                decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppTheme.goldColor.withOpacity(0.3)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+                      children: [
                         Text(
                           "Your Referral Code",
                           style: TextStyle(
@@ -1556,30 +1371,30 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                           ),
                         ),
                         const SizedBox(height: 6),
-                Text(
-                  _referralCode,
-                  style: const TextStyle(
-                    color: Colors.white,
+                        Text(
+                          _referralCode,
+                          style: const TextStyle(
+                            color: Colors.white,
                             fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                  ),
-                ),
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
                       ],
-                  ),
+                    ),
 
                     // Copy button with animation
                     InkWell(
                       onTap: () async {
                         await Clipboard.setData(ClipboardData(text: _referralCode));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Referral code copied to clipboard'),
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Referral code copied to clipboard'),
                             backgroundColor: AppTheme.successColor,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
                       child: Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
@@ -1599,17 +1414,17 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                         duration: 1.5.seconds,
                         curve: Curves.easeInOut,
                       ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
               const SizedBox(height: 24),
-              
+
               // Enhanced Share button with luxury design
               GestureDetector(
                 onTap: _shareReferralCode,
                 child: Container(
-            width: double.infinity,
+                  width: double.infinity,
                   height: 56,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -1628,9 +1443,9 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                         color: AppTheme.goldColor.withOpacity(0.4),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+                      ),
+                    ],
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(1.0),
                     child: Container(
@@ -1669,11 +1484,11 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                   ),
                 ),
               ).animate()
-                .fadeIn(duration: 600.ms, delay: 300.ms)
-                .moveY(begin: 20, end: 0, duration: 600.ms, curve: Curves.easeOutQuad, delay: 300.ms)
-                .shimmer(duration: 1800.ms, delay: 1000.ms, color: Colors.white.withOpacity(0.4)),
-        ],
-      ),
+                  .fadeIn(duration: 600.ms, delay: 300.ms)
+                  .moveY(begin: 20, end: 0, duration: 600.ms, curve: Curves.easeOutQuad, delay: 300.ms)
+                  .shimmer(duration: 1800.ms, delay: 1000.ms, color: Colors.white.withOpacity(0.4)),
+            ],
+          ),
         ),
       ),
     ).animate().fadeIn(duration: 800.ms, delay: 200.ms).slideY(
@@ -1690,7 +1505,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     // Calculate total members from network data
     int totalMembers = _networkStats['total_members'] ?? 0;
     int directReferrals = _networkStats['direct_referrals'] ?? 0;
-    
+
     // Format the values for display
     final totalMembersDisplay = totalMembers > 0 ? totalMembers.toString() : "--";
     final directReferralsDisplay = directReferrals > 0 ? directReferrals.toString() : "--";
@@ -1726,7 +1541,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
           ),
         ),
         const SizedBox(height: 20),
-        
+
         // Main stats cards
         Row(
           children: [
@@ -1774,7 +1589,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       ],
     ).animate().fadeIn(delay: 400.ms, duration: 800.ms);
   }
-  
+
   // Gradient stat card with better design
   Widget _buildGradientStatCard(String title, String value, IconData icon, List<Color> colors) {
     return Container(
@@ -1800,44 +1615,44 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
           decoration: BoxDecoration(
             color: AppTheme.backgroundColor.withOpacity(0.9),
             borderRadius: BorderRadius.circular(14.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                icon,
+              Row(
+                children: [
+                  Icon(
+                    icon,
                     color: colors[0],
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                title,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    title,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.8),
                       fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                value,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-                style: TextStyle(
-              color: Colors.white,
-                  fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
         ),
       ),
     ).animate().shimmer(delay: 400.ms, duration: 1.5.seconds);
   }
-  
-    Widget _buildNetworkTab() {
+
+  Widget _buildNetworkTab() {
     // Show loading indicator while network data is loading
     if (_isNetworkDataLoading) {
       return Center(
@@ -1953,115 +1768,60 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     // Use real network data if available
     if (_networkData.isNotEmpty) {
       developer.log('Using network data from API', name: 'Network');
-      
-      try {
-        // Create a safe copy of the data to avoid modifying the original
-        final Map<String, dynamic> safeData = Map<String, dynamic>.from(_networkData);
-        
-        // Log environment for debugging
-        final isProd = AppConstants.isProductionMode;
-        developer.log('Environment: ${isProd ? "PRODUCTION" : "DEVELOPMENT"}', name: 'Network');
-        
-        // Debug the entire structure for troubleshooting
-        try {
-          final jsonString = jsonEncode(safeData);
-          developer.log('Network data structure: ${jsonString.substring(0, math.min(jsonString.length, 500))}...', name: 'Network');
-        } catch (e) {
-          developer.log('Error encoding network data for logging: $e', name: 'Network');
-        }
-        
-        // Debug the top-level keys
-        if (safeData is Map<String, dynamic>) {
-          developer.log('Top level keys: ${safeData.keys.join(', ')}', name: 'Network');
-        }
-        
-        // Ensure required fields exist
-        // Check for specific fields needed by the UI
-        if (!safeData.containsKey('id')) {
-          if (safeData.containsKey('affiliate_code')) {
-            developer.log('Setting id from affiliate_code', name: 'Network');
-            safeData['id'] = safeData['affiliate_code'];
-          } else if (safeData.containsKey('user_id')) {
-            developer.log('Setting id from user_id', name: 'Network');
-            safeData['id'] = safeData['user_id'].toString();
-          } else if (safeData.containsKey('id') && safeData['id'] != null) {
-            // Already has id, might be an integer
-            developer.log('Converting numeric id to string', name: 'Network');
-            safeData['id'] = safeData['id'].toString();
-          } else {
-            developer.log('No id found, setting default id', name: 'Network');
-            safeData['id'] = 'user-${DateTime.now().millisecondsSinceEpoch}';
+
+      // Create a safe copy of the data to avoid modifying the original
+      final Map<String, dynamic> safeData = Map<String, dynamic>.from(_networkData);
+
+      // Debug the entire structure for troubleshooting
+      developer.log('Network data structure: ${jsonEncode(safeData).substring(0, math.min(jsonEncode(safeData).length, 500))}...', name: 'Network');
+
+      // Debug the top-level keys
+      if (safeData is Map<String, dynamic>) {
+        developer.log('Top level keys: ${safeData.keys.join(', ')}', name: 'Network');
+      }
+
+      // Check for specific fields needed by the UI
+      if (!safeData.containsKey('id') && safeData.containsKey('affiliate_code')) {
+        developer.log('Setting id from affiliate_code', name: 'Network');
+        safeData['id'] = safeData['affiliate_code'];
+      }
+
+      if (!safeData.containsKey('name') && safeData.containsKey('full_name')) {
+        developer.log('Setting name from full_name', name: 'Network');
+        safeData['name'] = safeData['full_name'];
+      }
+
+      // Check if the 'children' field contains list data
+      if (safeData.containsKey('children')) {
+        final children = safeData['children'];
+
+        if (children is List) {
+          developer.log('Children count: ${children.length}', name: 'Network');
+          if (children.isNotEmpty) {
+            developer.log('First child: ${jsonEncode(children.first)}', name: 'Network');
           }
-        } else if (safeData['id'] is int) {
-          // Convert integer id to string
-          safeData['id'] = safeData['id'].toString();
-        }
-        
-        if (!safeData.containsKey('name')) {
-          if (safeData.containsKey('full_name')) {
-            developer.log('Setting name from full_name', name: 'Network');
-            safeData['name'] = safeData['full_name'];
-          } else if (safeData.containsKey('username')) {
-            developer.log('Setting name from username', name: 'Network');
-            safeData['name'] = safeData['username'];
-          } else if (safeData.containsKey('email')) {
-            developer.log('Setting name from email', name: 'Network');
-            safeData['name'] = safeData['email'].toString().split('@')[0];
-          } else {
-            developer.log('No name found, setting default name', name: 'Network');
-            safeData['name'] = 'User';
-          }
-        }
-        
-        // Add other required fields for the root node
-        safeData['level'] = safeData['level'] ?? 0;
-        safeData['isActive'] = safeData['isActive'] ?? safeData['status'] == 'Active' || safeData['status'] == 'active' || true;
-        safeData['is_trader'] = _normalizeTraderStatus(safeData['is_trader']);
-        
-        // Check if the 'children' field contains list data
-        if (safeData.containsKey('children')) {
-          final children = safeData['children'];
-          
-          if (children is List) {
-            developer.log('Children count: ${children.length}', name: 'Network');
-            if (children.isNotEmpty) {
-              try {
-                final childJson = jsonEncode(children.first);
-                developer.log('First child: ${childJson.substring(0, math.min(childJson.length, 500))}', name: 'Network');
-              } catch (e) {
-                developer.log('Error encoding first child for logging: $e', name: 'Network');
-              }
-            } else {
-              developer.log('Children list is empty', name: 'Network');
-            }
-            
-            // Ensure we're processing children correctly
-            safeData['children'] = _processSafeChildren(children);
-          } else {
-            developer.log('Children field is not a list: ${children.runtimeType}', name: 'Network');
-            safeData['children'] = [];
-          }
+
+          // Ensure we're processing children correctly
+          safeData['children'] = _processSafeChildren(children);
         } else {
-          developer.log('No children field found in network data', name: 'Network');
+          developer.log('Children field is not a list: ${children.runtimeType}', name: 'Network');
           safeData['children'] = [];
         }
-        
-        return safeData;
-      } catch (e) {
-        developer.log('Error processing network data: $e', name: 'Network');
-        // Fall through to return minimal structure
+      } else {
+        developer.log('No children field found in network data', name: 'Network');
+        safeData['children'] = [];
       }
+
+      return safeData;
     }
 
-    // If no data or error processing, return minimal structure
+    // If no data, return minimal structure
     developer.log('No network data available, using placeholder', name: 'Network');
     return {
       'id': _referralCode.isEmpty ? 'N/A' : _referralCode,
       'name': 'You',
       'level': 'Level 0',
       'downlines': 0,
-      'is_trader': false,
-      'isActive': true,
       'children': [], // Empty network when no data is available
     };
   }
@@ -2070,124 +1830,60 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   Map<String, dynamic> _safeNetworkData(Map<String, dynamic> data) {
     // Create a safe copy of the data
     final safeData = Map<String, dynamic>.from(data);
-    
+
     // Ensure all child nodes have consistent data types
     if (safeData.containsKey('children') && safeData['children'] is List) {
       safeData['children'] = _processSafeChildren(safeData['children'] as List);
     } else {
       safeData['children'] = [];
     }
-    
+
     return safeData;
   }
-  
+
   // Process children recursively to ensure consistent types
   List<Map<String, dynamic>> _processSafeChildren(List children) {
     try {
       List<Map<String, dynamic>> result = [];
-      
-      int index = 0;
+
       for (var child in children) {
-        try {
-          // Check if child is a valid map
-          if (child is! Map) {
-            developer.log('Invalid child data format (not a map): ${child.runtimeType}', name: 'Network');
-            continue; // Skip invalid children
-          }
-          
-          // Convert to Map<String, dynamic> even if it's a different map type
-          final Map childMap = child;
-          final safeChild = Map<String, dynamic>.from(childMap.map((k, v) => 
-            MapEntry(k.toString(), v))); // Force string keys
-          
-          // Ensure required fields exist - Try all possible field names from both dev and production
-          if (!safeChild.containsKey('id')) {
-            // Fields from both dev and production database schema
-            if (safeChild.containsKey('affiliate_code')) {
-              safeChild['id'] = safeChild['affiliate_code'];
-            } else if (safeChild.containsKey('user_id')) {
-              safeChild['id'] = safeChild['user_id'].toString();
-            } else if (safeChild.containsKey('id')) {
-              // Already has id but might be an integer
-              safeChild['id'] = safeChild['id'].toString();
-            } else {
-              safeChild['id'] = 'unknown-${index}';
-            }
-          } else if (safeChild['id'] is! String) {
-            // Convert integer id to string
-            safeChild['id'] = safeChild['id'].toString();
-          }
-          
-          if (!safeChild.containsKey('name')) {
-            // Try various fields for name including all database columns
-            if (safeChild.containsKey('full_name')) {
-              safeChild['name'] = safeChild['full_name'];
-            } else if (safeChild.containsKey('username')) {
-              safeChild['name'] = safeChild['username'];
-            } else if (safeChild.containsKey('email')) {
-              // Use part of email address as name
-              final email = safeChild['email']?.toString() ?? '';
-              safeChild['name'] = email.isNotEmpty ? email.split('@')[0] : 'Unknown User';
-            } else {
-              safeChild['name'] = 'Unknown User';
-            }
-          }
-          
-          // Ensure status fields exist with defaults
-          safeChild['isActive'] = safeChild['isActive'] ?? 
-                                 safeChild['status'] == 'Active' || 
-                                 safeChild['status'] == 'active' ||
-                                 true; // Default to active
-          
-          // Normalize trader status - different APIs might use different formats
-          final isTrader = safeChild['is_trader'];
-          if (isTrader is int) {
-            safeChild['is_trader'] = isTrader == 1;
-          } else if (isTrader is String) {
-            safeChild['is_trader'] = isTrader == '1' || isTrader.toLowerCase() == 'true';
-          } else if (isTrader is! bool) {
-            safeChild['is_trader'] = false; // Default if not recognized format
-          }
-          
-          // Make sure all keys for MLM structure exist
-          safeChild['referral_id'] = safeChild['referral_id'] ?? safeChild['referrer_id'] ?? safeChild['upline_id'] ?? null;
-          safeChild['level'] = safeChild['level'] ?? 0;
-          
-          // Process nested children
-          if (safeChild.containsKey('children')) {
-            final nestedChildren = safeChild['children'];
-            if (nestedChildren is List) {
-              try {
-                safeChild['children'] = _processSafeChildren(nestedChildren);
-              } catch (e) {
-                developer.log('Error processing children for ${safeChild['name']}: $e', name: 'Network');
-                safeChild['children'] = [];
-              }
-            } else {
-              safeChild['children'] = [];
-            }
-          } else {
-            safeChild['children'] = [];
-          }
-          
-          // Add a log for each processed child node
-          if (index < 3) { // Only log first few to avoid spamming logs
-            try {
-              developer.log('Processed child node ${index+1}: id=${safeChild['id']}, name=${safeChild['name']}, is_trader=${safeChild['is_trader']}', name: 'Network');
-            } catch (e) {
-              // Ignore logging errors
-            }
-          }
-          
-          result.add(safeChild);
-          index++;
-        } catch (e) {
-          developer.log('Error processing individual child in network data: $e', name: 'Network');
-          // Continue to next child instead of failing the whole operation
+        if (child is! Map<String, dynamic>) {
+          developer.log('Invalid child data format: ${child.runtimeType} - $child', name: 'Network');
+          continue; // Skip invalid children
         }
+
+        final safeChild = Map<String, dynamic>.from(child);
+
+        // Ensure required fields exist
+        if (!safeChild.containsKey('id')) {
+          // Try to use affiliate_code as id if available
+          if (safeChild.containsKey('affiliate_code')) {
+            safeChild['id'] = safeChild['affiliate_code'];
+          } else {
+            safeChild['id'] = 'unknown-${children.indexOf(child)}';
+          }
+        }
+
+        if (!safeChild.containsKey('name')) {
+          // Try to use full_name as name if available
+          if (safeChild.containsKey('full_name')) {
+            safeChild['name'] = safeChild['full_name'];
+          } else {
+            safeChild['name'] = 'Unknown User';
+          }
+        }
+
+        // Process nested children
+        if (safeChild.containsKey('children') && safeChild['children'] is List) {
+          safeChild['children'] = _processSafeChildren(safeChild['children'] as List);
+        } else {
+          safeChild['children'] = [];
+        }
+
+        result.add(safeChild);
       }
-      
-      developer.log('Processed ${result.length} children (from ${children.length} total)', name: 'Network');
+
+      developer.log('Processed ${result.length} children', name: 'Network');
       return result;
     } catch (e) {
       developer.log('Error processing children data: $e', name: 'Network');
@@ -2218,7 +1914,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
             },
           ),
         ),
-        
+
         // Container with network structure
         Positioned.fill(
           child: Container(
@@ -2257,34 +1953,34 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       ],
     );
   }
-  
+
   // State to track which nodes are expanded (showing add user button)
   final Map<String, bool> _expandedNodes = {};
-  
+
   // Helper method to build a network node
   Widget _buildNetworkNode(dynamic rawId, dynamic rawName, int level, bool isTrader, bool isActive, bool isRoot, List<dynamic> children) {
     try {
       // Ensure id and name are strings
       final String id = rawId is int ? rawId.toString() : (rawId as String? ?? 'N/A');
       final String name = rawName is int ? rawName.toString() : (rawName as String? ?? 'Unknown');
-      
+
       // Debug the node data being processed
       developer.log('Building node: id=$id, name=$name, level=$level, isTrader=$isTrader, isActive=$isActive, children.length=${children.length}', name: 'Network');
-      
+
       // Check if this node is expanded
       final bool isExpanded = _expandedNodes[id] == true;
-      
+
       // Colors and styling based on status and level
       final Color textColor = isActive ? Colors.white : Colors.grey.shade500;
-      
+
       // Calculate left margin based on level for indentation
       // Level 0 starts from left, each subsequent level is indented more
       final double leftMargin = level * 30.0;
-      
+
       // Enhanced styling with gradients for better visual hierarchy
       final BoxDecoration nodeDecoration;
       final EdgeInsets nodeMargin;
-      
+
       if (isRoot) {
         // Root node (trader) gets a luxury gold gradient
         nodeDecoration = BoxDecoration(
@@ -2320,9 +2016,9 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         nodeMargin = EdgeInsets.only(bottom: 25, left: leftMargin);
       } else {
         // Regular nodes get appropriate colors based on status
-        final Color bgColor = isTrader ? Colors.amber.shade700 : 
-                              (isActive ? Colors.grey.shade800 : Colors.grey.shade900);
-        
+        final Color bgColor = isTrader ? Colors.amber.shade700 :
+        (isActive ? Colors.grey.shade800 : Colors.grey.shade900);
+
         nodeDecoration = BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(10),
@@ -2340,7 +2036,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         );
         nodeMargin = EdgeInsets.only(top: 16, bottom: 6, left: leftMargin);
       }
-      
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -2351,7 +2047,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
               setState(() {
                 // Toggle this node's expanded state
                 _expandedNodes[id] = !isExpanded;
-                
+
                 // If opening this node, close all others for cleaner UI
                 if (!isExpanded) {
                   for (var key in _expandedNodes.keys.toList()) {
@@ -2361,7 +2057,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                   }
                 }
               });
-              
+
               developer.log('Node clicked: $name with affiliate code: $id', name: 'Network');
             },
             child: Container(
@@ -2402,8 +2098,8 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                           ),
                           const SizedBox(width: 2),
                           Icon(
-                            Icons.star, 
-                            color: Colors.white, 
+                            Icons.star,
+                            color: Colors.white,
                             size: isRoot ? 12 : 10,
                           ),
                         ],
@@ -2430,8 +2126,8 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                           ),
                           const SizedBox(width: 2),
                           const Icon(
-                            Icons.star, 
-                            color: Colors.white, 
+                            Icons.star,
+                            color: Colors.white,
                             size: 10,
                           ),
                         ],
@@ -2441,10 +2137,10 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                 ],
               ),
             ).animate()
-             .fadeIn(duration: 400.ms, delay: Duration(milliseconds: level * 100))
-             .slide(begin: Offset(0, 0.1), end: Offset.zero, duration: 400.ms, delay: Duration(milliseconds: level * 100)),
+                .fadeIn(duration: 400.ms, delay: Duration(milliseconds: level * 100))
+                .slide(begin: Offset(0, 0.1), end: Offset.zero, duration: 400.ms, delay: Duration(milliseconds: level * 100)),
           ),
-          
+
           // Add new user button - only appears when a node is clicked/expanded
           if (isExpanded) ...[
             GestureDetector(
@@ -2494,10 +2190,10 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                 ),
               ),
             ).animate()
-              .fadeIn(duration: 300.ms)
-              .scale(begin: Offset(0.95, 0.95), end: Offset(1, 1), duration: 300.ms, curve: Curves.easeOutBack),
+                .fadeIn(duration: 300.ms)
+                .scale(begin: Offset(0.95, 0.95), end: Offset(1, 1), duration: 300.ms, curve: Curves.easeOutBack),
           ],
-          
+
           // Recursively show children nodes
           if (children.isNotEmpty) ...[
             const SizedBox(height: 4), // Reduced spacing
@@ -2519,16 +2215,16 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                 children: children.asMap().entries.map((entry) {
                   final index = entry.key;
                   final child = entry.value;
-                  
+
                   if (child == null || child is! Map<String, dynamic>) {
                     developer.log('Invalid child data at index $index: $child', name: 'Network');
                     return const SizedBox.shrink(); // Skip invalid data
                   }
-                  
+
                   // Add compact spacing between nodes
                   return Padding(
                     padding: EdgeInsets.only(
-                      bottom: index < children.length - 1 ? 5 : 0 // Reduced bottom spacing
+                        bottom: index < children.length - 1 ? 5 : 0 // Reduced bottom spacing
                     ),
                     child: _buildNetworkNode(
                       child['id'], // Pass raw ID value for handling in the function
@@ -2552,25 +2248,25 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       return const SizedBox.shrink(); // Return an empty widget on error
     }
   }
-  
+
   // Show confirmation modal before launching registration
   void _showRegistrationConfirmation(String affiliateCode, String userName) {
     // Log the actual affiliate code being used
     developer.log('Showing confirmation for affiliate code: $affiliateCode', name: 'Network');
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
+        decoration: BoxDecoration(
           color: AppTheme.secondaryBackgroundColor,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
           ),
-                border: Border.all(
+          border: Border.all(
             color: AppTheme.goldColor.withOpacity(0.3),
             width: 1,
           ),
@@ -2588,7 +2284,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            
+
             // Icon
             Container(
               width: 60,
@@ -2604,18 +2300,18 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                 size: 30,
               ),
             ),
-            
+
             // Title
             Text(
               "Register New User",
               style: const TextStyle(
-                            color: Colors.white,
+                color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Description
             Text(
               "You are about to register a new user under $userName with the following referral code:",
@@ -2626,7 +2322,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Affiliate code display
             Container(
               width: double.infinity,
@@ -2644,11 +2340,11 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                 children: [
                   Text(
                     "Referral Code",
-              style: TextStyle(
+                    style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
-                            fontSize: 12,
-                          ),
-                        ),
+                      fontSize: 12,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2678,10 +2374,10 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                         },
                         child: Container(
                           padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
+                          decoration: BoxDecoration(
                             color: AppTheme.goldColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           child: const Icon(
                             Icons.copy,
                             color: AppTheme.goldColor,
@@ -2695,7 +2391,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Action buttons
             Row(
               children: [
@@ -2714,9 +2410,9 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                         ),
                       ),
                       child: const Center(
-              child: Text(
+                        child: Text(
                           "Cancel",
-                style: TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -2727,7 +2423,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                   ),
                 ),
                 const SizedBox(width: 12),
-                
+
                 // Proceed button
                 Expanded(
                   child: GestureDetector(
@@ -2761,10 +2457,10 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -2777,7 +2473,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       developer.log('Modal closed', name: 'Network');
     });
   }
-  
+
   // Launch registration page with affiliate code
   void _launchRegistrationWithAffiliateCode(String affiliateCode) async {
     try {
@@ -2787,8 +2483,8 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
           content: Row(
             children: [
               SizedBox(
-                width: 20, 
-                height: 20, 
+                width: 20,
+                height: 20,
                 child: CircularProgressIndicator(
                   color: Colors.white,
                   strokeWidth: 2,
@@ -2802,16 +2498,16 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
           backgroundColor: AppTheme.secondaryBackgroundColor,
         ),
       );
-      
+
       // Construct the registration URL with the affiliate code
       final urlString = 'https://register.metatravel.ai/register?affiliate_code=$affiliateCode';
-      
+
       developer.log(
         'Launching registration with affiliate code: $affiliateCode',
         name: 'Network',
       );
       developer.log('URL: $urlString', name: 'Network');
-      
+
       // Launch the URL using url_launcher
       if (!await launch(
         urlString,
@@ -2822,7 +2518,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       }
     } catch (e) {
       developer.log('Error launching registration URL: $e', name: 'Network');
-      
+
       // Show error message to user
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -2839,28 +2535,16 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       height: 40,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+          children: [
             Icon(icon, size: 18),
-          const SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text(text),
           ],
         ),
       ),
     );
-  }
-
-  // Helper function to normalize the is_trader field to boolean
-  bool _normalizeTraderStatus(dynamic isTrader) {
-    if (isTrader is bool) {
-      return isTrader;
-    } else if (isTrader is int) {
-      return isTrader == 1;
-    } else if (isTrader is String) {
-      return isTrader == '1' || isTrader.toLowerCase() == 'true';
-    }
-    return false; // Default value if unknown format
   }
 }
 
@@ -2947,12 +2631,12 @@ class _BackToTopButtonState extends State<BackToTopButton> {
   bool _visible = false;
   late ScrollController _scrollController;
   Timer? _scrollTimer;
-  
+
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-    
+
     // Listen to the nearest scrollable ancestor
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final scrollable = Scrollable.of(context);
@@ -2961,7 +2645,7 @@ class _BackToTopButtonState extends State<BackToTopButton> {
       }
     });
   }
-  
+
   void _onScroll() {
     // Start or reset the timer when scrolling occurs
     _scrollTimer?.cancel();
@@ -2972,7 +2656,7 @@ class _BackToTopButtonState extends State<BackToTopButton> {
         });
       }
     });
-    
+
     // Hide button when actively scrolling
     if (_visible) {
       setState(() {
@@ -2980,47 +2664,47 @@ class _BackToTopButtonState extends State<BackToTopButton> {
       });
     }
   }
-  
+
   @override
   void dispose() {
     _scrollTimer?.cancel();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return AnimatedOpacity(
       opacity: _visible ? 1.0 : 0.0,
       duration: const Duration(milliseconds: 500),
-      child: _visible 
-        ? Animate(
-            effects: [
-              FadeEffect(duration: 400.ms),
-              ScaleEffect(begin: const Offset(0.7, 0.7), end: const Offset(1.0, 1.0), duration: 400.ms, curve: Curves.elasticOut),
-            ],
-            child: FloatingActionButton(
-              mini: true,
-              backgroundColor: AppTheme.goldColor.withOpacity(0.8),
-              child: const Icon(Icons.arrow_upward, color: Colors.white),
-              onPressed: () {
-                // Find the nearest scrollable and scroll to top
-                final scrollable = Scrollable.of(context);
-                if (scrollable != null) {
-                  scrollable.position.animateTo(
-                    0,
-                    duration: const Duration(milliseconds: 800),
-                    curve: Curves.easeInOutCubic,
-                  );
-                }
-                
-                // Hide the button after clicking
-                setState(() {
-                  _visible = false;
-                });
-              },
-            ),
-          )
-        : const SizedBox.shrink(),
+      child: _visible
+          ? Animate(
+        effects: [
+          FadeEffect(duration: 400.ms),
+          ScaleEffect(begin: const Offset(0.7, 0.7), end: const Offset(1.0, 1.0), duration: 400.ms, curve: Curves.elasticOut),
+        ],
+        child: FloatingActionButton(
+          mini: true,
+          backgroundColor: AppTheme.goldColor.withOpacity(0.8),
+          child: const Icon(Icons.arrow_upward, color: Colors.white),
+          onPressed: () {
+            // Find the nearest scrollable and scroll to top
+            final scrollable = Scrollable.of(context);
+            if (scrollable != null) {
+              scrollable.position.animateTo(
+                0,
+                duration: const Duration(milliseconds: 800),
+                curve: Curves.easeInOutCubic,
+              );
+            }
+
+            // Hide the button after clicking
+            setState(() {
+              _visible = false;
+            });
+          },
+        ),
+      )
+          : const SizedBox.shrink(),
     );
   }
 }
@@ -3030,20 +2714,20 @@ bool _hasNextLevel(List<dynamic> rootLevelNodes, int targetLevel) {
   if (targetLevel <= 1) {
     return rootLevelNodes.isNotEmpty;
   }
-  
+
   // For level 2, we check if any level 1 nodes have children
   if (targetLevel == 2) {
-    return rootLevelNodes.any((node) => 
-      (node['children'] as List?)?.isNotEmpty == true);
+    return rootLevelNodes.any((node) =>
+    (node['children'] as List?)?.isNotEmpty == true);
   }
-  
+
   // For deeper levels (3+), we need to traverse the tree
   List<dynamic> currentLevelNodes = rootLevelNodes;
   int currentLevel = 1;
-  
+
   while (currentLevel < targetLevel - 1 && currentLevelNodes.isNotEmpty) {
     List<dynamic> nextLevelNodes = [];
-    
+
     // Collect all children from current level
     for (var node in currentLevelNodes) {
       final children = node['children'] as List? ?? [];
@@ -3051,13 +2735,13 @@ bool _hasNextLevel(List<dynamic> rootLevelNodes, int targetLevel) {
         nextLevelNodes.addAll(children);
       }
     }
-    
+
     // Move to next level
     currentLevelNodes = nextLevelNodes;
     currentLevel++;
   }
-  
+
   // Check if we have any nodes at the current level that have children
-  return currentLevelNodes.any((node) => 
-    (node['children'] as List?)?.isNotEmpty == true);
+  return currentLevelNodes.any((node) =>
+  (node['children'] as List?)?.isNotEmpty == true);
 }

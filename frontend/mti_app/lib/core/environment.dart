@@ -90,9 +90,9 @@ class Environment {
   static bool get isDevelopment => !isProduction;
   
   // Server URLs
-  static const String _productionApiUrl = 'https://panel.metatravel.ai'; // change for production
+  static const String _productionApiUrl = 'https://paneltest.metatravel.ai'; // change for production
   // static const String _productionApiUrl = 'http://10.0.2.2:8000'; // change for development
-  static const String _productionWebUrl = 'https://panel.metatravel.ai'; // if web then change this guy too according to condition
+  static const String _productionWebUrl = 'https://paneltest.metatravel.ai'; // if web then change this guy too according to condition
   
   // Development server URLs
   static const String _developmentWebUrl = 'http://10.0.2.2:8000';
