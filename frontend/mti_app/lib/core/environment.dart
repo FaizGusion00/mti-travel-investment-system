@@ -49,7 +49,7 @@ class WebStorageFactory {
 /// Environment configuration class for managing environment-specific settings
 class Environment {
   /// MAIN TOGGLE: Set this to true to use production URLs, false for development
-  static bool _isProductionUrl = true;
+  static bool _isProductionUrl = false;
   
   /// Getter for isProductionUrl that checks web localStorage if in web mode
   static bool get isProductionUrl {

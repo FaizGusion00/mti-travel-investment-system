@@ -10,6 +10,7 @@ import 'storage_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mti_app/models/user_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:math' as math;
 
 class ApiResponse {
   final bool success;
@@ -179,7 +180,7 @@ class ApiService {
             .post(
               Uri.parse(apiUrl),
               headers: {'Content-Type': 'application/json'},
-              body: json.encode(requestBody),
+              body: jsonEncode(requestBody),
             )
             .timeout(Duration(seconds: Environment.requestTimeout));
 
@@ -198,7 +199,7 @@ class ApiService {
 
           // Try to decode the JSON regardless of content-type
           if (response.body.isNotEmpty) {
-            responseData = json.decode(response.body);
+            responseData = jsonDecode(response.body);
             isJsonResponse = true; // If we got here, it's valid JSON
           }
         } catch (e) {
@@ -352,7 +353,7 @@ class ApiService {
 
         // Try to decode the JSON regardless of content-type
         if (response.body.isNotEmpty) {
-          responseData = json.decode(response.body);
+          responseData = jsonDecode(response.body);
           isJsonResponse = true; // If we got here, it's valid JSON
         }
       } catch (e) {
@@ -493,7 +494,7 @@ class ApiService {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json', // Ensure we request JSON response
               },
-              body: json.encode(data),
+              body: jsonEncode(data),
             )
             .timeout(Duration(seconds: Environment.requestTimeout));
 
@@ -519,7 +520,7 @@ class ApiService {
         }
 
         try {
-          final responseData = json.decode(response.body);
+          final responseData = jsonDecode(response.body);
 
           if (response.statusCode >= 200 && response.statusCode < 300) {
             _log('Profile updated successfully');
@@ -624,7 +625,7 @@ class ApiService {
       }
 
       try {
-        final responseData = json.decode(response.body);
+        final responseData = jsonDecode(response.body);
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
           _log('Profile image uploaded successfully');
@@ -667,7 +668,7 @@ class ApiService {
     if (response.statusCode == 200) {
       await removeToken();
     } else {
-      throw Exception(json.decode(response.body)['message'] ?? 'Logout failed');
+      throw Exception(jsonDecode(response.body)['message'] ?? 'Logout failed');
     }
   }
 
@@ -811,12 +812,12 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+      final data = jsonDecode(response.body);
       await saveToken(data['token']);
       return data;
     } else {
       throw Exception(
-        json.decode(response.body)['message'] ?? 'Failed to generate new token',
+        jsonDecode(response.body)['message'] ?? 'Failed to generate new token',
       );
     }
   }
@@ -838,7 +839,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        return jsonDecode(response.body);
       } else {
         // Try a simple auth test if token info endpoint fails
         final authTestResponse = await http.get(
@@ -861,7 +862,7 @@ class ApiService {
           };
         } else {
           throw Exception(
-            json.decode(response.body)['message'] ?? 'Failed to get token info',
+            jsonDecode(response.body)['message'] ?? 'Failed to get token info',
           );
         }
       }
@@ -888,7 +889,7 @@ class ApiService {
       await removeToken();
     } else {
       throw Exception(
-        json.decode(response.body)['message'] ?? 'Failed to revoke tokens',
+        jsonDecode(response.body)['message'] ?? 'Failed to revoke tokens',
       );
     }
   }
@@ -913,7 +914,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
+        final responseData = jsonDecode(response.body);
         if (responseData['status'] == 'success') {
           return {'status': 'success', 'data': responseData['data']};
         } else {
@@ -977,7 +978,7 @@ class ApiService {
 
       _log('Find users response status code: ${response.statusCode}');
 
-      final responseData = json.decode(response.body);
+      final responseData = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
         _log('Users found successfully');
@@ -1093,13 +1094,13 @@ class ApiService {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
             },
-            body: json.encode(requestBody),
+            body: jsonEncode(requestBody),
           )
           .timeout(Duration(seconds: Environment.requestTimeout));
 
       _log('Transfer funds response status code: ${response.statusCode}');
 
-      final responseData = json.decode(response.body);
+      final responseData = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         _log('Funds transferred successfully');
@@ -1178,13 +1179,13 @@ class ApiService {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
             },
-            body: json.encode(requestBody),
+            body: jsonEncode(requestBody),
           )
           .timeout(Duration(seconds: Environment.requestTimeout));
 
       _log('Internal transfer response status code: ${response.statusCode}');
 
-      final responseData = json.decode(response.body);
+      final responseData = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         _log('Funds swapped successfully between wallets');
@@ -1253,7 +1254,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
+        final responseData = jsonDecode(response.body);
         if (responseData['status'] == 'success') {
           _log('Successfully retrieved transactions');
           return {'status': 'success', 'data': responseData['data']};
@@ -1272,7 +1273,7 @@ class ApiService {
         var errorMessage =
             'Failed to get wallet transactions. Status code: ${response.statusCode}';
         try {
-          final errorData = json.decode(response.body);
+          final errorData = jsonDecode(response.body);
           errorMessage = errorData['message'] ?? errorMessage;
         } catch (e) {
           // Ignore JSON decode errors on error responses
@@ -1300,66 +1301,115 @@ class ApiService {
         return {'status': 'error', 'message': 'Authentication token required'};
       }
 
+      final url = '$baseUrl/network?levels=$levels&include_more=true';
+      _log('Requesting network data from: $url');
+
       final response = await http.get(
-        Uri.parse('$baseUrl/network?levels=$levels&include_more=true'),
+        Uri.parse(url),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
         },
       );
 
+      _log('Network response status code: ${response.statusCode}');
+      
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        _log('Successfully retrieved network data');
-        
-        // Check if the API is already returning the new format with user node
-        if (responseData['data'] != null && responseData['data']['user'] != null) {
-          final rootNode = responseData['data']['user'];
+        try {
+          final responseData = jsonDecode(response.body);
+          _log('Successfully retrieved network data');
           
-          // Add direct counts from API for accuracy
-          final int directReferrals = responseData['data']['direct_referrals'] ?? 0;
-          final int totalMembers = responseData['data']['total_members'] ?? 0;
+          // Debug raw response
+          final rawResponseString = response.body.length > 1000 
+            ? '${response.body.substring(0, 1000)}...(truncated)' 
+            : response.body;
+          _log('Raw network response: $rawResponseString');
           
-          // Ensure the node has required fields for the UI
-          if (!rootNode.containsKey('name')) {
-            rootNode['name'] = rootNode['full_name'] ?? 'You';
+          // Process the data according to the structure
+          if (responseData['status'] == 'success') {
+            final Map<String, dynamic> dataObj = responseData['data'] as Map<String, dynamic>;
+            
+            // Log the structure of the data for debugging
+            _log('Data keys: ${dataObj.keys.toList().join(', ')}');
+            
+            Map<String, dynamic> rootNode;
+            int totalMembers = 0;
+            int directReferrals = 0;
+            
+            // Extract user data based on available structure
+            if (dataObj.containsKey('user')) {
+              _log('Using user node from data - API sending new format');
+              rootNode = dataObj['user'] as Map<String, dynamic>;
+              totalMembers = dataObj['total_members'] ?? 0;
+              directReferrals = dataObj['direct_referrals'] ?? 0;
+              
+              // Ensure the node has required fields
+              if (!rootNode.containsKey('name')) {
+                rootNode['name'] = rootNode['full_name'] ?? 'You';
+              }
+              
+              // Debug the root node
+              _log('Root node: ${jsonEncode(rootNode)}');
+              _log('Root node children count: ${(rootNode['children'] as List?)?.length ?? 0}');
+              
+              // Log the first level children for debugging
+              if (rootNode.containsKey('children') && rootNode['children'] is List) {
+                final children = rootNode['children'] as List;
+                if (children.isNotEmpty) {
+                  _log('First child: ${jsonEncode(children.first)}');
+                }
+              }
+            } 
+            // Legacy format handling
+            else {
+              _log('Using legacy data format');
+              final userData = dataObj.containsKey('user') 
+                ? dataObj['user'] 
+                : {'affiliate_code': 'N/A', 'full_name': 'You'};
+                
+              final downlines = dataObj['downlines'] ?? [];
+              
+              // Create root node for current user
+              rootNode = {
+                'id': userData['affiliate_code'] ?? '',
+                'name': userData['full_name'] ?? 'You',
+                'level': 0,
+                'downlines': downlines.length,
+                'isActive': true,
+                'isCurrentUser': true,
+                'status': 'Active',
+                'joinDate': _formatDate(userData['created_at']),
+                'children': _processDownlines(downlines, 1),
+              };
+              
+              totalMembers = dataObj['total_members'] ?? 0;
+              directReferrals = dataObj['direct_referrals'] ?? downlines.length;
+            }
+            
+            return {
+              'status': 'success', 
+              'data': rootNode,
+              'total_members': totalMembers,
+              'direct_referrals': directReferrals
+            };
+          } else {
+            _log('API returned error status: ${responseData['message']}');
+            return {'status': 'error', 'message': responseData['message'] ?? 'Unknown error'};
           }
-          
-          // Set current user flag
-          rootNode['isCurrentUser'] = true;
-          
-          // Return the processed data
+        } catch (e) {
+          _log('Error parsing network response: $e');
           return {
-            'status': 'success', 
-            'data': rootNode,
-            'total_members': totalMembers,
-            'direct_referrals': directReferrals
+            'status': 'error', 
+            'message': 'Error parsing network data: $e',
+            'raw_response': response.body.length > 200 
+              ? '${response.body.substring(0, 200)}...(truncated)' 
+              : response.body
           };
-        } 
-        // Legacy format handling (backward compatibility)
-        else {
-          final userData = responseData['data']['user'];
-          final downlines = responseData['data']['downlines'] ?? [];
-          
-          // Create root node structure for the current user
-          final Map<String, dynamic> networkTree = {
-            'id': userData['affiliate_code'] ?? '',
-            'name': userData['full_name'] ?? 'You',
-            'level': 0, // Level 0 is current user/trader
-            'downlines': downlines.length,
-            'isActive': true,
-            'isCurrentUser': true,
-            'status': 'Active',
-            'joinDate': _formatDate(userData['created_at']),
-            'children': _processDownlines(downlines, 1),
-          };
-          
-          return {'status': 'success', 'data': networkTree};
         }
       } else {
         var errorMessage = 'Failed to get network data. Status code: ${response.statusCode}';
         try {
-          final errorData = json.decode(response.body);
+          final errorData = jsonDecode(response.body);
           errorMessage = errorData['message'] ?? errorMessage;
         } catch (e) {
           // Ignore JSON decode errors on error responses
@@ -1384,17 +1434,28 @@ class ApiService {
       final bool hasMoreChildren = downline['has_more_children'] == true;
       final int moreChildrenCount = downline['more_children_count'] ?? 0;
       
-      Map<String, dynamic> node = {
-        'id': downline['id'] ?? downline['affiliate_code'] ?? '',
-        'name': downline['name'] ?? downline['full_name'] ?? '',
-        'level': level,
-        'position': downline['position'] ?? position++,
-        'downlines': children.length,
-        'isActive': downline['isActive'] ?? true,
-        'status': downline['status'] ?? 'Active',
-        'joinDate': downline['joinDate'] ?? _formatDate(downline['created_at']),
-        'children': _processDownlines(children, level + 1),
-      };
+      // Debug log for important node data
+      _log('Processing downline: ${downline['full_name'] ?? downline['name']} with is_trader=${downline['is_trader']}, status=${downline['status']}');
+      
+      // Create a copy of all original data to preserve any fields we might need
+      Map<String, dynamic> node = Map<String, dynamic>.from(downline);
+      
+      // Ensure critical fields are set
+      node['id'] = downline['id'] ?? downline['affiliate_code'] ?? '';
+      node['name'] = downline['name'] ?? downline['full_name'] ?? 'Unknown';
+      node['level'] = level;
+      node['position'] = downline['position'] ?? position++;
+      node['downlines'] = children.length;
+      
+      // Preserve status and trader flag but ensure defaults are provided
+      node['isActive'] = downline['isActive'] ?? true; // Show by default
+      node['status'] = downline['status'] ?? 'Active';
+      node['is_trader'] = downline['is_trader']; // Preserve original value
+      
+      node['joinDate'] = downline['joinDate'] ?? _formatDate(downline['created_at']);
+      
+      // Process children recursively
+      node['children'] = _processDownlines(children, level + 1);
       
       // Add view more indicator if needed
       if (hasMoreChildren) {
@@ -1440,13 +1501,13 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
+        final responseData = jsonDecode(response.body);
         _log('Successfully retrieved network statistics');
         return {'status': 'success', 'data': responseData['data']};
       } else {
         var errorMessage = 'Failed to get network statistics. Status code: ${response.statusCode}';
         try {
-          final errorData = json.decode(response.body);
+          final errorData = jsonDecode(response.body);
           errorMessage = errorData['message'] ?? errorMessage;
         } catch (e) {
           // Ignore JSON decode errors on error responses
@@ -1480,13 +1541,13 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
+        final responseData = jsonDecode(response.body);
         _log('Successfully retrieved network summary: ${responseData['data']}');
         return {'status': 'success', 'data': responseData['data']};
       } else {
         var errorMessage = 'Failed to get network summary. Status code: ${response.statusCode}';
         try {
-          final errorData = json.decode(response.body);
+          final errorData = jsonDecode(response.body);
           errorMessage = errorData['message'] ?? errorMessage;
         } catch (e) {
           // Ignore JSON decode errors on error responses
@@ -1520,13 +1581,13 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
+        final responseData = jsonDecode(response.body);
         _log('Successfully retrieved commission data');
         return {'status': 'success', 'data': responseData['data']};
       } else {
         var errorMessage = 'Failed to get commission data. Status code: ${response.statusCode}';
         try {
-          final errorData = json.decode(response.body);
+          final errorData = jsonDecode(response.body);
           errorMessage = errorData['message'] ?? errorMessage;
         } catch (e) {
           // Ignore JSON decode errors on error responses
@@ -1722,13 +1783,13 @@ class ApiService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: json.encode(data),
+        body: jsonEncode(data),
       );
       
       _log('Email update response status code: ${response.statusCode}');
       _log('Email update response body: ${response.body}');
       
-      final responseData = json.decode(response.body);
+      final responseData = jsonDecode(response.body);
       
       if (response.statusCode == 200) {
         _log('Email update request successful');
@@ -1766,13 +1827,13 @@ class ApiService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: json.encode(data),
+        body: jsonEncode(data),
       );
       
       _log('Email verification response status code: ${response.statusCode}');
       _log('Email verification response body: ${response.body}');
       
-      final responseData = json.decode(response.body);
+      final responseData = jsonDecode(response.body);
       
       if (response.statusCode == 200) {
         _log('Email verification successful');
@@ -1811,7 +1872,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
+        final responseData = jsonDecode(response.body);
         _log('Successfully retrieved network node data');
         
         final nodeData = responseData['data']['node'];
@@ -1841,7 +1902,7 @@ class ApiService {
       } else {
         var errorMessage = 'Failed to get network node data. Status code: ${response.statusCode}';
         try {
-          final errorData = json.decode(response.body);
+          final errorData = jsonDecode(response.body);
           errorMessage = errorData['message'] ?? errorMessage;
         } catch (e) {
           // Ignore JSON decode errors on error responses
@@ -1885,7 +1946,7 @@ class ApiService {
       _log('Network activity response status code: ${response.statusCode}');
       
       if (response.statusCode == 200) {
-        final result = json.decode(response.body);
+        final result = jsonDecode(response.body);
         _log('Network activity retrieved successfully');
         return result;
       } else {
@@ -1893,7 +1954,7 @@ class ApiService {
         return {
           'status': 'error',
           'message': 'Failed to get network activity',
-          'data': json.decode(response.body),
+          'data': jsonDecode(response.body),
         };
       }
     } catch (e) {
@@ -1934,7 +1995,7 @@ class ApiService {
       _log('Team achievements response status code: ${response.statusCode}');
       
       if (response.statusCode == 200) {
-        final result = json.decode(response.body);
+        final result = jsonDecode(response.body);
         _log('Team achievements retrieved successfully');
         return result;
       } else {
@@ -1942,7 +2003,7 @@ class ApiService {
         return {
           'status': 'error',
           'message': 'Failed to get team achievements',
-          'data': json.decode(response.body),
+          'data': jsonDecode(response.body),
         };
       }
     } catch (e) {
@@ -1996,13 +2057,13 @@ class ApiService {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode(requestBody),
+        body: jsonEncode(requestBody),
       ).timeout(Duration(seconds: Environment.requestTimeout));
       
       _log('Activity logging response status code: ${response.statusCode}');
       
       if (response.statusCode == 200) {
-        final result = json.decode(response.body);
+        final result = jsonDecode(response.body);
         _log('Activity logged successfully');
         return result;
       } else {
@@ -2010,7 +2071,7 @@ class ApiService {
         return {
           'status': 'error',
           'message': 'Failed to log activity',
-          'data': json.decode(response.body),
+          'data': jsonDecode(response.body),
         };
       }
     } catch (e) {
@@ -2051,7 +2112,7 @@ class ApiService {
       _log('User profile response status code: ${response.statusCode}');
       
       if (response.statusCode == 200) {
-        final result = json.decode(response.body);
+        final result = jsonDecode(response.body);
         _log('User profile retrieved successfully');
         return result;
       } else {
@@ -2059,7 +2120,7 @@ class ApiService {
         return {
           'status': 'error',
           'message': 'Failed to get user profile',
-          'data': json.decode(response.body),
+          'data': jsonDecode(response.body),
         };
       }
     } catch (e) {

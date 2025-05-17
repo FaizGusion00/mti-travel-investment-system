@@ -34,6 +34,7 @@ class NetworkController extends Controller
             'position' => 0, // Root position
             'isActive' => true,
             'status' => 'Active',
+            'is_trader' => $user->is_trader ?? 0,
             'isCurrentUser' => true,
             'children' => [] // Will be populated
         ];
@@ -198,16 +199,26 @@ class NetworkController extends Controller
         }
         
         // Get the user's affiliate code first
-        $user = User::select('affiliate_code')->find($userId);
+        $user = User::select('id', 'affiliate_code', 'full_name')->find($userId);
         
         if (!$user || empty($user->affiliate_code)) {
+            \Log::error("Network tree: User $userId has no affiliate code");
             return [];
         }
         
+        \Log::info("Network tree: Looking for downlines of {$user->full_name} (ID: $userId) with affiliate code {$user->affiliate_code} at level $currentLevel");
+        
         // Find users whose referral_id matches this user's affiliate_code
         $downlines = User::where('referral_id', $user->affiliate_code)
-            ->select('id', 'full_name', 'email', 'affiliate_code', 'referral_id', 'created_at', 'status')
+            ->select('id', 'full_name', 'email', 'affiliate_code', 'referral_id', 'created_at', 'status', 'is_trader')
             ->get();
+        
+        \Log::info("Network tree: Found " . $downlines->count() . " downlines for affiliate code {$user->affiliate_code}");
+        
+        // Debug: List all found downlines
+        foreach ($downlines as $downline) {
+            \Log::info("Network tree: Downline found - {$downline->full_name} (ID: {$downline->id}, affiliate_code: {$downline->affiliate_code}, referral_id: {$downline->referral_id})");
+        }
         
         $result = [];
         $position = 0;
@@ -216,6 +227,8 @@ class NetworkController extends Controller
             $children = [];
             $hasMoreChildren = false;
             
+            \Log::info("Network tree: Processing downline {$downline->full_name} (ID: {$downline->id}) with affiliate code {$downline->affiliate_code} at level $currentLevel");
+            
             if ($currentLevel < $maxLevel) {
                 // Get downline's children
                 $children = $this->getDownlineTree($downline->id, $maxLevel, $currentLevel + 1, $includeMore);
@@ -223,6 +236,7 @@ class NetworkController extends Controller
                 // Check if there are more children beyond max level
                 $moreChildrenCount = User::where('referral_id', $downline->affiliate_code)->count();
                 $hasMoreChildren = $moreChildrenCount > 0;
+                \Log::info("Network tree: User {$downline->full_name} has $moreChildrenCount more children beyond max level");
             }
             
             // Format the downline data
@@ -238,8 +252,9 @@ class NetworkController extends Controller
                 'joinDate' => $downline->created_at->format('M d, Y'),
                 'level' => $currentLevel,
                 'position' => $position++,
-                'isActive' => $downline->status !== 'Inactive',
-                'status' => $downline->status ?? 'Active',
+                'isActive' => true, // Show all nodes regardless of status
+                'status' => $downline->status ?? 'pending',
+                'is_trader' => $downline->is_trader ?? 0,
                 'children' => $children,
                 'children_count' => count($children),
                 'downlines' => count($children)

@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import '../core/constants.dart';
+import 'dart:convert';
 
 // Custom layout delegate for positioning root and level 1 nodes
 class NetworkLayoutDelegate extends MultiChildLayoutDelegate {
@@ -694,10 +695,17 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     try {
       // Get network data (hierarchical structure)
       final networkResponse = await ApiService.getNetwork(levels: 5);
+      
+      // Debug log the raw response
+      developer.log('Network API raw response: ${networkResponse.toString().substring(0, math.min(networkResponse.toString().length, 1000))}...', name: 'Network');
+      
       if (networkResponse['status'] == 'success') {
         setState(() {
           // Directly use the root node data from the updated API
           _networkData = networkResponse['data'] ?? {};
+          
+          // Debug log to inspect network data structure
+          developer.log('Network data structure: ${_networkData.toString().substring(0, math.min(_networkData.toString().length, 1000))}...', name: 'Network');
           
           // Get the total members and direct referrals from API's accurate calculation
           if (networkResponse.containsKey('total_members')) {
@@ -1761,12 +1769,54 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     if (_networkData.isNotEmpty) {
       developer.log('Using network data from API', name: 'Network');
       
-      // Ensure we're returning data with consistent types
-      return _safeNetworkData(_networkData);
+      // Create a safe copy of the data to avoid modifying the original
+      final Map<String, dynamic> safeData = Map<String, dynamic>.from(_networkData);
+      
+      // Debug the entire structure for troubleshooting
+      developer.log('Network data structure: ${jsonEncode(safeData).substring(0, math.min(jsonEncode(safeData).length, 500))}...', name: 'Network');
+      
+      // Debug the top-level keys
+      if (safeData is Map<String, dynamic>) {
+        developer.log('Top level keys: ${safeData.keys.join(', ')}', name: 'Network');
+      }
+      
+      // Check for specific fields needed by the UI
+      if (!safeData.containsKey('id') && safeData.containsKey('affiliate_code')) {
+        developer.log('Setting id from affiliate_code', name: 'Network');
+        safeData['id'] = safeData['affiliate_code'];
+      }
+      
+      if (!safeData.containsKey('name') && safeData.containsKey('full_name')) {
+        developer.log('Setting name from full_name', name: 'Network');
+        safeData['name'] = safeData['full_name'];
+      }
+      
+      // Check if the 'children' field contains list data
+      if (safeData.containsKey('children')) {
+        final children = safeData['children'];
+        
+        if (children is List) {
+          developer.log('Children count: ${children.length}', name: 'Network');
+          if (children.isNotEmpty) {
+            developer.log('First child: ${jsonEncode(children.first)}', name: 'Network');
+          }
+          
+          // Ensure we're processing children correctly
+          safeData['children'] = _processSafeChildren(children);
+        } else {
+          developer.log('Children field is not a list: ${children.runtimeType}', name: 'Network');
+          safeData['children'] = [];
+        }
+      } else {
+        developer.log('No children field found in network data', name: 'Network');
+        safeData['children'] = [];
+      }
+      
+      return safeData;
     }
 
     // If no data, return minimal structure
-    developer.log('No network data available', name: 'Network');
+    developer.log('No network data available, using placeholder', name: 'Network');
     return {
       'id': _referralCode.isEmpty ? 'N/A' : _referralCode,
       'name': 'You',
@@ -1793,22 +1843,52 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   
   // Process children recursively to ensure consistent types
   List<Map<String, dynamic>> _processSafeChildren(List children) {
-    return children.map<Map<String, dynamic>>((child) {
-      if (child is! Map<String, dynamic>) {
-        return {'id': 'invalid', 'name': 'Invalid Data', 'children': []};
+    try {
+      List<Map<String, dynamic>> result = [];
+      
+      for (var child in children) {
+        if (child is! Map<String, dynamic>) {
+          developer.log('Invalid child data format: ${child.runtimeType} - $child', name: 'Network');
+          continue; // Skip invalid children
+        }
+        
+        final safeChild = Map<String, dynamic>.from(child);
+        
+        // Ensure required fields exist
+        if (!safeChild.containsKey('id')) {
+          // Try to use affiliate_code as id if available
+          if (safeChild.containsKey('affiliate_code')) {
+            safeChild['id'] = safeChild['affiliate_code'];
+          } else {
+            safeChild['id'] = 'unknown-${children.indexOf(child)}';
+          }
+        }
+        
+        if (!safeChild.containsKey('name')) {
+          // Try to use full_name as name if available
+          if (safeChild.containsKey('full_name')) {
+            safeChild['name'] = safeChild['full_name'];
+          } else {
+            safeChild['name'] = 'Unknown User';
+          }
+        }
+        
+        // Process nested children
+        if (safeChild.containsKey('children') && safeChild['children'] is List) {
+          safeChild['children'] = _processSafeChildren(safeChild['children'] as List);
+        } else {
+          safeChild['children'] = [];
+        }
+        
+        result.add(safeChild);
       }
       
-      final safeChild = Map<String, dynamic>.from(child);
-      
-      // Process nested children
-      if (safeChild.containsKey('children') && safeChild['children'] is List) {
-        safeChild['children'] = _processSafeChildren(safeChild['children'] as List);
-      } else {
-        safeChild['children'] = [];
-      }
-      
-      return safeChild;
-    }).toList();
+      developer.log('Processed ${result.length} children', name: 'Network');
+      return result;
+    } catch (e) {
+      developer.log('Error processing children data: $e', name: 'Network');
+      return []; // Return empty list on error
+    }
   }
 
   Widget _buildNetworkList(Map<String, dynamic> networkData) {
@@ -1879,280 +1959,294 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
   
   // Helper method to build a network node
   Widget _buildNetworkNode(dynamic rawId, dynamic rawName, int level, bool isTrader, bool isActive, bool isRoot, List<dynamic> children) {
-    // Ensure id and name are strings
-    final String id = rawId is int ? rawId.toString() : (rawId as String? ?? 'N/A');
-    final String name = rawName is int ? rawName.toString() : (rawName as String? ?? 'Unknown');
-    
-    // Check if this node is expanded
-    final bool isExpanded = _expandedNodes[id] == true;
-    
-    // Colors and styling based on status and level
-    final Color textColor = isActive ? Colors.white : Colors.grey.shade500;
-    
-    // Calculate left margin based on level for indentation
-    // Level 0 starts from left, each subsequent level is indented more
-    final double leftMargin = level * 30.0;
-    
-    // Enhanced styling with gradients for better visual hierarchy
-    final BoxDecoration nodeDecoration;
-    final EdgeInsets nodeMargin;
-    
-    if (isRoot) {
-      // Root node (trader) gets a luxury gold gradient
-      nodeDecoration = BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFFFFD700), // Gold
-            Color(0xFFDAAA00), // Darker gold
-            Color(0xFFFFC800), // Medium gold
-            Color(0xFFB38700), // Rich gold
-          ],
-          stops: const [0.0, 0.35, 0.65, 1.0],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.amber.withOpacity(0.6),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-          BoxShadow(
-            color: Colors.amber.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 0.5,
-        ),
-      );
-      nodeMargin = EdgeInsets.only(bottom: 25, left: leftMargin);
-    } else {
-      // Regular nodes get appropriate colors based on status
-      final Color bgColor = isTrader ? Colors.amber.shade700 : 
-                           (isActive ? Colors.grey.shade800 : Colors.grey.shade900);
+    try {
+      // Ensure id and name are strings
+      final String id = rawId is int ? rawId.toString() : (rawId as String? ?? 'N/A');
+      final String name = rawName is int ? rawName.toString() : (rawName as String? ?? 'Unknown');
       
-      nodeDecoration = BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+      // Debug the node data being processed
+      developer.log('Building node: id=$id, name=$name, level=$level, isTrader=$isTrader, isActive=$isActive, children.length=${children.length}', name: 'Network');
+      
+      // Check if this node is expanded
+      final bool isExpanded = _expandedNodes[id] == true;
+      
+      // Colors and styling based on status and level
+      final Color textColor = isActive ? Colors.white : Colors.grey.shade500;
+      
+      // Calculate left margin based on level for indentation
+      // Level 0 starts from left, each subsequent level is indented more
+      final double leftMargin = level * 30.0;
+      
+      // Enhanced styling with gradients for better visual hierarchy
+      final BoxDecoration nodeDecoration;
+      final EdgeInsets nodeMargin;
+      
+      if (isRoot) {
+        // Root node (trader) gets a luxury gold gradient
+        nodeDecoration = BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFFFD700), // Gold
+              Color(0xFFDAAA00), // Darker gold
+              Color(0xFFFFC800), // Medium gold
+              Color(0xFFB38700), // Rich gold
+            ],
+            stops: const [0.0, 0.35, 0.65, 1.0],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-        border: Border.all(
-          color: isActive ? Colors.grey.shade700 : Colors.grey.shade800,
-          width: 1,
-        ),
-      );
-      nodeMargin = EdgeInsets.only(top: 16, bottom: 6, left: leftMargin);
-    }
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Node itself
-        GestureDetector(
-          onTap: () {
-            // When a node is clicked, toggle expanded state to show/hide add user button
-            setState(() {
-              // Toggle this node's expanded state
-              _expandedNodes[id] = !isExpanded;
-              
-              // If opening this node, close all others for cleaner UI
-              if (!isExpanded) {
-                for (var key in _expandedNodes.keys.toList()) {
-                  if (key != id) {
-                    _expandedNodes[key] = false;
-                  }
-                }
-              }
-            });
-            
-            developer.log('Node clicked: $name with affiliate code: $id', name: 'Network');
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-            margin: nodeMargin,
-            decoration: nodeDecoration,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  name,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: isRoot ? FontWeight.bold : FontWeight.w500,
-                    fontSize: isRoot ? 18 : 15,
-                    letterSpacing: isRoot ? 0.5 : 0.2,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Number with star based on level or trader status
-                if (isTrader) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          "5",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: isRoot ? 12 : 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 2),
-                        Icon(
-                          Icons.star, 
-                          color: Colors.white, 
-                          size: isRoot ? 12 : 10,
-                        ),
-                      ],
-                    ),
-                  ),
-                ] else if (level == 1) ...[
-                  // 1 with star for level 1
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          "1",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 2),
-                        const Icon(
-                          Icons.star, 
-                          color: Colors.white, 
-                          size: 10,
-                        ),
-                      ],
-                    ),
-                  ),
-                ]
-              ],
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.amber.withOpacity(0.6),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ).animate()
-           .fadeIn(duration: 400.ms, delay: Duration(milliseconds: level * 100))
-           .slide(begin: Offset(0, 0.1), end: Offset.zero, duration: 400.ms, delay: Duration(milliseconds: level * 100)),
-        ),
+            BoxShadow(
+              color: Colors.amber.withOpacity(0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
+            width: 0.5,
+          ),
+        );
+        nodeMargin = EdgeInsets.only(bottom: 25, left: leftMargin);
+      } else {
+        // Regular nodes get appropriate colors based on status
+        final Color bgColor = isTrader ? Colors.amber.shade700 : 
+                              (isActive ? Colors.grey.shade800 : Colors.grey.shade900);
         
-        // Add new user button - only appears when a node is clicked/expanded
-        if (isExpanded) ...[
+        nodeDecoration = BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+          border: Border.all(
+            color: isActive ? Colors.grey.shade700 : Colors.grey.shade800,
+            width: 1,
+          ),
+        );
+        nodeMargin = EdgeInsets.only(top: 16, bottom: 6, left: leftMargin);
+      }
+      
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Node itself
           GestureDetector(
             onTap: () {
-              // Show confirmation modal before launching registration
-              _showRegistrationConfirmation(id, name);
+              // When a node is clicked, toggle expanded state to show/hide add user button
+              setState(() {
+                // Toggle this node's expanded state
+                _expandedNodes[id] = !isExpanded;
+                
+                // If opening this node, close all others for cleaner UI
+                if (!isExpanded) {
+                  for (var key in _expandedNodes.keys.toList()) {
+                    if (key != id) {
+                      _expandedNodes[key] = false;
+                    }
+                  }
+                }
+              });
+              
+              developer.log('Node clicked: $name with affiliate code: $id', name: 'Network');
             },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-              margin: EdgeInsets.only(top: 8, bottom: 16, left: leftMargin),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade900,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-                  color: AppTheme.goldColor.withOpacity(0.4),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.goldColor.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              margin: nodeMargin,
+              decoration: nodeDecoration,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.add_circle_outline,
-                    color: AppTheme.goldColor,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
                   Text(
-                    'Add new user',
+                    name,
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.3,
+                      color: textColor,
+                      fontWeight: isRoot ? FontWeight.bold : FontWeight.w500,
+                      fontSize: isRoot ? 18 : 15,
+                      letterSpacing: isRoot ? 0.5 : 0.2,
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  // Number with star based on level or trader status
+                  if (isTrader) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "5",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: isRoot ? 12 : 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.star, 
+                            color: Colors.white, 
+                            size: isRoot ? 12 : 10,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else if (level == 1) ...[
+                    // 1 with star for level 1
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "1",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          const Icon(
+                            Icons.star, 
+                            color: Colors.white, 
+                            size: 10,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ]
                 ],
               ),
-            ),
-          ).animate()
-            .fadeIn(duration: 300.ms)
-            .scale(begin: Offset(0.95, 0.95), end: Offset(1, 1), duration: 300.ms, curve: Curves.easeOutBack),
-        ],
-        
-                  // Recursively show children nodes
-        if (children.isNotEmpty) ...[
-          const SizedBox(height: 4), // Reduced spacing
-          // Visual connector line
-          Padding(
-            padding: EdgeInsets.only(left: leftMargin),
-            child: Container(
-              width: 2,
-              height: 12, // Shorter connector line
-              color: AppTheme.goldColor.withOpacity(0.5), // More visible
-            ),
+            ).animate()
+             .fadeIn(duration: 400.ms, delay: Duration(milliseconds: level * 100))
+             .slide(begin: Offset(0, 0.1), end: Offset.zero, duration: 400.ms, delay: Duration(milliseconds: level * 100)),
           ),
-          const SizedBox(height: 2), // Reduced spacing
-          // Children nodes with proper spacing
-          Padding(
-            padding: const EdgeInsets.only(top: 4), // Reduced spacing
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: children.asMap().entries.map((entry) {
-                final index = entry.key;
-                final child = entry.value;
-                
-                // Add compact spacing between nodes
-                return Padding(
-                  padding: EdgeInsets.only(
-                    bottom: index < children.length - 1 ? 5 : 0 // Reduced bottom spacing
+          
+          // Add new user button - only appears when a node is clicked/expanded
+          if (isExpanded) ...[
+            GestureDetector(
+              onTap: () {
+                // Show confirmation modal before launching registration
+                _showRegistrationConfirmation(id, name);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                margin: EdgeInsets.only(top: 8, bottom: 16, left: leftMargin),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade900,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppTheme.goldColor.withOpacity(0.4),
+                    width: 1,
                   ),
-                  child: _buildNetworkNode(
-                    child['id'], // Pass raw ID value for handling in the function
-                    child['name'], // Pass raw name value for handling in the function
-                    level + 1,
-                    child['is_trader'] == 1 || child['is_trader'] == true,
-                    child['status'] == 'approved',
-                    false, // not root
-                    child['children'] is List ? child['children'] : [],
-                  ),
-                );
-              }).toList(),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.goldColor.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add_circle_outline,
+                      color: AppTheme.goldColor,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Add new user',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ).animate()
+              .fadeIn(duration: 300.ms)
+              .scale(begin: Offset(0.95, 0.95), end: Offset(1, 1), duration: 300.ms, curve: Curves.easeOutBack),
+          ],
+          
+          // Recursively show children nodes
+          if (children.isNotEmpty) ...[
+            const SizedBox(height: 4), // Reduced spacing
+            // Visual connector line
+            Padding(
+              padding: EdgeInsets.only(left: leftMargin),
+              child: Container(
+                width: 2,
+                height: 12, // Shorter connector line
+                color: AppTheme.goldColor.withOpacity(0.5), // More visible
+              ),
             ),
-          ),
+            const SizedBox(height: 2), // Reduced spacing
+            // Children nodes with proper spacing
+            Padding(
+              padding: const EdgeInsets.only(top: 4), // Reduced spacing
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: children.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final child = entry.value;
+                  
+                  if (child == null || child is! Map<String, dynamic>) {
+                    developer.log('Invalid child data at index $index: $child', name: 'Network');
+                    return const SizedBox.shrink(); // Skip invalid data
+                  }
+                  
+                  // Add compact spacing between nodes
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: index < children.length - 1 ? 5 : 0 // Reduced bottom spacing
+                    ),
+                    child: _buildNetworkNode(
+                      child['id'], // Pass raw ID value for handling in the function
+                      child['name'] ?? child['full_name'], // Try both name fields
+                      level + 1,
+                      child['is_trader'] == 1 || child['is_trader'] == true || child['is_trader'] == '1',
+                      true, // Show all nodes as active
+                      false, // not root
+                      child['children'] is List ? child['children'] : [],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
         ],
-      ],
-    );
+      );
+    } catch (e) {
+      // Handle any errors in the node building process
+      developer.log('Error building network node: $e', name: 'Network');
+      return const SizedBox.shrink(); // Return an empty widget on error
+    }
   }
   
   // Show confirmation modal before launching registration

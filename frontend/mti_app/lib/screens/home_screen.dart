@@ -386,205 +386,219 @@ class _HomeScreenState extends State<HomeScreen>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Logo to the left of welcome
-              Image.asset('assets/images/mti_logo.png', width: 38, height: 38)
-                  .animate()
-                  .fadeIn(duration: 500.ms)
-                  .scale(
-                    begin: Offset(0.85, 0.85),
-                    end: Offset(1, 1),
-                    duration: 500.ms,
-                    curve: Curves.easeOutBack,
-                  ),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Welcome back,",
-                    style: GoogleFonts.inter(
-                      color: AppTheme.secondaryTextColor,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
+          Flexible(
+            flex: 3,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Logo to the left of welcome
+                Image.asset('assets/images/mti_logo.png', width: 38, height: 38)
+                    .animate()
+                    .fadeIn(duration: 500.ms)
+                    .scale(
+                      begin: Offset(0.85, 0.85),
+                      end: Offset(1, 1),
+                      duration: 500.ms,
+                      curve: Curves.easeOutBack,
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
+                const SizedBox(width: 14),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _fullName.isEmpty ? "User" : _fullName,
-                        style: GoogleFonts.montserrat(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.1,
+                        "Welcome back,",
+                        style: GoogleFonts.inter(
+                          color: AppTheme.secondaryTextColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // Status indicator - green if approved, red if pending
-                      Tooltip(
-                        message: _userStatus == 'approved' 
-                            ? 'Your account is active' 
-                            : 'Your account is pending approval',
-                        verticalOffset: 20,
-                        preferBelow: true,
-                        decoration: BoxDecoration(
-                          color: Colors.black87,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        textStyle: const TextStyle(color: Colors.white, fontSize: 12),
-                        child: AnimatedBuilder(
-                          animation: _statusPulseController,
-                          builder: (context, child) {
-                            // Only apply pulse animation when status is pending
-                            final scale = _userStatus == 'approved' 
-                                ? 1.0 
-                                : 1.0 + (_statusPulseController.value * 0.3);
-                                
-                            return Transform.scale(
-                              scale: scale,
-                              child: Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: _userStatus == 'approved'
-                                      ? const Color(0xFF4CAF50) // Green when approved
-                                      : const Color(0xFFFF5252), // Red when pending
-                                  boxShadow: [
-                                    BoxShadow(
+                      const SizedBox(height: 2),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              _fullName.isEmpty ? "User" : _fullName,
+                              style: GoogleFonts.montserrat(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.1,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Status indicator - green if approved, red if pending
+                          Tooltip(
+                            message: _userStatus == 'approved' 
+                                ? 'Your account is active' 
+                                : 'Your account is pending approval',
+                            verticalOffset: 20,
+                            preferBelow: true,
+                            decoration: BoxDecoration(
+                              color: Colors.black87,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+                            child: AnimatedBuilder(
+                              animation: _statusPulseController,
+                              builder: (context, child) {
+                                // Only apply pulse animation when status is pending
+                                final scale = _userStatus == 'approved' 
+                                    ? 1.0 
+                                    : 1.0 + (_statusPulseController.value * 0.3);
+                                    
+                                return Transform.scale(
+                                  scale: scale,
+                                  child: Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
                                       color: _userStatus == 'approved'
-                                          ? const Color(0xFF4CAF50).withOpacity(0.4)
-                                          : const Color(0xFFFF5252).withOpacity(0.4 + (_statusPulseController.value * 0.3)),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
-                                    )
-                                  ],
+                                          ? const Color(0xFF4CAF50) // Green when approved
+                                          : const Color(0xFFFF5252), // Red when pending
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: _userStatus == 'approved'
+                                              ? const Color(0xFF4CAF50).withOpacity(0.4)
+                                              : const Color(0xFFFF5252).withOpacity(0.4 + (_statusPulseController.value * 0.3)),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          // Trader badge if user is a trader
+                          if (_isTrader) ...[
+                            const SizedBox(width: 8),
+                            Tooltip(
+                              message: 'You have trader privileges',
+                              verticalOffset: 20,
+                              preferBelow: true,
+                              decoration: BoxDecoration(
+                                color: Colors.black87,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.goldColor.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: AppTheme.goldColor.withOpacity(0.5),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  'TRADER',
+                                  style: GoogleFonts.inter(
+                                    color: AppTheme.goldColor,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          ],
+                        ],
                       ),
-                      // Trader badge if user is a trader
-                      if (_isTrader) ...[
-                        const SizedBox(width: 8),
-                        Tooltip(
-                          message: 'You have trader privileges',
-                          verticalOffset: 20,
-                          preferBelow: true,
-                          decoration: BoxDecoration(
-                            color: Colors.black87,
-                            borderRadius: BorderRadius.circular(4),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Flexible(
+            flex: 1,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    Get.toNamed(AppRoutes.notification);
+                  },
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.goldGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.goldColor.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      children: [
+                        const Center(
+                          child: Icon(
+                            Icons.notifications_outlined,
+                            color: Colors.white,
                           ),
-                          textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                        Positioned(
+                          top: 10,
+                          right: 10,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.goldColor.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: AppTheme.goldColor.withOpacity(0.5),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              'TRADER',
-                              style: GoogleFonts.inter(
-                                color: AppTheme.goldColor,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
+                            width: 10,
+                            height: 10,
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
                             ),
                           ),
                         ),
                       ],
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  Get.toNamed(AppRoutes.notification);
-                },
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.goldGradient,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.goldColor.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Stack(
-                    children: [
-                      const Center(
-                        child: Icon(
-                          Icons.notifications_outlined,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () {
-                  Get.toNamed(AppRoutes.settings);
-                },
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppTheme.secondaryBackgroundColor,
-                    border: Border.all(
-                      color: AppTheme.goldColor.withOpacity(0.3),
-                      width: 1,
                     ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.settings_outlined, color: Colors.white),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () {
+                    Get.toNamed(AppRoutes.settings);
+                  },
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondaryBackgroundColor,
+                      border: Border.all(
+                        color: AppTheme.goldColor.withOpacity(0.3),
+                        width: 1,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.settings_outlined, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
