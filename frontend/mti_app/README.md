@@ -1,4 +1,4 @@
-# MTI Travel Investment App
+# Meta Travel International App
 
 Meta Travel International (MTI) - A modern mobile application for managing travel investments, referrals, and earnings.
 
@@ -6,7 +6,7 @@ Meta Travel International (MTI) - A modern mobile application for managing trave
 
 ## Overview
 
-The MTI Travel Investment app is a Flutter-based mobile application designed to provide users with a modern, responsive, and visually appealing interface for managing their travel investments, tracking referrals, and monitoring earnings. The app features a dark theme with cosmic design elements and smooth animations throughout the user experience.
+The Meta Travel International app is a Flutter-based mobile application designed to provide users with a modern, responsive, and visually appealing interface for managing their travel investments, tracking referrals, and monitoring earnings. The app features a dark theme with cosmic design elements and smooth animations throughout the user experience.
 
 ## Features
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTI Travel Investment</title>
+    <title>Meta Travel International</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -124,7 +124,7 @@
                             <span class="gold-text">Admin</span> <span class="glow-text">Dashboard</span>
                         </h2>
                         <p class="text-gray-300 text-lg mb-6">Access the comprehensive administration panel to manage users, view statistics, and monitor platform activity in real-time.</p>
-                        
+
                         <div class="grid grid-cols-2 gap-4 mb-8">
                             <div class="flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -151,7 +151,7 @@
                                 <span>System Settings</span>
                             </div>
                         </div>
-                        
+
                         <a href="{{ route('login') }}" class="btn-primary px-6 py-4 rounded-lg font-medium inline-flex items-center">
                             <span>Access Dashboard</span>
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -178,7 +178,7 @@
                             <span class="gold-text">API</span> <span class="glow-text">Documentation</span>
                         </h2>
                         <p class="text-gray-300 text-lg mb-6">Comprehensive documentation for developers to integrate with our platform. Explore endpoints, authentication methods, and example requests.</p>
-                        
+
                         <div class="grid grid-cols-2 gap-4 mb-8">
                             <div class="flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -205,7 +205,7 @@
                                 <span>Request Examples</span>
                             </div>
                         </div>
-                        
+
                         <a href="{{ route('api.docs') }}" class="btn-secondary px-6 py-4 rounded-lg font-medium inline-flex items-center">
                             <span>View Documentation</span>
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

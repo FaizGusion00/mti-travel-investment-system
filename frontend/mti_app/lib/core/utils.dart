@@ -239,7 +239,7 @@ class Utils {
 
   // Share content
   static Future<void> shareReferralCode(String referralCode) async {
-    final String shareText = 'Join MTI Travel Investment using my referral code: $referralCode\n\nDownload the app: ${AppConstants.appDownloadUrl}';
+    final String shareText = 'Join Meta Travel International using my referral code: $referralCode\n\nDownload the app: ${AppConstants.appDownloadUrl}';
     final Uri uri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(shareText)}');
     
     if (await canLaunchUrl(uri)) {

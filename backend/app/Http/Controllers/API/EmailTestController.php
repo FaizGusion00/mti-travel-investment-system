@@ -33,17 +33,17 @@ class EmailTestController extends Controller
 
         $emailService = new EmailService();
         $otpService = new OtpService();
-        
+
         // Generate a test OTP
         $otp = mt_rand(100000, 999999);
-        
+
         // Send email
         $emailSent = $emailService->sendOtpEmail(
-            $request->email, 
+            $request->email,
             $otp,
             $request->name ?: null
         );
-        
+
         return response()->json([
             'status' => 'success',
             'message' => $emailSent ? 'Test OTP email sent successfully' : 'Failed to send test email',
@@ -59,7 +59,7 @@ class EmailTestController extends Controller
             ]
         ]);
     }
-    
+
     /**
      * Send a test email using the AWS SES integration
      *
@@ -90,20 +90,20 @@ class EmailTestController extends Controller
                 <title>Test Email</title>
             </head>
             <body>
-                <h1>MTI Travel Investment Email Test</h1>
+                <h1>Meta Travel International Email Test</h1>
                 <p>This is a test email to verify that the AWS SES SMTP integration is working.</p>
                 <p>Time sent: ' . now()->format('Y-m-d H:i:s') . '</p>
             </body>
             </html>';
-            
+
             \Illuminate\Support\Facades\Mail::send([], [], function ($message) use ($request, $content) {
                 $message
                     ->to($request->email)
-                    ->subject('MTI Travel Investment - Email Test')
+                    ->subject('Meta Travel International - Email Test')
                     ->from(config('mail.from.address'), config('mail.from.name'))
                     ->html($content);
             });
-            
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Test email sent successfully',

@@ -34,14 +34,14 @@ class PrivacyPolicyScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeading('MTI Travel Investment Privacy Policy')
+                _buildHeading('Meta Travel International Privacy Policy')
                     .animate()
                     .fadeIn(duration: 400.ms)
                     .slideY(begin: 0.3, end: 0),
                 SizedBox(height: 20),
                 _buildSection(
                   'Introduction',
-                  'MTI Travel Investment ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application ("App"). Please read this Privacy Policy carefully. By using the App, you consent to the practices described in this policy.',
+                  'Meta Travel International ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application ("App"). Please read this Privacy Policy carefully. By using the App, you consent to the practices described in this policy.',
                 ).animate()
                     .fadeIn(duration: 400.ms, delay: 100.ms)
                     .slideY(begin: 0.3, end: 0),
@@ -76,7 +76,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   'We may share your information in the following circumstances:\n\n'
                   '• With service providers who perform services on our behalf\n'
                   '• To comply with legal requirements, such as a law, regulation, court order, or subpoena\n'
-                  '• To protect the safety, rights, property, or security of MTI Travel Investment, the App, any third party, or the general public\n'
+                  '• To protect the safety, rights, property, or security of Meta Travel International, the App, any third party, or the general public\n'
                   '• In connection with, or during negotiations of, any merger, sale of company assets, financing, or acquisition of all or a portion of our business\n'
                   '• With your consent or at your direction\n\n'
                   'We do not sell your personal information to third parties.',

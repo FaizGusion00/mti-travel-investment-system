@@ -34,14 +34,14 @@ class TermsConditionsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeading('MTI Travel Investment Terms & Conditions')
+                _buildHeading('Meta Travel International Terms & Conditions')
                     .animate()
                     .fadeIn(duration: 400.ms)
                     .slideY(begin: 0.3, end: 0),
                 SizedBox(height: 20),
                 _buildSection(
                   'Acceptance of Terms',
-                  'By accessing and using the MTI Travel Investment application ("App"), you acknowledge that you have read, understood, and agree to be bound by these Terms & Conditions. If you do not agree with any part of these terms, you may not use our App.',
+                  'By accessing and using the Meta Travel International application ("App"), you acknowledge that you have read, understood, and agree to be bound by these Terms & Conditions. If you do not agree with any part of these terms, you may not use our App.',
                 ).animate()
                     .fadeIn(duration: 400.ms, delay: 100.ms)
                     .slideY(begin: 0.3, end: 0),
@@ -53,7 +53,7 @@ class TermsConditionsScreen extends StatelessWidget {
                     .slideY(begin: 0.3, end: 0),
                 _buildSection(
                   'Investment Risks',
-                  'All investments involve risk, and the past performance of a security, industry, sector, market, or financial product does not guarantee future results. MTI Travel Investment does not provide financial advice, and the information provided in the App should not be considered as such. Always conduct your own research and consider seeking advice from an independent financial advisor.',
+                  'All investments involve risk, and the past performance of a security, industry, sector, market, or financial product does not guarantee future results. Meta Travel International does not provide financial advice, and the information provided in the App should not be considered as such. Always conduct your own research and consider seeking advice from an independent financial advisor.',
                 ).animate()
                     .fadeIn(duration: 400.ms, delay: 300.ms)
                     .slideY(begin: 0.3, end: 0),
@@ -65,19 +65,19 @@ class TermsConditionsScreen extends StatelessWidget {
                     .slideY(begin: 0.3, end: 0),
                 _buildSection(
                   'Intellectual Property',
-                  'The App and its original content, features, and functionality are owned by MTI Travel Investment and are protected by international copyright, trademark, patent, trade secret, and other intellectual property or proprietary rights laws. You may not reproduce, distribute, modify, create derivative works of, publicly display, publicly perform, republish, download, store, or transmit any of the material on our App.',
+                  'The App and its original content, features, and functionality are owned by Meta Travel International and are protected by international copyright, trademark, patent, trade secret, and other intellectual property or proprietary rights laws. You may not reproduce, distribute, modify, create derivative works of, publicly display, publicly perform, republish, download, store, or transmit any of the material on our App.',
                 ).animate()
                     .fadeIn(duration: 400.ms, delay: 500.ms)
                     .slideY(begin: 0.3, end: 0),
                 _buildSection(
                   'Limitation of Liability',
-                  'In no event shall MTI Travel Investment, its directors, employees, partners, agents, suppliers, or affiliates be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or other intangible losses, resulting from your access to or use of or inability to access or use the App.',
+                  'In no event shall Meta Travel International, its directors, employees, partners, agents, suppliers, or affiliates be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or other intangible losses, resulting from your access to or use of or inability to access or use the App.',
                 ).animate()
                     .fadeIn(duration: 400.ms, delay: 600.ms)
                     .slideY(begin: 0.3, end: 0),
                 _buildSection(
                   'Changes to Terms',
-                  'MTI Travel Investment reserves the right to modify or replace these Terms & Conditions at any time. It is your responsibility to review these Terms & Conditions periodically for changes. Your continued use of the App following the posting of any changes constitutes acceptance of those changes.',
+                  'Meta Travel International reserves the right to modify or replace these Terms & Conditions at any time. It is your responsibility to review these Terms & Conditions periodically for changes. Your continued use of the App following the posting of any changes constitutes acceptance of those changes.',
                 ).animate()
                     .fadeIn(duration: 400.ms, delay: 700.ms)
                     .slideY(begin: 0.3, end: 0),

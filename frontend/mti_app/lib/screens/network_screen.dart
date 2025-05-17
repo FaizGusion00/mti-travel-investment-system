@@ -786,7 +786,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     try {
       // Construct the link with the web registration page and affiliate_code parameter
       final String referralLink = 'https://register.metatravel.ai/register?affiliate_code=${_referralCode}';
-      final String shareMessage = 'Join MTI Travel International Community using my referral code: $_referralCode\n\nSign up here: $referralLink';
+      final String shareMessage = 'Join Meta Travel International Community using my referral code: $_referralCode\n\nSign up here: $referralLink';
 
       // First copy to clipboard as a backup
       await Clipboard.setData(ClipboardData(text: shareMessage));
@@ -814,7 +814,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       // Use share_plus to share the referral link
       await Share.share(
         shareMessage,
-        subject: 'MTI Travel Investment Referral',
+        subject: 'Meta Travel International Referral',
       );
     } catch (e) {
       developer.log('Error sharing referral code: $e', name: 'Network');

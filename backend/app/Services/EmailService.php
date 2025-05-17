@@ -14,68 +14,68 @@ class EmailService
      * @param string $toEmail The recipient email address
      * @param string $otp The OTP code
      * @param string $name The recipient's name
-     * 
+     *
      * @return bool True if the email was sent successfully, false otherwise
      */
     public function sendOtpEmail(string $toEmail, string $otp, string $name = null): bool
     {
         try {
-            $subject = 'Your MTI Travel Investment Verification Code';
-            
+            $subject = 'Your Meta Travel International Verification Code';
+
             Mail::send([], [], function (Message $message) use ($toEmail, $otp, $name, $subject) {
                 $message->to($toEmail)
                     ->subject($subject)
                     ->from(config('mail.from.address'), config('mail.from.name'))
                     ->html($this->getOtpEmailTemplate($otp, $name));
             });
-            
+
             return true;
         } catch (\Exception $e) {
             Log::error('Failed to send OTP email: ' . $e->getMessage());
             return false;
         }
     }
-    
+
     /**
      * Send a password reset email
      *
      * @param string $toEmail The recipient email address
      * @param string $resetLink The password reset link
      * @param string $name The recipient's name
-     * 
+     *
      * @return bool True if the email was sent successfully, false otherwise
      */
     public function sendPasswordResetEmail(string $toEmail, string $resetLink, string $name = null): bool
     {
         try {
-            $subject = 'Password Reset for MTI Travel Investment';
-            
+            $subject = 'Password Reset for Meta Travel International';
+
             Mail::send([], [], function (Message $message) use ($toEmail, $resetLink, $name, $subject) {
                 $message->to($toEmail)
                     ->subject($subject)
                     ->from(config('mail.from.address'), config('mail.from.name'))
                     ->html($this->getPasswordResetEmailTemplate($resetLink, $name));
             });
-            
+
             return true;
         } catch (\Exception $e) {
             Log::error('Failed to send password reset email: ' . $e->getMessage());
             return false;
         }
     }
-    
+
     /**
      * Get the OTP email HTML template
      *
      * @param string $otp The OTP code
      * @param string $name The recipient's name
-     * 
+     *
      * @return string The HTML template
      */
     private function getOtpEmailTemplate(string $otp, string $name = null): string
     {
         $greeting = $name ? "Hello $name," : "Hello,";
-        
+
         return '
         <!DOCTYPE html>
         <html>
@@ -130,18 +130,18 @@ class EmailService
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>MTI Travel Investment</h1>
+                    <h1>Meta Travel International</h1>
                 </div>
                 <div class="content">
                     <p>' . $greeting . '</p>
-                    <p>Thank you for registering with MTI Travel Investment. To complete your registration, please use the following verification code:</p>
+                    <p>Thank you for registering with Meta Travel International. To complete your registration, please use the following verification code:</p>
                     <div class="otp-code">' . $otp . '</div>
                     <p>This code will expire in 15 minutes.</p>
                     <p>If you did not request this code, please disregard this email.</p>
-                    <p>Best regards,<br>MTI Travel Investment Team</p>
+                    <p>Best regards,<br>Meta Travel International Team</p>
                 </div>
                 <div class="footer">
-                    <p>&copy; ' . date('Y') . ' MTI Travel Investment. All rights reserved.</p>
+                    <p>&copy; ' . date('Y') . ' Meta Travel International. All rights reserved.</p>
                     <p>This is an automated message, please do not reply.</p>
                 </div>
             </div>
@@ -149,19 +149,19 @@ class EmailService
         </html>
         ';
     }
-    
+
     /**
      * Get the password reset email HTML template
      *
      * @param string $resetLink The password reset link
      * @param string $name The recipient's name
-     * 
+     *
      * @return string The HTML template
      */
     private function getPasswordResetEmailTemplate(string $resetLink, string $name = null): string
     {
         $greeting = $name ? "Hello $name," : "Hello,";
-        
+
         return '
         <!DOCTYPE html>
         <html>
@@ -217,7 +217,7 @@ class EmailService
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>MTI Travel Investment</h1>
+                    <h1>Meta Travel International</h1>
                 </div>
                 <div class="content">
                     <p>' . $greeting . '</p>
@@ -227,10 +227,10 @@ class EmailService
                     </p>
                     <p>This link will expire in 1 hour.</p>
                     <p>If you did not request a password reset, please disregard this email.</p>
-                    <p>Best regards,<br>MTI Travel Investment Team</p>
+                    <p>Best regards,<br>Meta Travel International Team</p>
                 </div>
                 <div class="footer">
-                    <p>&copy; ' . date('Y') . ' MTI Travel Investment. All rights reserved.</p>
+                    <p>&copy; ' . date('Y') . ' Meta Travel International. All rights reserved.</p>
                     <p>This is an automated message, please do not reply.</p>
                 </div>
             </div>

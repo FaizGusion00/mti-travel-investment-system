@@ -217,7 +217,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            ' 2025 MTI Travel Investment',
+                            ' 2025 Meta Travel International',
                             style: TextStyle(color: Colors.white70, fontSize: 12),
                           ),
                         ],
