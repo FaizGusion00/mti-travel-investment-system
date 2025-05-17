@@ -8,10 +8,12 @@ import 'dart:developer' as developer;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter/foundation.dart';
 
 import 'config/routes.dart';
 import 'config/theme.dart';
 import 'core/constants.dart';
+import 'core/environment.dart';
 import 'services/storage_service.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
@@ -147,8 +149,29 @@ Future<void> _checkForAppUpdates() async {
 
 /// Preload app data that might be needed immediately
 Future<void> _preloadAppData() async {
+  // Initialize environment settings
+  _initializeEnvironment();
+  
   // You could preload user preferences, cached data, etc.
   // This runs during startup but doesn't block the UI
+}
+
+/// Initialize environment settings to ensure they're consistent across app
+void _initializeEnvironment() {
+  try {
+    // Access isProductionUrl to trigger the getter which will load from localStorage in web
+    final isProduction = Environment.isProductionUrl;
+    
+    developer.log(
+      'Environment initialized: ${isProduction ? "PRODUCTION" : "DEVELOPMENT"} URLs',
+      name: 'MTI.App.Environment',
+    );
+  } catch (e) {
+    developer.log(
+      'Error initializing environment settings: $e', 
+      name: 'MTI.App.EnvironmentError'
+    );
+  }
 }
 
 /// Setup memory monitoring for development

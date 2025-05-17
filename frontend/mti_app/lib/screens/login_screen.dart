@@ -10,11 +10,13 @@ import '../widgets/galaxy_scaffold.dart';
 import '../core/constants.dart';
 import '../services/storage_service.dart';
 import '../services/api_service.dart';
+import '../core/environment.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:ui';
 import 'dart:developer' as developer;
 import 'package:shimmer/shimmer.dart';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -238,6 +240,46 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       showShootingStars: true,
       body: Stack(
         children: [
+          // Environment indicator (only visible in debug mode)
+          if (!kReleaseMode)
+            Positioned(
+              top: 60,
+              right: 10,
+              child: GestureDetector(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('API URL: ${Environment.apiBaseUrl}'),
+                      backgroundColor: Environment.isProductionUrl 
+                          ? Colors.red 
+                          : Colors.green,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Environment.isProductionUrl 
+                        ? Colors.red.withOpacity(0.7) 
+                        : Colors.green.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    Environment.isProductionUrl ? 'PROD' : 'DEV',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           // Animated logo and Welcome text (single instance, responsive)
           Positioned(
             top: _screenHeight * 0.10,
@@ -728,7 +770,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12.0),
                         child: Text(
-                          "v0.0.4",
+                          "v0.0.3",
                           style: TextStyle(
                             color: AppTheme.tertiaryTextColor.withOpacity(0.6),
                             fontSize: 12,

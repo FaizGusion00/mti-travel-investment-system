@@ -5,6 +5,7 @@ import '../core/environment.dart';
 import '../core/constants.dart';
 import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 
 /// Debug screen for development purposes
 /// This screen allows developers to view and change environment settings
@@ -156,6 +157,32 @@ class _DebugScreenState extends State<DebugScreen> {
                     ),
                   ],
                 ),
+              ),
+            ),
+
+            // Add a simple toggle switch for production/development URLs
+            ElevatedButton(
+              onPressed: () {
+                // Toggle the environment
+                Environment.isProductionUrl = !Environment.isProductionUrl;
+                
+                // Log the change
+                final mode = Environment.isProductionUrl ? 'PRODUCTION' : 'DEVELOPMENT';
+                print('Environment switched to $mode mode');
+                ApiService.logApiConfiguration();
+                
+                // Show a toast or snackbar to inform the user
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('Switched to $mode URLs'),
+                  duration: const Duration(seconds: 2),
+                ));
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Environment.isProductionUrl ? Colors.green : Colors.blue,
+              ),
+              child: Text(
+                'URL Mode: ${Environment.isProductionUrl ? "PRODUCTION" : "DEVELOPMENT"}',
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ],

@@ -538,6 +538,33 @@ class _AccountsScreenState extends State<AccountsScreen> {
     super.dispose();
   }
 
+  // Helper function to format image URLs correctly for both web and mobile
+  String getFormattedImageUrl(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return '';
+    }
+
+    // If URL already starts with http:// or https://, it's already a full URL
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+
+    // Remove leading slash if present for consistency
+    final cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+
+    // For web, we need the full absolute URL
+    if (kIsWeb) {
+      // Use window.location.origin to get the current domain
+      // or fallback to the baseUrl from AppConstants
+      final baseUrl = AppConstants.baseUrl;
+      developer.log('Web image URL created: $baseUrl/$cleanPath', name: 'MTI_Accounts');
+      return '$baseUrl/$cleanPath';
+    } else {
+      // For mobile, prepend the base URL
+      return '${AppConstants.baseUrl}/$cleanPath';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -748,31 +775,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
                                           // For remote images
                                           developer.log('Loading profile image from URL: $_profileImageUrl', name: 'MTI_Profile');
 
-                                          String imageUrl = _profileImageUrl!;
+                                          String imageUrl = getFormattedImageUrl(_profileImageUrl);
 
-                                          // Make sure the URL is properly formatted for web
-                                          if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
-                                            if (kIsWeb) {
-                                              // For web, we need to ensure the full URL is used
-                                              // Usually the API returns a relative path like 'storage/avatars/filename.jpg'
-                                              // First remove any leading slash for consistency
-                                              if (imageUrl.startsWith('/')) {
-                                                imageUrl = imageUrl.substring(1);
-                                              }
-
-                                              // Now prepend the base URL
-                                              imageUrl = '${AppConstants.baseUrl}/${imageUrl}';
-                                              developer.log('Web image URL: $imageUrl', name: 'MTI_Profile');
-                                            } else {
-                                              // For mobile, use standard path handling
-                                              if (imageUrl.startsWith('/')) {
-                                                imageUrl = '${AppConstants.baseUrl}${imageUrl}';
-                                              } else {
-                                                imageUrl = '${AppConstants.baseUrl}/${imageUrl}';
-                                              }
-                                            }
-                                            developer.log('Final image URL: $imageUrl', name: 'MTI_Profile');
-                                          }
                                           return Image.network(
                                             imageUrl,
                                             fit: BoxFit.cover,

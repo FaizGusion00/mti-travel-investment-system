@@ -10,6 +10,8 @@ import 'dart:developer' as developer;
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
+import '../core/constants.dart';
 
 // Custom layout delegate for positioning root and level 1 nodes
 class NetworkLayoutDelegate extends MultiChildLayoutDelegate {
@@ -626,6 +628,33 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
 
   }
 
+  // Helper function to format image URLs correctly for both web and mobile
+  String getFormattedImageUrl(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return '';
+    }
+
+    // If URL already starts with http:// or https://, it's already a full URL
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+
+    // Remove leading slash if present for consistency
+    final cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+
+    // For web, we need the full absolute URL
+    if (kIsWeb) {
+      // Use window.location.origin to get the current domain
+      // or fallback to the baseUrl from AppConstants
+      final baseUrl = AppConstants.baseUrl;
+      developer.log('Web image URL created: $baseUrl/$cleanPath', name: 'Network');
+      return '$baseUrl/$cleanPath';
+    } else {
+      // For mobile, prepend the base URL
+      return '${AppConstants.baseUrl}/$cleanPath';
+    }
+  }
+
   // Load user's affiliate code from profile
   Future<void> _loadAffiliateCode() async {
     setState(() {
@@ -1133,7 +1162,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
                   borderRadius: BorderRadius.circular(30),
                   child: avatarUrl != null && avatarUrl.isNotEmpty 
                     ? Image.network(
-                        avatarUrl,
+                        getFormattedImageUrl(avatarUrl),
                         fit: BoxFit.cover,
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
@@ -1533,7 +1562,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
             Expanded(
               child: _buildGradientStatCard(
                 "Team Growth",
-                "+12%",
+                "Coming Soon",
                 Icons.trending_up_outlined,
                 [Color(0xFF2ECC71), Color(0xFF27AE60)],
               ),

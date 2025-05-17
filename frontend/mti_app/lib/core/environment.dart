@@ -1,9 +1,87 @@
 import 'package:flutter/foundation.dart';
 
+// Create a web storage interface
+abstract class WebStorage {
+  String? getItem(String key);
+  void setItem(String key, String value);
+}
+
+// Implement for web
+class BrowserWebStorage implements WebStorage {
+  @override
+  String? getItem(String key) {
+    return null; // Implemented in web_storage_web.dart
+  }
+
+  @override
+  void setItem(String key, String value) {
+    // Implemented in web_storage_web.dart
+  }
+}
+
+// Implement for non-web (memory-based)
+class MemoryWebStorage implements WebStorage {
+  final Map<String, String> _storage = {};
+  
+  @override
+  String? getItem(String key) {
+    return _storage[key];
+  }
+
+  @override
+  void setItem(String key, String value) {
+    _storage[key] = value;
+  }
+}
+
+// Factory to get the right implementation
+class WebStorageFactory {
+  static WebStorage? _instance;
+  
+  static WebStorage get instance {
+    _instance ??= kIsWeb 
+        ? BrowserWebStorage() 
+        : MemoryWebStorage();
+    return _instance!;
+  }
+}
+
 /// Environment configuration class for managing environment-specific settings
 class Environment {
   /// MAIN TOGGLE: Set this to true to use production URLs, false for development
-  static bool isProductionUrl = true;
+  static bool _isProductionUrl = true;
+  
+  /// Getter for isProductionUrl that checks web localStorage if in web mode
+  static bool get isProductionUrl {
+    // For web platform, check localStorage first
+    if (kIsWeb) {
+      try {
+        final storedValue = WebStorageFactory.instance.getItem('isProductionUrl');
+        if (storedValue != null) {
+          return storedValue == 'true';
+        }
+      } catch (e) {
+        // If localStorage fails, fallback to memory value
+        print('Failed to access localStorage: $e');
+      }
+    }
+    return _isProductionUrl;
+  }
+  
+  /// Setter for isProductionUrl that also updates web localStorage
+  static set isProductionUrl(bool value) {
+    _isProductionUrl = value;
+    
+    // For web platform, also store in localStorage
+    if (kIsWeb) {
+      try {
+        WebStorageFactory.instance.setItem('isProductionUrl', value.toString());
+      } catch (e) {
+        // If localStorage fails, just log the error
+        print('Failed to store in localStorage: $e');
+      }
+    }
+  }
   
   /// Production mode flag (based on build environment)
   static bool get isProduction => _getEnvironmentFlag('ENV') == 'production';
@@ -17,21 +95,20 @@ class Environment {
   static const String _productionWebUrl = 'https://panel.metatravel.ai'; // if web then change this guy too according to condition
   
   // Development server URLs
-  static const String _developmentWebUrl = 'http://localhost:8000';
+  static const String _developmentWebUrl = 'http://10.0.2.2:8000';
   static const String _androidEmulatorUrl = 'http://10.0.2.2:8000';
   static const String _localHostUrl = 'http://localhost:8000';
   
   // Local development server IP address
-  // IMPORTANT: Change this to your actual machine's IP address when testing on a device
   static const String localServerIP = '10.0.2.2'; // Default for Android emulator
   
   /// API base URL based on environment toggle
   static String get apiBaseUrl {
-    // If production URL is enabled, always return production URL
+    // If production URL is enabled, always return production URL for all platforms
     if (isProductionUrl) {
       return _productionApiUrl;
     } 
-    // Otherwise, return appropriate development URL based on platform
+    // Only use different development URLs if in development mode
     else {
       // For Android emulator or physical device
       if (defaultTargetPlatform == TargetPlatform.android) {
@@ -61,7 +138,11 @@ class Environment {
   /// Web API base URL to handle API calls from web platform
   static String get webApiBaseUrl {
     // Web needs absolute URLs, not relative ones
-    return kIsWeb ? _localHostUrl : apiBaseUrl;
+    if (kIsWeb) {
+      return isProductionUrl ? _productionWebUrl : _localHostUrl;
+    } else {
+      return apiBaseUrl;
+    }
   }
   
   /// Web API v1 URL

@@ -1659,8 +1659,41 @@ class ApiService {
     _log('Environment: $env');
     _log('Base URL: ${AppConstants.baseUrl}');
     _log('API V1 URL: ${AppConstants.apiV1BaseUrl}');
+    
+    // Log web-specific URLs
+    if (kIsWeb) {
+      _log('Web API Base URL: ${Environment.webApiBaseUrl}');
+      _log('Web API V1 URL: ${Environment.webApiV1Url}');
+    }
+    
     _log('Request Timeout: ${AppConstants.requestTimeout}s');
+    _log('Configuration Source: ${kIsWeb ? 'Web Browser' : 'Mobile App'}');
+    _log('Is Web Platform: ${kIsWeb ? 'Yes' : 'No'}');
     _log('=============================');
+    
+    // Force refresh environment when logging configuration
+    _verifyEnvironmentConsistency();
+  }
+  
+  // Verify environment consistency
+  static void _verifyEnvironmentConsistency() {
+    try {
+      // Verify that AppConstants and Environment values match
+      final envFlag = Environment.isProductionUrl;
+      final appConstantsFlag = AppConstants.isProductionMode;
+      
+      if (envFlag != appConstantsFlag) {
+        _log('WARNING: Environment configuration mismatch detected!');
+        _log('Environment.isProductionUrl = $envFlag');
+        _log('AppConstants.isProductionMode = $appConstantsFlag');
+        
+        // Synchronize the values
+        AppConstants.isProductionMode = envFlag;
+        _log('Environment synchronized to: ${envFlag ? "PRODUCTION" : "DEVELOPMENT"}');
+      }
+    } catch (e) {
+      _log('Error during environment consistency check: $e');
+    }
   }
 
   // Toggle between development and production environment

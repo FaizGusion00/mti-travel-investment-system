@@ -1,6 +1,6 @@
 // Custom service worker for better cache control
 const CACHE_NAME = 'mti-app-cache';
-const APP_VERSION = '0.0.3';  // Hard coded version - must update when app version changes
+const APP_VERSION = '0.0.5';  // Hard coded version - must update when app version changes
 
 // Files to cache immediately
 const urlsToCache = [

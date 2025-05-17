@@ -23,7 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDarkMode = true;
   String _selectedCurrency = 'USD';
   String _selectedLanguage = 'English';
-  String _appVersion = 'v0.0.4';
+  String _appVersion = 'v0.0.3';
   bool _isLoading = false;
   String? _profileImageUrl;
   bool _isButtonPressed = false;
@@ -52,8 +52,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       // Use default version if package info fails
       setState(() {
-        _appVersion = 'v0.0.4';
+        _appVersion = 'v0.0.3';
       });
+    }
+  }
+
+  // Helper function to format image URLs correctly for both web and mobile
+  String getFormattedImageUrl(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return '';
+    }
+
+    // If URL already starts with http:// or https://, it's already a full URL
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+
+    // Remove leading slash if present for consistency
+    final cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+
+    // For web, we need the full absolute URL
+    if (kIsWeb) {
+      // Use window.location.origin to get the current domain
+      // or fallback to the baseUrl from AppConstants
+      final baseUrl = AppConstants.baseUrl;
+      developer.log('Web image URL created: $baseUrl/$cleanPath', name: 'MTI_Settings');
+      return '$baseUrl/$cleanPath';
+    } else {
+      // For mobile, prepend the base URL
+      return '${AppConstants.baseUrl}/$cleanPath';
     }
   }
 
@@ -497,31 +524,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     );
                     
                     // Log the URL being used for debugging
-                    String imageUrl = _profileImageUrl!;
-                    
-                    // Ensure URL has http/https protocol and is properly encoded
-                    if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
-                      if (kIsWeb) {
-                        // For web, we need to ensure the full URL is used
-                        // Usually the API returns a relative path like 'storage/avatars/filename.jpg'
-                        // First remove any leading slash for consistency
-                        if (imageUrl.startsWith('/')) {
-                          imageUrl = imageUrl.substring(1);
-                        }
-                        
-                        // Now prepend the base URL
-                        imageUrl = '${AppConstants.baseUrl}/${imageUrl}';
-                        developer.log('Web image URL: $imageUrl', name: 'MTI_Settings');
-                      } else {
-                        // For mobile, use standard path handling
-                        if (imageUrl.startsWith('/')) {
-                          imageUrl = '${AppConstants.baseUrl}${imageUrl}';
-                        } else {
-                          imageUrl = '${AppConstants.baseUrl}/${imageUrl}';
-                        }
-                      }
-                      developer.log('Final image URL: $imageUrl', name: 'MTI_Settings');
-                    }
+                    String imageUrl = getFormattedImageUrl(_profileImageUrl);
                     
                     return Image.network(
                       imageUrl,
