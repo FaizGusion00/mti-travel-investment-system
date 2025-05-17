@@ -65,9 +65,10 @@ class ApiService {
   // Debug logging method
   static void _log(String message, {String? error}) {
     if (kDebugMode) {
-      print('MTI_API: $message');
+      final environmentInfo = isProduction ? 'PROD' : 'DEV';
+      print('MTI_API[$environmentInfo]: $message');
       if (error != null) {
-        print('MTI_API_ERROR: $error');
+        print('MTI_API_ERROR[$environmentInfo]: $error');
       }
     }
   }
@@ -1301,32 +1302,62 @@ class ApiService {
         return {'status': 'error', 'message': 'Authentication token required'};
       }
 
-      final url = '$baseUrl/network?levels=$levels&include_more=true';
+      // Add a debug flag for extra debugging
+      final bool isDebug = true; // Always collect diagnostic info
+      final debugParam = '&debug=true&env=${isProduction ? 'prod' : 'dev'}';
+      final url = '$baseUrl/network?levels=$levels&include_more=true$debugParam';
       _log('Requesting network data from: $url');
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
+      // Use the retry mechanism for better handling of 500 errors
+      final response = await retryApiRequest(
+        () => http.get(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+            'X-App-Environment': isProduction ? 'production' : 'development',
+            'X-App-Version': '1.0.0', // Update with your app version
+            'X-Debug-Mode': isDebug.toString(),
+          },
+        ),
+        maxRetries: 3,
+        delayMs: 1500,
+        retryOn500: true,
+        operationName: 'Get Network Data',
       );
 
       _log('Network response status code: ${response.statusCode}');
+      
+      // Log the full raw response for debugging (especially for production issues)
+      String rawResponseString = '';
+      try {
+        rawResponseString = response.body.length > 1000 
+          ? '${response.body.substring(0, 1000)}...(truncated)' 
+          : response.body;
+        _log('Raw network response: $rawResponseString');
+      } catch (e) {
+        _log('Error accessing response body: $e');
+      }
       
       if (response.statusCode == 200) {
         try {
           final responseData = jsonDecode(response.body);
           _log('Successfully retrieved network data');
           
-          // Debug raw response
-          final rawResponseString = response.body.length > 1000 
-            ? '${response.body.substring(0, 1000)}...(truncated)' 
-            : response.body;
-          _log('Raw network response: $rawResponseString');
-          
           // Process the data according to the structure
           if (responseData['status'] == 'success') {
+            // Make sure data exists and is a map
+            if (!responseData.containsKey('data') || responseData['data'] == null) {
+              _log('API response missing data field', error: 'Data field not found in API response');
+              return {'status': 'error', 'message': 'API response missing data field', 'raw_response': rawResponseString};
+            }
+            
+            // Verify data is a map
+            if (responseData['data'] is! Map<String, dynamic>) {
+              _log('API data is not a map', error: 'Data is ${responseData['data'].runtimeType}');
+              return {'status': 'error', 'message': 'API data is not in expected format', 'raw_response': rawResponseString};
+            }
+            
             final Map<String, dynamic> dataObj = responseData['data'] as Map<String, dynamic>;
             
             // Log the structure of the data for debugging
@@ -1339,25 +1370,47 @@ class ApiService {
             // Extract user data based on available structure
             if (dataObj.containsKey('user')) {
               _log('Using user node from data - API sending new format');
-              rootNode = dataObj['user'] as Map<String, dynamic>;
+              
+              // Verify user is a map
+              if (dataObj['user'] is! Map<String, dynamic>) {
+                _log('User data is not a map', error: 'User is ${dataObj['user'].runtimeType}');
+                return {'status': 'error', 'message': 'User data is not in expected format', 'raw_response': rawResponseString};
+              }
+              
+              rootNode = Map<String, dynamic>.from(dataObj['user'] as Map<String, dynamic>);
               totalMembers = dataObj['total_members'] ?? 0;
               directReferrals = dataObj['direct_referrals'] ?? 0;
               
+              // Ensure critical fields exist with correct mapping for production & dev
               // Ensure the node has required fields
               if (!rootNode.containsKey('name')) {
-                rootNode['name'] = rootNode['full_name'] ?? 'You';
+                rootNode['name'] = rootNode['full_name'] ?? rootNode['username'] ?? 'You';
               }
               
-              // Debug the root node
-              _log('Root node: ${jsonEncode(rootNode)}');
-              _log('Root node children count: ${(rootNode['children'] as List?)?.length ?? 0}');
+              if (!rootNode.containsKey('id') && rootNode.containsKey('affiliate_code')) {
+                rootNode['id'] = rootNode['affiliate_code'];
+              }
               
-              // Log the first level children for debugging
-              if (rootNode.containsKey('children') && rootNode['children'] is List) {
-                final children = rootNode['children'] as List;
-                if (children.isNotEmpty) {
-                  _log('First child: ${jsonEncode(children.first)}');
+              // Normalize trader status field
+              _normalizeTraderStatus(rootNode);
+              
+              // Debug the root node
+              try {
+                _log('Root node: ${jsonEncode(rootNode)}');
+                _log('Root node children count: ${(rootNode['children'] as List?)?.length ?? 0}');
+                
+                // Log the first level children for debugging
+                if (rootNode.containsKey('children') && rootNode['children'] is List) {
+                  final children = rootNode['children'] as List;
+                  if (children.isNotEmpty) {
+                    _log('First child: ${jsonEncode(children.first)}');
+                  }
+                  
+                  // Process children with normalized fields
+                  rootNode['children'] = _processDownlines(children, 1);
                 }
+              } catch (e) {
+                _log('Error encoding root node: $e');
               }
             } 
             // Legacy format handling
@@ -1371,8 +1424,8 @@ class ApiService {
               
               // Create root node for current user
               rootNode = {
-                'id': userData['affiliate_code'] ?? '',
-                'name': userData['full_name'] ?? 'You',
+                'id': userData['affiliate_code'] ?? userData['id']?.toString() ?? '',
+                'name': userData['full_name'] ?? userData['username'] ?? 'You',
                 'level': 0,
                 'downlines': downlines.length,
                 'isActive': true,
@@ -1401,9 +1454,7 @@ class ApiService {
           return {
             'status': 'error', 
             'message': 'Error parsing network data: $e',
-            'raw_response': response.body.length > 200 
-              ? '${response.body.substring(0, 200)}...(truncated)' 
-              : response.body
+            'raw_response': rawResponseString
           };
         }
       } else {
@@ -1413,14 +1464,32 @@ class ApiService {
           errorMessage = errorData['message'] ?? errorMessage;
         } catch (e) {
           // Ignore JSON decode errors on error responses
+          _log('Error parsing error response: $e');
         }
 
         _log('Failed to get network data', error: errorMessage);
-        return {'status': 'error', 'message': errorMessage};
+        return {
+          'status': 'error', 
+          'message': errorMessage,
+          'status_code': response.statusCode,
+          'raw_response': rawResponseString
+        };
       }
     } catch (e) {
       _log('Exception getting network data', error: e.toString());
       return {'status': 'error', 'message': 'Failed to get network data: $e'};
+    }
+  }
+  
+  // Helper method to normalize is_trader field to boolean
+  static void _normalizeTraderStatus(Map<String, dynamic> node) {
+    final isTrader = node['is_trader'];
+    if (isTrader is int) {
+      node['is_trader'] = isTrader == 1;
+    } else if (isTrader is String) {
+      node['is_trader'] = isTrader == '1' || isTrader.toLowerCase() == 'true';
+    } else if (isTrader is! bool) {
+      node['is_trader'] = false; // Default if not recognized format
     }
   }
   
@@ -1430,40 +1499,66 @@ class ApiService {
     
     int position = 0;
     for (var downline in downlines) {
-      final children = downline['children'] ?? [];
-      final bool hasMoreChildren = downline['has_more_children'] == true;
-      final int moreChildrenCount = downline['more_children_count'] ?? 0;
-      
-      // Debug log for important node data
-      _log('Processing downline: ${downline['full_name'] ?? downline['name']} with is_trader=${downline['is_trader']}, status=${downline['status']}');
-      
-      // Create a copy of all original data to preserve any fields we might need
-      Map<String, dynamic> node = Map<String, dynamic>.from(downline);
-      
-      // Ensure critical fields are set
-      node['id'] = downline['id'] ?? downline['affiliate_code'] ?? '';
-      node['name'] = downline['name'] ?? downline['full_name'] ?? 'Unknown';
-      node['level'] = level;
-      node['position'] = downline['position'] ?? position++;
-      node['downlines'] = children.length;
-      
-      // Preserve status and trader flag but ensure defaults are provided
-      node['isActive'] = downline['isActive'] ?? true; // Show by default
-      node['status'] = downline['status'] ?? 'Active';
-      node['is_trader'] = downline['is_trader']; // Preserve original value
-      
-      node['joinDate'] = downline['joinDate'] ?? _formatDate(downline['created_at']);
-      
-      // Process children recursively
-      node['children'] = _processDownlines(children, level + 1);
-      
-      // Add view more indicator if needed
-      if (hasMoreChildren) {
-        node['has_more_children'] = true;
-        node['more_children_count'] = moreChildrenCount;
+      try {
+        // Handle potential null or non-map values
+        if (downline == null) {
+          _log('Warning: null downline object encountered');
+          continue;
+        }
+        
+        if (downline is! Map) {
+          _log('Warning: downline is not a map: ${downline.runtimeType}');
+          continue;
+        }
+        
+        // Create a clean copy with string keys
+        final Map<String, dynamic> node = {};
+        downline.forEach((key, value) {
+          node[key.toString()] = value;
+        });
+        
+        // Extract children which might be under different field names
+        final List<dynamic> children = node['children'] ?? [];
+        final bool hasMoreChildren = node['has_more_children'] == true;
+        final int moreChildrenCount = node['more_children_count'] ?? 0;
+        
+        // Debug log for important node data
+        final String nodeName = node['full_name'] ?? node['name'] ?? node['username'] ?? 'Unknown';
+        final dynamic traderFlag = node['is_trader'];
+        final String nodeStatus = node['status'] ?? 'Unknown';
+        
+        _log('Processing downline: $nodeName with is_trader=$traderFlag, status=$nodeStatus');
+        
+        // Ensure critical fields are set
+        node['id'] = node['id'] ?? node['affiliate_code'] ?? node['user_id']?.toString() ?? '';
+        node['name'] = node['name'] ?? node['full_name'] ?? node['username'] ?? 'Unknown';
+        node['level'] = level;
+        node['position'] = node['position'] ?? position++;
+        node['downlines'] = children.length;
+        
+        // Preserve status and trader flag but ensure defaults are provided
+        node['isActive'] = node['isActive'] ?? node['status'] == 'Active' || node['status'] == 'active' || true;
+        node['status'] = node['status'] ?? 'Active';
+        
+        // Normalize trader status
+        _normalizeTraderStatus(node);
+        
+        node['joinDate'] = node['joinDate'] ?? _formatDate(node['created_at']);
+        
+        // Process children recursively
+        node['children'] = _processDownlines(children, level + 1);
+        
+        // Add view more indicator if needed
+        if (hasMoreChildren) {
+          node['has_more_children'] = true;
+          node['more_children_count'] = moreChildrenCount;
+        }
+        
+        result.add(node);
+      } catch (e) {
+        _log('Error processing downline: $e');
+        // Continue processing other nodes
       }
-      
-      result.add(node);
     }
     
     return result;
@@ -1532,12 +1627,19 @@ class ApiService {
         return {'status': 'error', 'message': 'Authentication token required'};
       }
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/network/summary'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
+      // Use the retry mechanism for better handling of 500 errors
+      final response = await retryApiRequest(
+        () => http.get(
+          Uri.parse('$baseUrl/network/summary'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        ),
+        maxRetries: 2,
+        delayMs: 1000,
+        retryOn500: true,
+        operationName: 'Get Network Summary',
       );
 
       if (response.statusCode == 200) {
@@ -1863,12 +1965,22 @@ class ApiService {
         return {'status': 'error', 'message': 'Authentication token required'};
       }
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/network/node/$affiliateCode?levels=$levels&include_more=true'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
+      final url = '$baseUrl/network/node/$affiliateCode?levels=$levels&include_more=true';
+      _log('Requesting network node data from: $url');
+      
+      // Use the retry mechanism for better handling of 500 errors
+      final response = await retryApiRequest(
+        () => http.get(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        ),
+        maxRetries: 2,
+        delayMs: 1000,
+        retryOn500: true,
+        operationName: 'Get Network Node',
       );
 
       if (response.statusCode == 200) {
@@ -2125,6 +2237,118 @@ class ApiService {
       }
     } catch (e) {
       _log('Error getting user profile: $e');
+      return {
+        'status': 'error',
+        'message': 'Error: $e',
+      };
+    }
+  }
+
+  // Helper method to retry failed API requests
+  static Future<http.Response> retryApiRequest(
+    Future<http.Response> Function() requestFn,
+    {int maxRetries = 2, 
+    int delayMs = 1000,
+    bool retryOn500 = true,
+    String? operationName}
+  ) async {
+    int attempts = 0;
+    late http.Response response;
+    
+    while (attempts < maxRetries + 1) { // +1 for initial attempt
+      attempts++;
+      final attemptInfo = attempts > 1 ? ' (Retry attempt ${attempts-1}/$maxRetries)' : '';
+      
+      try {
+        _log('${operationName ?? "API request"} starting$attemptInfo');
+        response = await requestFn();
+        
+        // If not 500 or not configured to retry on 500, return immediately
+        if (response.statusCode != 500 || !retryOn500) {
+          return response;
+        }
+        
+        // If it's a 500 and we're configured to retry on 500
+        if (attempts <= maxRetries) {
+          _log('${operationName ?? "API request"} failed with 500$attemptInfo - will retry after ${delayMs}ms', 
+               error: 'Status 500, Response: ${response.body.length > 100 ? response.body.substring(0, 100) + '...' : response.body}');
+          await Future.delayed(Duration(milliseconds: delayMs));
+          continue;
+        }
+      } catch (e) {
+        // For network/timeout exceptions, retry if we still have attempts left
+        if (attempts <= maxRetries) {
+          _log('${operationName ?? "API request"} failed with exception$attemptInfo - will retry after ${delayMs}ms', 
+               error: e.toString());
+          await Future.delayed(Duration(milliseconds: delayMs));
+          continue;
+        }
+        
+        // If this was our last attempt, rethrow the exception
+        rethrow;
+      }
+      
+      // If we've tried maxRetries and still got a 500, return the last response
+      return response;
+    }
+    
+    // This should never be reached as one of the above returns will be hit
+    return response;
+  }
+
+  // Diagnose network referrals - useful for debugging 500 errors
+  static Future<Map<String, dynamic>> diagnoseNetworkReferrals() async {
+    _log('Running network referral diagnostics');
+    
+    try {
+      final token = await getToken();
+      if (token == null) {
+        _log('No token available for network diagnostics request');
+        return {
+          'status': 'error',
+          'message': 'Authentication token not available',
+        };
+      }
+      
+      final url = '$baseUrl/network/diagnose';
+      _log('Requesting network diagnostics from: $url');
+      
+      // Use the retry mechanism for better handling of errors
+      final response = await retryApiRequest(
+        () => http.get(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+            'X-App-Environment': isProduction ? 'production' : 'development',
+            'X-App-Version': '1.0.0', // Update with your app version
+            'X-Debug-Mode': 'true',
+          },
+        ),
+        maxRetries: 2,
+        delayMs: 1000,
+        retryOn500: true,
+        operationName: 'Network Diagnostics',
+      );
+      
+      _log('Network diagnostics response status code: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+        _log('Network diagnostics completed successfully');
+        return result;
+      } else {
+        final errorResponse = response.body.isNotEmpty ? jsonDecode(response.body) : {'message': 'Unknown error'};
+        _log('Network diagnostics failed: ${errorResponse['message']}');
+        return {
+          'status': 'error',
+          'message': errorResponse['message'] ?? 'Failed to diagnose network',
+          'status_code': response.statusCode,
+        };
+      }
+    } catch (e) {
+      _log('Error diagnosing network: $e');
       return {
         'status': 'error',
         'message': 'Error: $e',

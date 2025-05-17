@@ -333,125 +333,197 @@ class StarryNightPainter extends CustomPainter {
   
   @override
   void paint(Canvas canvas, Size size) {
-    // Create a starry night background gradient
-    final backgroundPaint = Paint()
-      ..shader = ui.Gradient.radial(
-        Offset(size.width * 0.5, size.height * 0.5),
-        size.width,
-        [
-          Color(0xFF000510), // Very dark blue center
-          Color(0xFF00081a), // Dark blue edges
-        ],
-      );
-    
-    // Paint for stars with more vivid appearance
-    final starPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    
-    // Draw stars with enhanced twinkling effect
-    for (var star in stars) {
-      // More complex twinkle with combined sine waves for natural effect
-      final twinkle = (math.sin(animationValue * star.blinkSpeed) + 
-                      math.sin(animationValue * star.blinkSpeed * 1.3 + 0.5)) / 3 + 0.7;
-                      
-      // Occasional color variation for some stars
-      final colorVariation = (star.x + star.y) % 1.0 > 0.7;
-      final starColor = colorVariation 
-          ? Color.lerp(Colors.white, Colors.lightBlueAccent, 0.3)! 
-          : Colors.white;
-          
-      final adjustedBrightness = isLowPerformanceMode ? 0.8 : star.brightness * twinkle;
-      
-      starPaint.color = starColor.withOpacity(adjustedBrightness);
-      
-      // Draw a glow effect for larger stars
-      if (star.size > 2.0) {
-        // Outer glow
-        canvas.drawCircle(
-          Offset(star.x * size.width, star.y * size.height),
-          star.size * 2.0 * twinkle,
-          Paint()
-            ..color = starColor.withOpacity(0.05)
-            ..style = PaintingStyle.fill,
-        );
-        
-        // Middle glow
-        canvas.drawCircle(
-          Offset(star.x * size.width, star.y * size.height),
-          star.size * 1.5 * twinkle,
-          Paint()
-            ..color = starColor.withOpacity(0.1)
-            ..style = PaintingStyle.fill,
-        );
-      }
-      
-      // Main star
-      canvas.drawCircle(
-        Offset(star.x * size.width, star.y * size.height),
-        star.size * (isLowPerformanceMode ? 1.0 : (0.8 + twinkle * 0.4)),
-        starPaint,
-      );
+    // Skip painting if size is zero to prevent exceptions
+    if (size.width <= 0 || size.height <= 0) {
+      return;
     }
     
-    // Only draw meteorites in normal performance mode
-    if (!isLowPerformanceMode) {
-      // Draw active meteorites
-      for (var meteorite in meteorites) {
-        if (meteorite.isActive) {
-          final currentX = meteorite.startX + (meteorite.endX - meteorite.startX) * meteorite.progress;
-          final currentY = meteorite.startY + (meteorite.endY - meteorite.startY) * meteorite.progress;
-          
-          // Create a brighter gradient for the tail
-          final gradient = ui.Gradient.linear(
-            Offset(currentX * size.width, currentY * size.height),
-            Offset(
-              (currentX - (meteorite.endX - meteorite.startX) * meteorite.tailLength * meteorite.progress) * size.width,
-              (currentY - (meteorite.endY - meteorite.startY) * meteorite.tailLength * meteorite.progress) * size.height,
-            ),
-            [
-              Colors.white,
-              Colors.white.withOpacity(0.7),
-              Colors.white.withOpacity(0.0),
-            ],
-            [0.0, 0.1, 1.0],
-          );
-          
-          // Draw a wider glow around the meteorite trail
-          final glowPaint = Paint()
-            ..shader = gradient
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = meteorite.size * 6.0
-            ..strokeCap = StrokeCap.round;
-          
-          final path = Path();
-          path.moveTo(currentX * size.width, currentY * size.height);
-          path.lineTo(
-            (currentX - (meteorite.endX - meteorite.startX) * meteorite.tailLength * meteorite.progress) * size.width,
-            (currentY - (meteorite.endY - meteorite.startY) * meteorite.tailLength * meteorite.progress) * size.height,
-          );
-          
-          // Draw the glow effect first
-          canvas.drawPath(path, glowPaint..color = Colors.white.withOpacity(0.1));
-          
-          // Draw the main trail
-          final meteoritePaint = Paint()
-            ..shader = gradient
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = meteorite.size * 2.5
-            ..strokeCap = StrokeCap.round;
-            
-          canvas.drawPath(path, meteoritePaint);
-          
-          // Draw meteorite head (brighter point)
-          canvas.drawCircle(
-            Offset(currentX * size.width, currentY * size.height),
-            meteorite.size * 1.5,
-            Paint()
-              ..color = Colors.white
-              ..style = PaintingStyle.fill,
-          );
+    try {
+      // Create a starry night background gradient
+      final backgroundPaint = Paint()
+        ..shader = ui.Gradient.radial(
+          Offset(size.width * 0.5, size.height * 0.5),
+          size.width > 0 ? size.width : 1.0, // Ensure non-zero radius
+          [
+            Color(0xFF000510), // Very dark blue center
+            Color(0xFF00081a), // Dark blue edges
+          ],
+        );
+      
+      // Fill the background
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        backgroundPaint,
+      );
+    
+      // Paint for stars with more vivid appearance
+      final starPaint = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill;
+      
+      // Draw stars with enhanced twinkling effect
+      for (var star in stars) {
+        // Make sure star position is within the canvas
+        if (star.x < 0 || star.x > 1 || star.y < 0 || star.y > 1) {
+          continue; // Skip stars outside the valid range
         }
+        
+        // More complex twinkle with combined sine waves for natural effect
+        final twinkle = (math.sin(animationValue * star.blinkSpeed) + 
+                       math.sin(animationValue * star.blinkSpeed * 1.3 + 0.5)) / 3 + 0.7;
+                      
+        // Occasional color variation for some stars
+        final colorVariation = (star.x + star.y) % 1.0 > 0.7;
+        final starColor = colorVariation 
+            ? Color.lerp(Colors.white, Colors.lightBlueAccent, 0.3)! 
+            : Colors.white;
+            
+        final adjustedBrightness = isLowPerformanceMode ? 0.8 : star.brightness * twinkle;
+        
+        starPaint.color = starColor.withOpacity(adjustedBrightness);
+        
+        // Get star position in actual canvas coordinates
+        final starX = star.x * size.width;
+        final starY = star.y * size.height;
+        
+        // Skip if star is outside the canvas bounds
+        if (starX.isNaN || starY.isNaN || starX < 0 || starY < 0 || 
+            starX > size.width || starY > size.height) {
+          continue;
+        }
+        
+        // Draw a glow effect for larger stars
+        if (star.size > 2.0) {
+          // Skip glow in low performance mode
+          if (!isLowPerformanceMode) {
+            // Outer glow - with safety checks
+            try {
+              canvas.drawCircle(
+                Offset(starX, starY),
+                star.size * 2.0 * twinkle,
+                Paint()
+                  ..color = starColor.withOpacity(0.05)
+                  ..style = PaintingStyle.fill,
+              );
+            } catch (e) {
+              // Ignore drawing errors
+            }
+            
+            // Middle glow - with safety checks
+            try {
+              canvas.drawCircle(
+                Offset(starX, starY),
+                star.size * 1.5 * twinkle,
+                Paint()
+                  ..color = starColor.withOpacity(0.1)
+                  ..style = PaintingStyle.fill,
+              );
+            } catch (e) {
+              // Ignore drawing errors
+            }
+          }
+        }
+        
+        // Main star - with safety checks
+        try {
+          canvas.drawCircle(
+            Offset(starX, starY),
+            star.size * (isLowPerformanceMode ? 1.0 : (0.8 + twinkle * 0.4)),
+            starPaint,
+          );
+        } catch (e) {
+          // Ignore drawing errors
+        }
+      }
+      
+      // Only draw meteorites in normal performance mode
+      if (!isLowPerformanceMode) {
+        // Draw active meteorites
+        for (var meteorite in meteorites) {
+          if (meteorite.isActive) {
+            try {
+              final currentX = meteorite.startX + (meteorite.endX - meteorite.startX) * meteorite.progress;
+              final currentY = meteorite.startY + (meteorite.endY - meteorite.startY) * meteorite.progress;
+              
+              // Skip if meteorite is outside canvas bounds
+              if (currentX < 0 || currentX > 1 || currentY < 0 || currentY > 1) {
+                continue;
+              }
+              
+              // Calculate position in canvas coordinates
+              final posX = currentX * size.width;
+              final posY = currentY * size.height;
+              
+              // Skip if calculated position is invalid
+              if (posX.isNaN || posY.isNaN || posX < 0 || posY < 0 || 
+                  posX > size.width || posY > size.height) {
+                continue;
+              }
+              
+              // Calculate tail end position
+              final tailEndX = (currentX - (meteorite.endX - meteorite.startX) * 
+                  meteorite.tailLength * meteorite.progress) * size.width;
+              final tailEndY = (currentY - (meteorite.endY - meteorite.startY) * 
+                  meteorite.tailLength * meteorite.progress) * size.height;
+                  
+              // Skip if tail end position is invalid
+              if (tailEndX.isNaN || tailEndY.isNaN) {
+                continue;
+              }
+              
+              // Create a brighter gradient for the tail
+              final gradient = ui.Gradient.linear(
+                Offset(posX, posY),
+                Offset(tailEndX, tailEndY),
+                [
+                  Colors.white,
+                  Colors.white.withOpacity(0.7),
+                  Colors.white.withOpacity(0.0),
+                ],
+                [0.0, 0.1, 1.0],
+              );
+              
+              // Draw a wider glow around the meteorite trail
+              final glowPaint = Paint()
+                ..shader = gradient
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = meteorite.size * 6.0
+                ..strokeCap = StrokeCap.round;
+              
+              final path = Path();
+              path.moveTo(posX, posY);
+              path.lineTo(tailEndX, tailEndY);
+              
+              // Draw the glow effect first
+              canvas.drawPath(path, glowPaint..color = Colors.white.withOpacity(0.1));
+              
+              // Draw the main trail
+              final meteoritePaint = Paint()
+                ..shader = gradient
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = meteorite.size * 2.5
+                ..strokeCap = StrokeCap.round;
+                
+              canvas.drawPath(path, meteoritePaint);
+              
+              // Draw meteorite head (brighter point)
+              canvas.drawCircle(
+                Offset(posX, posY),
+                meteorite.size * 1.5,
+                Paint()
+                  ..color = Colors.white
+                  ..style = PaintingStyle.fill,
+              );
+            } catch (e) {
+              // Ignore meteor drawing errors
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Log any unexpected painting errors
+      if (kDebugMode) {
+        print('StarryNightPainter error: $e');
       }
     }
   }
@@ -692,36 +764,125 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
       _isNetworkDataLoading = true;
     });
 
-    try {
-      // Get network data (hierarchical structure)
-      final networkResponse = await ApiService.getNetwork(levels: 5);
-      
-      // Debug log the raw response
-      developer.log('Network API raw response: ${networkResponse.toString().substring(0, math.min(networkResponse.toString().length, 1000))}...', name: 'Network');
-      
-      if (networkResponse['status'] == 'success') {
-        setState(() {
-          // Directly use the root node data from the updated API
-          _networkData = networkResponse['data'] ?? {};
-          
-          // Debug log to inspect network data structure
-          developer.log('Network data structure: ${_networkData.toString().substring(0, math.min(_networkData.toString().length, 1000))}...', name: 'Network');
-          
-          // Get the total members and direct referrals from API's accurate calculation
-          if (networkResponse.containsKey('total_members')) {
-            _networkStats['total_members'] = networkResponse['total_members'];
-          }
-          
-          if (networkResponse.containsKey('direct_referrals')) {
-            _networkStats['direct_referrals'] = networkResponse['direct_referrals'];
-          }
-        });
-        developer.log('Loaded network data successfully', name: 'Network');
-      } else {
-        developer.log('Failed to load network data: ${networkResponse['message']}', name: 'Network');
+    // Keep track of retry attempts
+    int retryCount = 0;
+    const maxRetries = 2;
+    
+    // Function to add environment info to logs
+    void logEnvironmentInfo() {
+      try {
+        final isProd = AppConstants.isProductionMode;
+        final baseUrl = AppConstants.baseUrl;
+        final apiV1Url = AppConstants.apiV1BaseUrl;
+        
+        developer.log('Environment: ${isProd ? "PRODUCTION" : "DEVELOPMENT"}', name: 'Network');
+        developer.log('Base URL: $baseUrl', name: 'Network');
+        developer.log('API V1 URL: $apiV1Url', name: 'Network');
+      } catch (e) {
+        developer.log('Error logging environment info: $e', name: 'Network');
       }
+    }
+    
+    // Log environment info at the start
+    logEnvironmentInfo();
 
+    // Function to load network data with retry logic
+    Future<bool> tryLoadNetwork() async {
+      try {
+        // Get network data (hierarchical structure)
+        developer.log('Requesting network data via API (attempt ${retryCount + 1}/${maxRetries + 1})', name: 'Network');
+        final networkResponse = await ApiService.getNetwork(levels: 5);
+        
+        // Debug log the raw response
+        try {
+          // Log a truncated version of the response
+          final respString = networkResponse.toString();
+          developer.log('Network API raw response: ${respString.substring(0, math.min(respString.length, 1000))}...', name: 'Network');
+          
+          // Check for status code in case of error
+          if (networkResponse['status'] == 'error') {
+            developer.log('Network API error: ${networkResponse['message']}', name: 'Network');
+            if (networkResponse.containsKey('status_code')) {
+              developer.log('Status code: ${networkResponse['status_code']}', name: 'Network');
+            }
+            if (networkResponse.containsKey('raw_response')) {
+              developer.log('Raw response: ${networkResponse['raw_response']}', name: 'Network');
+            }
+            
+            // If we get a server error (500) and not on last retry, retry
+            if (networkResponse['status_code'] == 500 && retryCount < maxRetries) {
+              retryCount++;
+              developer.log('Server error 500 detected, will retry...', name: 'Network');
+              // Wait a bit before retrying
+              await Future.delayed(Duration(seconds: 1));
+              return false; // Trigger retry
+            }
+          }
+        } catch (e) {
+          developer.log('Error logging network response: $e', name: 'Network');
+        }
+        
+        if (networkResponse['status'] == 'success') {
+          setState(() {
+            // Directly use the root node data from the updated API
+            _networkData = networkResponse['data'] ?? {};
+            
+            // Debug log to inspect network data structure
+            try {
+              final dataString = _networkData.toString();
+              developer.log('Network data structure: ${dataString.substring(0, math.min(dataString.length, 1000))}...', name: 'Network');
+            } catch (e) {
+              developer.log('Error logging network data structure: $e', name: 'Network');
+            }
+            
+            // Get the total members and direct referrals from API's accurate calculation
+            if (networkResponse.containsKey('total_members')) {
+              _networkStats['total_members'] = networkResponse['total_members'];
+            }
+            
+            if (networkResponse.containsKey('direct_referrals')) {
+              _networkStats['direct_referrals'] = networkResponse['direct_referrals'];
+            }
+          });
+          developer.log('Loaded network data successfully', name: 'Network');
+          return true; // Successfully loaded network data
+        } else {
+          developer.log('Failed to load network data: ${networkResponse['message']}', name: 'Network');
+          
+          // Retry on failure if not on last retry
+          if (retryCount < maxRetries) {
+            retryCount++;
+            developer.log('Will retry network data loading...', name: 'Network');
+            // Wait a bit before retrying
+            await Future.delayed(Duration(seconds: 1));
+            return false; // Trigger retry
+          }
+          return true; // Stop retrying but continue with summary/stats
+        }
+      } catch (e) {
+        developer.log('Error loading network data: $e', name: 'Network');
+        
+        // Retry on exception if not on last retry
+        if (retryCount < maxRetries) {
+          retryCount++;
+          developer.log('Will retry after error...', name: 'Network');
+          // Wait a bit before retrying
+          await Future.delayed(Duration(seconds: 1));
+          return false; // Trigger retry
+        }
+        return true; // Stop retrying but continue with summary/stats
+      }
+    }
+
+    // Try to load network data with retries
+    bool continueToSummary = false;
+    while (!continueToSummary && retryCount <= maxRetries) {
+      continueToSummary = await tryLoadNetwork();
+    }
+
+    try {
       // Get accurate network summary instead of the old network stats
+      developer.log('Requesting network summary via API', name: 'Network');
       final summaryResponse = await ApiService.getNetworkSummary();
       if (summaryResponse['status'] == 'success') {
         setState(() {
@@ -743,6 +904,7 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         developer.log('Failed to load network summary: ${summaryResponse['message']}', name: 'Network');
         
         // Fallback to old stats endpoint if summary fails
+        developer.log('Attempting fallback to network stats API', name: 'Network');
         final statsResponse = await ApiService.getNetworkStats();
         if (statsResponse['status'] == 'success') {
           setState(() {
@@ -751,14 +913,37 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
           developer.log('Loaded network stats successfully (fallback)', name: 'Network');
         } else {
           developer.log('Failed to load network stats: ${statsResponse['message']}', name: 'Network');
+          
+          // If all APIs fail, initialize with empty data to avoid UI errors
+          setState(() {
+            _networkStats = {
+              'total_members': 0,
+              'direct_referrals': 0,
+              'total_downlines': 0,
+              'downline_counts': {'level_1': 0}
+            };
+          });
         }
       }
     } catch (e) {
-      developer.log('Error loading network data: $e', name: 'Network');
+      developer.log('Error loading network summary/stats: $e', name: 'Network');
+      // Initialize with empty data on error
+      setState(() {
+        _networkData = _networkData ?? {}; // Keep existing network data if any
+        _networkStats = {
+          'total_members': 0,
+          'direct_referrals': 0,
+          'total_downlines': 0,
+          'downline_counts': {'level_1': 0}
+        };
+      });
     } finally {
       setState(() {
         _isNetworkDataLoading = false;
       });
+      
+      // Log final environment info again to aid debugging
+      logEnvironmentInfo();
     }
   }
 
@@ -1769,59 +1954,114 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     if (_networkData.isNotEmpty) {
       developer.log('Using network data from API', name: 'Network');
       
-      // Create a safe copy of the data to avoid modifying the original
-      final Map<String, dynamic> safeData = Map<String, dynamic>.from(_networkData);
-      
-      // Debug the entire structure for troubleshooting
-      developer.log('Network data structure: ${jsonEncode(safeData).substring(0, math.min(jsonEncode(safeData).length, 500))}...', name: 'Network');
-      
-      // Debug the top-level keys
-      if (safeData is Map<String, dynamic>) {
-        developer.log('Top level keys: ${safeData.keys.join(', ')}', name: 'Network');
-      }
-      
-      // Check for specific fields needed by the UI
-      if (!safeData.containsKey('id') && safeData.containsKey('affiliate_code')) {
-        developer.log('Setting id from affiliate_code', name: 'Network');
-        safeData['id'] = safeData['affiliate_code'];
-      }
-      
-      if (!safeData.containsKey('name') && safeData.containsKey('full_name')) {
-        developer.log('Setting name from full_name', name: 'Network');
-        safeData['name'] = safeData['full_name'];
-      }
-      
-      // Check if the 'children' field contains list data
-      if (safeData.containsKey('children')) {
-        final children = safeData['children'];
+      try {
+        // Create a safe copy of the data to avoid modifying the original
+        final Map<String, dynamic> safeData = Map<String, dynamic>.from(_networkData);
         
-        if (children is List) {
-          developer.log('Children count: ${children.length}', name: 'Network');
-          if (children.isNotEmpty) {
-            developer.log('First child: ${jsonEncode(children.first)}', name: 'Network');
+        // Log environment for debugging
+        final isProd = AppConstants.isProductionMode;
+        developer.log('Environment: ${isProd ? "PRODUCTION" : "DEVELOPMENT"}', name: 'Network');
+        
+        // Debug the entire structure for troubleshooting
+        try {
+          final jsonString = jsonEncode(safeData);
+          developer.log('Network data structure: ${jsonString.substring(0, math.min(jsonString.length, 500))}...', name: 'Network');
+        } catch (e) {
+          developer.log('Error encoding network data for logging: $e', name: 'Network');
+        }
+        
+        // Debug the top-level keys
+        if (safeData is Map<String, dynamic>) {
+          developer.log('Top level keys: ${safeData.keys.join(', ')}', name: 'Network');
+        }
+        
+        // Ensure required fields exist
+        // Check for specific fields needed by the UI
+        if (!safeData.containsKey('id')) {
+          if (safeData.containsKey('affiliate_code')) {
+            developer.log('Setting id from affiliate_code', name: 'Network');
+            safeData['id'] = safeData['affiliate_code'];
+          } else if (safeData.containsKey('user_id')) {
+            developer.log('Setting id from user_id', name: 'Network');
+            safeData['id'] = safeData['user_id'].toString();
+          } else if (safeData.containsKey('id') && safeData['id'] != null) {
+            // Already has id, might be an integer
+            developer.log('Converting numeric id to string', name: 'Network');
+            safeData['id'] = safeData['id'].toString();
+          } else {
+            developer.log('No id found, setting default id', name: 'Network');
+            safeData['id'] = 'user-${DateTime.now().millisecondsSinceEpoch}';
           }
+        } else if (safeData['id'] is int) {
+          // Convert integer id to string
+          safeData['id'] = safeData['id'].toString();
+        }
+        
+        if (!safeData.containsKey('name')) {
+          if (safeData.containsKey('full_name')) {
+            developer.log('Setting name from full_name', name: 'Network');
+            safeData['name'] = safeData['full_name'];
+          } else if (safeData.containsKey('username')) {
+            developer.log('Setting name from username', name: 'Network');
+            safeData['name'] = safeData['username'];
+          } else if (safeData.containsKey('email')) {
+            developer.log('Setting name from email', name: 'Network');
+            safeData['name'] = safeData['email'].toString().split('@')[0];
+          } else {
+            developer.log('No name found, setting default name', name: 'Network');
+            safeData['name'] = 'User';
+          }
+        }
+        
+        // Add other required fields for the root node
+        safeData['level'] = safeData['level'] ?? 0;
+        safeData['isActive'] = safeData['isActive'] ?? safeData['status'] == 'Active' || safeData['status'] == 'active' || true;
+        safeData['is_trader'] = _normalizeTraderStatus(safeData['is_trader']);
+        
+        // Check if the 'children' field contains list data
+        if (safeData.containsKey('children')) {
+          final children = safeData['children'];
           
-          // Ensure we're processing children correctly
-          safeData['children'] = _processSafeChildren(children);
+          if (children is List) {
+            developer.log('Children count: ${children.length}', name: 'Network');
+            if (children.isNotEmpty) {
+              try {
+                final childJson = jsonEncode(children.first);
+                developer.log('First child: ${childJson.substring(0, math.min(childJson.length, 500))}', name: 'Network');
+              } catch (e) {
+                developer.log('Error encoding first child for logging: $e', name: 'Network');
+              }
+            } else {
+              developer.log('Children list is empty', name: 'Network');
+            }
+            
+            // Ensure we're processing children correctly
+            safeData['children'] = _processSafeChildren(children);
+          } else {
+            developer.log('Children field is not a list: ${children.runtimeType}', name: 'Network');
+            safeData['children'] = [];
+          }
         } else {
-          developer.log('Children field is not a list: ${children.runtimeType}', name: 'Network');
+          developer.log('No children field found in network data', name: 'Network');
           safeData['children'] = [];
         }
-      } else {
-        developer.log('No children field found in network data', name: 'Network');
-        safeData['children'] = [];
+        
+        return safeData;
+      } catch (e) {
+        developer.log('Error processing network data: $e', name: 'Network');
+        // Fall through to return minimal structure
       }
-      
-      return safeData;
     }
 
-    // If no data, return minimal structure
+    // If no data or error processing, return minimal structure
     developer.log('No network data available, using placeholder', name: 'Network');
     return {
       'id': _referralCode.isEmpty ? 'N/A' : _referralCode,
       'name': 'You',
       'level': 'Level 0',
       'downlines': 0,
+      'is_trader': false,
+      'isActive': true,
       'children': [], // Empty network when no data is available
     };
   }
@@ -1846,44 +2086,108 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
     try {
       List<Map<String, dynamic>> result = [];
       
+      int index = 0;
       for (var child in children) {
-        if (child is! Map<String, dynamic>) {
-          developer.log('Invalid child data format: ${child.runtimeType} - $child', name: 'Network');
-          continue; // Skip invalid children
-        }
-        
-        final safeChild = Map<String, dynamic>.from(child);
-        
-        // Ensure required fields exist
-        if (!safeChild.containsKey('id')) {
-          // Try to use affiliate_code as id if available
-          if (safeChild.containsKey('affiliate_code')) {
-            safeChild['id'] = safeChild['affiliate_code'];
-          } else {
-            safeChild['id'] = 'unknown-${children.indexOf(child)}';
+        try {
+          // Check if child is a valid map
+          if (child is! Map) {
+            developer.log('Invalid child data format (not a map): ${child.runtimeType}', name: 'Network');
+            continue; // Skip invalid children
           }
-        }
-        
-        if (!safeChild.containsKey('name')) {
-          // Try to use full_name as name if available
-          if (safeChild.containsKey('full_name')) {
-            safeChild['name'] = safeChild['full_name'];
-          } else {
-            safeChild['name'] = 'Unknown User';
+          
+          // Convert to Map<String, dynamic> even if it's a different map type
+          final Map childMap = child;
+          final safeChild = Map<String, dynamic>.from(childMap.map((k, v) => 
+            MapEntry(k.toString(), v))); // Force string keys
+          
+          // Ensure required fields exist - Try all possible field names from both dev and production
+          if (!safeChild.containsKey('id')) {
+            // Fields from both dev and production database schema
+            if (safeChild.containsKey('affiliate_code')) {
+              safeChild['id'] = safeChild['affiliate_code'];
+            } else if (safeChild.containsKey('user_id')) {
+              safeChild['id'] = safeChild['user_id'].toString();
+            } else if (safeChild.containsKey('id')) {
+              // Already has id but might be an integer
+              safeChild['id'] = safeChild['id'].toString();
+            } else {
+              safeChild['id'] = 'unknown-${index}';
+            }
+          } else if (safeChild['id'] is! String) {
+            // Convert integer id to string
+            safeChild['id'] = safeChild['id'].toString();
           }
+          
+          if (!safeChild.containsKey('name')) {
+            // Try various fields for name including all database columns
+            if (safeChild.containsKey('full_name')) {
+              safeChild['name'] = safeChild['full_name'];
+            } else if (safeChild.containsKey('username')) {
+              safeChild['name'] = safeChild['username'];
+            } else if (safeChild.containsKey('email')) {
+              // Use part of email address as name
+              final email = safeChild['email']?.toString() ?? '';
+              safeChild['name'] = email.isNotEmpty ? email.split('@')[0] : 'Unknown User';
+            } else {
+              safeChild['name'] = 'Unknown User';
+            }
+          }
+          
+          // Ensure status fields exist with defaults
+          safeChild['isActive'] = safeChild['isActive'] ?? 
+                                 safeChild['status'] == 'Active' || 
+                                 safeChild['status'] == 'active' ||
+                                 true; // Default to active
+          
+          // Normalize trader status - different APIs might use different formats
+          final isTrader = safeChild['is_trader'];
+          if (isTrader is int) {
+            safeChild['is_trader'] = isTrader == 1;
+          } else if (isTrader is String) {
+            safeChild['is_trader'] = isTrader == '1' || isTrader.toLowerCase() == 'true';
+          } else if (isTrader is! bool) {
+            safeChild['is_trader'] = false; // Default if not recognized format
+          }
+          
+          // Make sure all keys for MLM structure exist
+          safeChild['referral_id'] = safeChild['referral_id'] ?? safeChild['referrer_id'] ?? safeChild['upline_id'] ?? null;
+          safeChild['level'] = safeChild['level'] ?? 0;
+          
+          // Process nested children
+          if (safeChild.containsKey('children')) {
+            final nestedChildren = safeChild['children'];
+            if (nestedChildren is List) {
+              try {
+                safeChild['children'] = _processSafeChildren(nestedChildren);
+              } catch (e) {
+                developer.log('Error processing children for ${safeChild['name']}: $e', name: 'Network');
+                safeChild['children'] = [];
+              }
+            } else {
+              safeChild['children'] = [];
+            }
+          } else {
+            safeChild['children'] = [];
+          }
+          
+          // Add a log for each processed child node
+          if (index < 3) { // Only log first few to avoid spamming logs
+            try {
+              developer.log('Processed child node ${index+1}: id=${safeChild['id']}, name=${safeChild['name']}, is_trader=${safeChild['is_trader']}', name: 'Network');
+            } catch (e) {
+              // Ignore logging errors
+            }
+          }
+          
+          result.add(safeChild);
+          index++;
+        } catch (e) {
+          developer.log('Error processing individual child in network data: $e', name: 'Network');
+          // Continue to next child instead of failing the whole operation
         }
-        
-        // Process nested children
-        if (safeChild.containsKey('children') && safeChild['children'] is List) {
-          safeChild['children'] = _processSafeChildren(safeChild['children'] as List);
-        } else {
-          safeChild['children'] = [];
-        }
-        
-        result.add(safeChild);
       }
       
-      developer.log('Processed ${result.length} children', name: 'Network');
+      developer.log('Processed ${result.length} children (from ${children.length} total)', name: 'Network');
       return result;
     } catch (e) {
       developer.log('Error processing children data: $e', name: 'Network');
@@ -2545,6 +2849,18 @@ class _NetworkScreenState extends State<NetworkScreen> with SingleTickerProvider
         ),
       ),
     );
+  }
+
+  // Helper function to normalize the is_trader field to boolean
+  bool _normalizeTraderStatus(dynamic isTrader) {
+    if (isTrader is bool) {
+      return isTrader;
+    } else if (isTrader is int) {
+      return isTrader == 1;
+    } else if (isTrader is String) {
+      return isTrader == '1' || isTrader.toLowerCase() == 'true';
+    }
+    return false; // Default value if unknown format
   }
 }
 

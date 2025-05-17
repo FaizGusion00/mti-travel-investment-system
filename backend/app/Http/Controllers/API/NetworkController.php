@@ -199,77 +199,114 @@ class NetworkController extends Controller
         }
         
         // Get the user's affiliate code first
-        $user = User::select('id', 'affiliate_code', 'full_name')->find($userId);
+        $user = User::select('id', 'affiliate_code', 'full_name', 'referral_id', 'is_trader', 'status')
+                   ->find($userId);
         
-        if (!$user || empty($user->affiliate_code)) {
-            \Log::error("Network tree: User $userId has no affiliate code");
+        if (!$user) {
+            \Log::error("Network tree: User ID $userId not found");
             return [];
         }
         
-        \Log::info("Network tree: Looking for downlines of {$user->full_name} (ID: $userId) with affiliate code {$user->affiliate_code} at level $currentLevel");
-        
-        // Find users whose referral_id matches this user's affiliate_code
-        $downlines = User::where('referral_id', $user->affiliate_code)
-            ->select('id', 'full_name', 'email', 'affiliate_code', 'referral_id', 'created_at', 'status', 'is_trader')
-            ->get();
-        
-        \Log::info("Network tree: Found " . $downlines->count() . " downlines for affiliate code {$user->affiliate_code}");
-        
-        // Debug: List all found downlines
-        foreach ($downlines as $downline) {
-            \Log::info("Network tree: Downline found - {$downline->full_name} (ID: {$downline->id}, affiliate_code: {$downline->affiliate_code}, referral_id: {$downline->referral_id})");
+        if (empty($user->affiliate_code)) {
+            \Log::error("Network tree: User $userId ({$user->full_name}) has no affiliate code");
+            return [];
         }
         
-        $result = [];
-        $position = 0;
+        $isDebug = request()->has('debug') && request()->query('debug') === 'true';
+        $environment = request()->query('env', 'unknown');
+        $clientHeaders = request()->headers->all();
         
-        foreach ($downlines as $downline) {
-            $children = [];
-            $hasMoreChildren = false;
+        if ($isDebug) {
+            \Log::info("Network tree DEBUG [env: $environment]: Looking for downlines of {$user->full_name} (ID: $userId) with affiliate code {$user->affiliate_code} at level $currentLevel");
+            \Log::info("Network tree DEBUG [env: $environment]: User referral_id: {$user->referral_id}");
             
-            \Log::info("Network tree: Processing downline {$downline->full_name} (ID: {$downline->id}) with affiliate code {$downline->affiliate_code} at level $currentLevel");
-            
-            if ($currentLevel < $maxLevel) {
-                // Get downline's children
-                $children = $this->getDownlineTree($downline->id, $maxLevel, $currentLevel + 1, $includeMore);
-            } else if ($includeMore && $currentLevel == $maxLevel) {
-                // Check if there are more children beyond max level
-                $moreChildrenCount = User::where('referral_id', $downline->affiliate_code)->count();
-                $hasMoreChildren = $moreChildrenCount > 0;
-                \Log::info("Network tree: User {$downline->full_name} has $moreChildrenCount more children beyond max level");
-            }
-            
-            // Format the downline data
-            $downlineData = [
-                'id' => $downline->affiliate_code, // Use affiliate_code as ID for frontend
-                'user_id' => $downline->id,
-                'full_name' => $downline->full_name,
-                'name' => $downline->full_name, // For frontend consistency
-                'email' => $downline->email,
-                'affiliate_code' => $downline->affiliate_code,
-                'referral_id' => $downline->referral_id,
-                'created_at' => $downline->created_at,
-                'joinDate' => $downline->created_at->format('M d, Y'),
-                'level' => $currentLevel,
-                'position' => $position++,
-                'isActive' => true, // Show all nodes regardless of status
-                'status' => $downline->status ?? 'pending',
-                'is_trader' => $downline->is_trader ?? 0,
-                'children' => $children,
-                'children_count' => count($children),
-                'downlines' => count($children)
-            ];
-            
-            // Add indicator if there are more children beyond max level
-            if ($hasMoreChildren) {
-                $downlineData['has_more_children'] = true;
-                $downlineData['more_children_count'] = $moreChildrenCount;
-            }
-            
-            $result[] = $downlineData;
+            // Log headers for debugging 
+            \Log::info("Network tree DEBUG [env: $environment]: Request headers: " . json_encode(array_intersect_key($clientHeaders, array_flip(['x-app-environment', 'x-app-version', 'x-debug-mode', 'user-agent']))));
         }
         
-        return $result;
+        try {
+            // Find users whose referral_id matches this user's affiliate_code
+            $downlines = User::where('referral_id', $user->affiliate_code)
+                ->select('id', 'full_name', 'email', 'affiliate_code', 'referral_id', 'created_at', 'status', 'is_trader')
+                ->get();
+            
+            if ($isDebug) {
+                \Log::info("Network tree DEBUG [env: $environment]: Found " . $downlines->count() . " downlines for affiliate code {$user->affiliate_code}");
+                
+                // Debug: List all found downlines
+                foreach ($downlines as $index => $downline) {
+                    \Log::info("Network tree DEBUG [env: $environment]: Downline #$index found - {$downline->full_name} (ID: {$downline->id}, affiliate_code: {$downline->affiliate_code}, referral_id: {$downline->referral_id})");
+                }
+            }
+            
+            $result = [];
+            $position = 0;
+            
+            foreach ($downlines as $downline) {
+                $children = [];
+                $hasMoreChildren = false;
+                
+                if ($isDebug) {
+                    \Log::info("Network tree DEBUG [env: $environment]: Processing downline {$downline->full_name} (ID: {$downline->id}) with affiliate code {$downline->affiliate_code} at level $currentLevel");
+                }
+                
+                if ($currentLevel < $maxLevel) {
+                    // Get downline's children
+                    $children = $this->getDownlineTree($downline->id, $maxLevel, $currentLevel + 1, $includeMore);
+                } else if ($includeMore && $currentLevel == $maxLevel) {
+                    // Check if there are more children beyond max level
+                    $moreChildrenCount = User::where('referral_id', $downline->affiliate_code)->count();
+                    $hasMoreChildren = $moreChildrenCount > 0;
+                    
+                    if ($isDebug) {
+                        \Log::info("Network tree DEBUG [env: $environment]: User {$downline->full_name} has $moreChildrenCount more children beyond max level");
+                    }
+                }
+                
+                // Ensure is_trader is properly formatted as boolean for API response
+                $isTrader = $downline->is_trader;
+                if (is_string($isTrader)) {
+                    $isTrader = $isTrader === '1' || strtolower($isTrader) === 'true';
+                } else if (is_numeric($isTrader)) {
+                    $isTrader = (bool)$isTrader;
+                }
+                
+                // Format the downline data
+                $downlineData = [
+                    'id' => $downline->affiliate_code, // Use affiliate_code as ID for frontend
+                    'user_id' => $downline->id,
+                    'full_name' => $downline->full_name,
+                    'name' => $downline->full_name, // For frontend consistency
+                    'email' => $downline->email,
+                    'affiliate_code' => $downline->affiliate_code,
+                    'referral_id' => $downline->referral_id,
+                    'created_at' => $downline->created_at,
+                    'joinDate' => $downline->created_at->format('M d, Y'),
+                    'level' => $currentLevel,
+                    'position' => $position++,
+                    'isActive' => true, // Show all nodes regardless of status
+                    'status' => $downline->status ?? 'pending',
+                    'is_trader' => $isTrader,
+                    'children' => $children,
+                    'children_count' => count($children),
+                    'downlines' => count($children)
+                ];
+                
+                // Add indicator if there are more children beyond max level
+                if ($hasMoreChildren) {
+                    $downlineData['has_more_children'] = true;
+                    $downlineData['more_children_count'] = $moreChildrenCount;
+                }
+                
+                $result[] = $downlineData;
+            }
+            
+            return $result;
+        } catch (\Exception $e) {
+            \Log::error("Network tree ERROR [env: $environment]: Exception while getting downlines for user $userId: " . $e->getMessage());
+            \Log::error("Network tree ERROR [env: $environment]: " . $e->getTraceAsString());
+            return [];
+        }
     }
 
     /**
@@ -592,5 +629,110 @@ class NetworkController extends Controller
                 'direct_referrals' => $directDownlineCount
             ]
         ]);
+    }
+
+    /**
+     * Diagnostic endpoint to check referral relationships
+     * Can be used to debug referral-related 500 errors
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function diagnoseReferrals(Request $request)
+    {
+        $user = $request->user();
+        
+        // Get environment info from request
+        $environment = $request->header('X-App-Environment', 'unknown');
+        
+        // Log diagnostic request
+        \Log::info("Network Diagnostics: Running referral diagnosis for user {$user->id} ({$user->email}) in environment: $environment");
+        
+        try {
+            // Collect diagnostic data
+            $diagnosticData = [
+                'success' => true,
+                'user' => [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'affiliate_code' => $user->affiliate_code,
+                    'referral_id' => $user->referral_id,
+                    'referral_id_exists' => !empty($user->referral_id),
+                ],
+                'referrer' => null,
+                'direct_referrals' => [],
+                'relationships' => [
+                    'referrer_relation_works' => false,
+                    'referrals_relation_works' => false,
+                ],
+                'environment' => $environment,
+                'server_time' => now()->toIso8601String(),
+            ];
+            
+            // Check referrer (if any)
+            if (!empty($user->referral_id)) {
+                $referrer = User::where('affiliate_code', $user->referral_id)->first();
+                
+                if ($referrer) {
+                    $diagnosticData['referrer'] = [
+                        'id' => $referrer->id,
+                        'email' => $referrer->email,
+                        'affiliate_code' => $referrer->affiliate_code,
+                    ];
+                    
+                    // Check if Eloquent relationship works
+                    $referrerViaRelation = $user->referrer;
+                    $diagnosticData['relationships']['referrer_relation_works'] = 
+                        $referrerViaRelation && $referrerViaRelation->id === $referrer->id;
+                } else {
+                    $diagnosticData['referrer'] = [
+                        'error' => 'Referrer not found with affiliate_code: ' . $user->referral_id,
+                    ];
+                }
+            }
+            
+            // Check direct referrals (sample of up to 5)
+            $directReferrals = User::where('referral_id', $user->affiliate_code)
+                                   ->limit(5)
+                                   ->get();
+            
+            foreach ($directReferrals as $referral) {
+                $diagnosticData['direct_referrals'][] = [
+                    'id' => $referral->id,
+                    'email' => $referral->email,
+                    'affiliate_code' => $referral->affiliate_code,
+                    'referral_id' => $referral->referral_id,
+                ];
+            }
+            
+            // Check if Eloquent relationship works for referrals
+            $referralsViaRelation = $user->referrals;
+            $diagnosticData['relationships']['referrals_relation_works'] = 
+                $referralsViaRelation && $referralsViaRelation->count() === $directReferrals->count();
+            
+            // Counts
+            $diagnosticData['counts'] = [
+                'direct_referrals' => User::where('referral_id', $user->affiliate_code)->count(),
+                'direct_referrals_via_relation' => $user->referrals->count(),
+                'total_network_members' => $this->calculateTotalNetworkSize($user->affiliate_code),
+            ];
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Diagnostic completed successfully',
+                'data' => $diagnosticData
+            ]);
+        }
+        catch (\Exception $e) {
+            \Log::error("Network Diagnostics ERROR: Exception during referral diagnosis for user {$user->id}: " . $e->getMessage());
+            \Log::error("Network Diagnostics ERROR: " . $e->getTraceAsString());
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Exception during network diagnosis',
+                'error' => $e->getMessage(),
+                'environment' => $environment,
+            ], 500);
+        }
     }
 }

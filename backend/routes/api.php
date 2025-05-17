@@ -84,13 +84,16 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('/profile/update-wallet', [ProfileController::class, 'updateWallet']);
     
     // Network/Referral system
-    Route::get('/network', [NetworkController::class, 'getNetwork']);
-    Route::get('/network/downline', [NetworkController::class, 'getDownline']);
-    Route::get('/network/upline', [NetworkController::class, 'getUpline']);
-    Route::get('/network/stats', [NetworkController::class, 'getNetworkStats']);
-    Route::get('/network/commissions', [NetworkController::class, 'getCommissions']);
-    Route::get('/network/summary', [NetworkController::class, 'getNetworkSummary']);
-    Route::get('/network/node/{affiliate_code}', [NetworkController::class, 'getNetworkNode']);
+    Route::prefix('network')->group(function () {
+        Route::get('/', [NetworkController::class, 'getNetwork']);
+        Route::get('/downline', [NetworkController::class, 'getDownline']);
+        Route::get('/upline', [NetworkController::class, 'getUpline']);
+        Route::get('/stats', [NetworkController::class, 'getNetworkStats']);
+        Route::get('/commissions', [NetworkController::class, 'getCommissions']);
+        Route::get('/summary', [NetworkController::class, 'getNetworkSummary']);
+        Route::get('/node/{affiliate_code}', [NetworkController::class, 'getNetworkNode']);
+        Route::get('/diagnose', [NetworkController::class, 'diagnoseReferrals']);
+    });
     
     // Wallet and Trader functionality
     Route::get('/wallet', [WalletController::class, 'getWalletBalances']);

@@ -140,7 +140,7 @@ class User extends Authenticatable
      */
     public function referrer()
     {
-        return $this->belongsTo(User::class, 'referral_id');
+        return $this->belongsTo(User::class, 'referral_id', 'affiliate_code');
     }
 
     /**
@@ -150,6 +150,6 @@ class User extends Authenticatable
      */
     public function referrals()
     {
-        return $this->hasMany(User::class, 'referral_id');
+        return $this->hasMany(User::class, 'referral_id', 'affiliate_code');
     }
 }
